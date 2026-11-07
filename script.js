@@ -13,11 +13,8 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const cl  = (x, a, b) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, t) => a + (b - a) * t;
 const es  = k => k * k * (3 - 2 * k);
-const easeOut = k => 1 - Math.pow(1 - k, 3);
-const easeIn  = k => k * k * k;
 const $   = i => document.getElementById(i);
 const rd  = () => { const u = rnd(-1, 1), a = rnd(0, 2*PI), s = Math.sqrt(1-u*u); return new V(s*Math.cos(a), u, s*Math.sin(a)); };
-// shortest-path angle lerp
 const alerp = (a, b, t) => {
   let d = ((b - a + PI) % (2*PI)) - PI;
   if (d < -PI) d += 2*PI;
@@ -402,18 +399,8 @@ function say(name, text, d = 2.4) {
 function freeze(t) { hitStop = Math.max(hitStop, t); }
 
 /* ============================================================
-   CHARACTER SYSTEM — spring-based joints
+   POSE SYSTEM
    ============================================================ */
-/* Pose = target angles (radians). Blend via spring, not linear.
-   Keeps idle → action → idle transitions organic.
-   Bug fix list baked in:
-   - knee bends only forward (clamped)
-   - elbows bend only backward (clamped)
-   - shoulders clamped to anatomical range
-   - hips clamp so feet don't sink into floor
-   - head never snaps more than 40° per frame
-   - yaw uses alerp (shortest path), never spins
-*/
 const POSE = {
   idle:      { hy:0,   tx:0,   ty:0,   hdx:0,   lsx:-.15, lsz:.15, lel:-.35, rsx:-.15, rsz:-.15, rel:-.35, lhx:0,   lkn:.1,  rhx:0,   rkn:.1  },
   dash:      { hy:-.15,tx:.55, ty:0,   hdx:0,   lsx:.5,   lsz:.1,  lel:-.2,  rsx:.5,   rsz:-.1,  rel:-.2,  lhx:-.8, lkn:.9,  rhx:.7,  rkn:.9  },
@@ -447,12 +434,9 @@ function makeCharacter(opts) {
 
   const hips = grp(g, 0, 1.0, 0);
   const torso = grp(hips, 0, .1, 0);
-
-  // tapered torso
   const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(.20, .26, .55, 10), topM);
   torsoMesh.position.y = .36; torso.add(torsoMesh);
 
-  // cloth
   const clothMat = M(opts.top, {r:.5, side: THREE.DoubleSide});
   if (opts.hairStyle === 'gojo') {
     for (const s of [1, -1]) {
@@ -473,7 +457,6 @@ function makeCharacter(opts) {
   skull.position.y = .1; skull.scale.set(.95, 1.05, .95); head.add(skull);
   const jaw = new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 10, 0, PI*2, PI*.55, PI*.45), skinM);
   jaw.position.y = .04; head.add(jaw);
-
   const hairCap = new THREE.Mesh(new THREE.SphereGeometry(.17, 20, 15, 0, PI*2, 0, PI*.58), hairM);
   hairCap.position.y = .1; head.add(hairCap);
 
@@ -496,11 +479,11 @@ function makeCharacter(opts) {
     }
   }
 
-  const gojoEyes = [];
+  const eyes = [];
   for (const s of [1, -1]) {
     const eye = new THREE.Mesh(new THREE.SphereGeometry(.024, 10, 8), eyeM);
     eye.position.set(s*.062, .13, .148); head.add(eye);
-    gojoEyes.push(eye);
+    eyes.push(eye);
     const brow = new THREE.Mesh(new THREE.BoxGeometry(.05, .012, .01), hairM);
     brow.position.set(s*.062, .165, .152); brow.rotation.z = -s*.15; head.add(brow);
   }
@@ -534,10 +517,9 @@ function makeCharacter(opts) {
   const c = {
     g, hips, torso, head, armL, armR, legL, legR,
     L: armL, R: armR, lL: legL, lR: legR, p: g.position,
-    // spring states
     cur: { ...POSE.idle }, vel: {}, tgt: POSE.idle,
     ret: 0, yaw: 0, yawTgt: 0, pv: new V(), spd: 0,
-    hd: 0, tilt: 0, tiltTgt: 0, gojoEyes
+    hd: 0, tilt: 0, tiltTgt: 0, eyes
   };
   for (const k of KEYS) { if (c.cur[k] === undefined) c.cur[k] = 0; c.vel[k] = 0; }
   scene.add(g);
@@ -549,12 +531,10 @@ function setPose(c, name, hold = false) {
   c.ret = hold ? 0 : .3;
 }
 
-/* SPRING-BASED joint update — no popping, no overshoot blowout */
 function updateFighter(f, trackArr, other, dt, time) {
   const t = track(trackArr, time);
   f.p.set(t[1], t[3], t[2]);
 
-  // yaw — shortest path, never spins
   f.yawTgt = Math.atan2(other.p.x - f.p.x, other.p.z - f.p.z);
   f.yaw = alerp(f.yaw, f.yawTgt, 1 - Math.exp(-9 * dt));
   f.g.rotation.y = f.yaw;
@@ -571,7 +551,6 @@ function updateFighter(f, trackArr, other, dt, time) {
 
   if (f.ret > 0) { f.ret -= dt; if (f.ret <= 0) f.tgt = POSE.idle; }
 
-  // spring integrate each joint
   const c = f.cur, v = f.vel;
   const stiffness = 180, damping = 22;
   for (const k of KEYS) {
@@ -581,7 +560,6 @@ function updateFighter(f, trackArr, other, dt, time) {
     c[k] += v[k] * dt;
   }
 
-  // CLAMPS — anatomical safety, prevents the "bent backwards leg" bug
   c.lkn = cl(c.lkn, 0, 2.4);
   c.rkn = cl(c.rkn, 0, 2.4);
   c.lel = cl(c.lel, -2.4, 0);
@@ -591,7 +569,6 @@ function updateFighter(f, trackArr, other, dt, time) {
   c.tx  = cl(c.tx, -1, 1);
   c.hdx = cl(c.hdx, -.6, .6);
 
-  // apply with walk cycle
   const sw = Math.sin(f.hd) * .7 * f.spd;
   f.hips.position.y = 1 + c.hy + Math.sin(time * 2) * .015 - f.spd * .04;
   f.torso.rotation.set(c.tx, c.ty, 0);
@@ -602,7 +579,6 @@ function updateFighter(f, trackArr, other, dt, time) {
   f.lR.hp.rotation.x = c.rhx - sw; f.lR.kn.rotation.x = c.rkn + Math.max(0, sw) * 1.1;
 }
 
-/* World-space contact resolver — the key to making hits land */
 function worldOf(fighter, part) {
   const map = { head: fighter.head, chest: fighter.torso, hip: fighter.hips, fistR: fighter.R.hand, fistL: fighter.L.hand, footR: fighter.lR.kn };
   const tgt = map[part];
@@ -611,14 +587,12 @@ function worldOf(fighter, part) {
   return new V().setFromMatrixPosition(tgt.matrixWorld);
 }
 
-/* Strike — attacker snaps hand to contact, target reacts, freeze + CA + audio */
 function strike(attacker, target, part, power, opts = {}) {
   const contact = worldOf(target, part);
   freeze(opts.freeze ?? .05);
   setPose(target, 'hit', true);
   target.ret = opts.recover ?? .35;
 
-  // override attacker arm yaw toward contact for weight (visual snap)
   const dir = contact.clone().sub(attacker.p).normalize();
   if (caPass) caPass.uniforms.amount.value = Math.max(caPass.uniforms.amount.value, .01 + power * .003);
 
@@ -640,7 +614,7 @@ const sukuna = makeCharacter({ skin: 0xe6b898, top: 0xe8e0d0, pants: 0x16121c, h
 
 const blindfold = new THREE.Mesh(new THREE.TorusGeometry(.16, .03, 8, 24), new THREE.MeshStandardMaterial({ color: 0x050508 }));
 blindfold.rotation.x = PI / 2; blindfold.position.y = .13; gojo.head.add(blindfold);
-gojo.gojoEyes.forEach(e => e.visible = false);
+gojo.eyes.forEach(e => e.visible = false);
 
 for (const s of [1, -1]) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(.035, .1, .012), new THREE.MeshBasicMaterial({ color: 0x000000 }));
@@ -718,25 +692,35 @@ function blackFlash(p) {
 }
 
 /* ============================================================
-   AUDIO
+   AUDIO (rewritten — resume inside gesture, music AFTER resume)
    ============================================================ */
 let AC = null, masterGain = null, noiseBuf = null, musicNode = null;
-function initAudio() {
+
+async function initAudio() {
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
-    masterGain = AC.createGain(); masterGain.gain.value = .55; masterGain.connect(AC.destination);
+    if (AC.state === 'suspended') await AC.resume();
+    masterGain = AC.createGain();
+    masterGain.gain.value = .6;
+    masterGain.connect(AC.destination);
     noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  } catch (e) { AC = null; }
+    console.log('[audio] ready · state:', AC.state, '· sampleRate:', AC.sampleRate);
+  } catch (e) {
+    console.warn('[audio] init failed:', e);
+    AC = null;
+  }
 }
+
 function startMusic() {
   if (!AC || musicNode) return;
-  const droneOsc = AC.createOscillator();
+  if (AC.state === 'suspended') AC.resume();
+  const droneOsc  = AC.createOscillator();
   const droneOsc2 = AC.createOscillator();
   const droneGain = AC.createGain();
-  const filter = AC.createBiquadFilter();
-  droneOsc.type = 'sawtooth'; droneOsc.frequency.value = 55;
+  const filter    = AC.createBiquadFilter();
+  droneOsc.type  = 'sawtooth'; droneOsc.frequency.value  = 55;
   droneOsc2.type = 'sawtooth'; droneOsc2.frequency.value = 82.5;
   droneGain.gain.value = 0;
   filter.type = 'lowpass'; filter.frequency.value = 220;
@@ -747,30 +731,44 @@ function startMusic() {
   filter.frequency.linearRampToValueAtTime(900, t + 22);
   droneOsc.start(); droneOsc2.start();
   musicNode = { droneOsc, droneOsc2, droneGain, filter };
+  console.log('[audio] music started');
 }
+
 function noise(type, f0, f1, dur, vol, q = 1) {
   if (!AC) return;
   const s = AC.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
   const f = AC.createBiquadFilter(); f.type = type; f.Q.value = q;
   const t = AC.currentTime;
-  f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-  const g = AC.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + dur * .15); g.gain.exponentialRampToValueAtTime(.001, t + dur);
-  s.connect(f); f.connect(g); g.connect(masterGain); s.start(t); s.stop(t + dur + .05);
+  f.frequency.setValueAtTime(f0, t);
+  f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  const g = AC.createGain();
+  g.gain.setValueAtTime(.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + dur * .15);
+  g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  s.connect(f); f.connect(g); g.connect(masterGain);
+  s.start(t); s.stop(t + dur + .05);
 }
+
 function tone(type, f0, f1, dur, vol, delay = 0) {
   if (!AC) return;
   const o = AC.createOscillator(), g = AC.createGain();
   const t = AC.currentTime + delay;
-  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
-  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
-  o.connect(g); g.connect(masterGain); o.start(t); o.stop(t + dur + .05);
+  o.type = type;
+  o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g); g.connect(masterGain);
+  o.start(t); o.stop(t + dur + .05);
 }
+
 function impactAudio(power) {
   if (!AC) return;
   tone('sine', 90, 30, .3, .35 * power);
   noise('bandpass', 1500, 400, .08, .3 * power, 2);
   tone('triangle', 2400, 1200, .15, .1 * power);
 }
+
 function sfx(n) {
   if (!AC) return;
   try {
@@ -791,7 +789,7 @@ function sfx(n) {
       case 'charge':       tone('sawtooth',70,520,1,.1); noise('highpass',500,4000,1,.15); break;
       case 'beat':         tone('sine',60,30,.25,.9); tone('sine',60,30,.25,.9,.35); break;
     }
-  } catch (e) {}
+  } catch (e) { console.warn('[sfx]', n, e); }
 }
 
 /* ============================================================
@@ -801,9 +799,14 @@ const EVENTS = [];
 const at = (t, fn) => EVENTS.push([t, fn]);
 const midPoint = () => new V((gojo.p.x + sukuna.p.x) / 2, 1.4, 0);
 
-at(0, () => { showBanner('JUJUTSU KAISEN', 'GOJO  vs  SUKUNA', 4.4); flashScreen('#000', 1, 1.6); sfx('riser'); });
+at(0, () => {
+  showBanner('JUJUTSU KAISEN', 'GOJO  vs  SUKUNA', 4.4);
+  flashScreen('#000', 1, 1.6);
+  sfx('riser');
+  if (AC) tone('sine', 440, 440, .15, .15);
+});
 at(5.2, () => say('SUKUNA', '"Let me see what you are, sorcerer."', 1.6));
-at(6.9, () => { blindfold.position.y = .24; gojo.gojoEyes.forEach(e => e.visible = true); sfx('shing'); say('GOJO', '"Don\'t worry. I\'m the strongest."', 2); });
+at(6.9, () => { blindfold.position.y = .24; gojo.eyes.forEach(e => e.visible = true); sfx('shing'); say('GOJO', '"Don\'t worry. I\'m the strongest."', 2); });
 at(8.3, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); sfx('whoosh'); });
 
 at(9, () => {
@@ -945,6 +948,7 @@ const CAMERA_SHOTS = [];
 const addShot = (a, b, fn) => CAMERA_SHOTS.push([a, b, fn]);
 function setCam(px, py, pz, lx, ly, lz, fov = 50) {
   cam.position.set(px, py, pz);
+  cam.up.set(0, 1, 0);
   cam.lookAt(lx, ly, lz);
   if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
 }
@@ -966,15 +970,17 @@ addShot(28.4, 32.3, k => {
 });
 addShot(32.3, 35.4, k => setCam(0, 4.5, 6, 0, 4.5, -3, 45));
 
+let camRoll = 0;
 addShot(36.1, 43.5, k => {
   const a = k * PI * 2.2;
-  const roll = Math.sin(k * PI * 2) * .35;
+  camRoll = Math.sin(k * PI * 2) * .35;
   cam.position.set(Math.sin(a) * 8, 3 + Math.sin(k * PI * 2) * 1.5, Math.cos(a) * 8);
+  cam.up.set(Math.sin(camRoll), Math.cos(camRoll), 0);
   cam.lookAt(0, 2.5, 0);
-  cam.rotation.z = roll;
   const fov = lerp(55, 75, k);
   if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
 });
+addShot(43.5, 43.6, () => { cam.up.set(0, 1, 0); camRoll = 0; });
 
 addShot(51.5, 54.5, k => setCam(gojo.p.x + 3, 1.8, 3, gojo.p.x + 1.5, 1.5, 0, 40));
 addShot(54.5, 56.5, k => setCam(gojo.p.x + 4, 2.1, 4, gojo.p.x + 1.5, 1.5, 0, 42));
@@ -996,7 +1002,6 @@ function frame(now) {
   const rawDt = Math.min(.05, (now - last) / 1000);
   last = now;
 
-  // HIT STOP: freeze simulation, still render
   let dt = rawDt;
   if (hitStop > 0) {
     hitStop -= rawDt;
@@ -1080,14 +1085,17 @@ function frame(now) {
         break;
       }
     }
-    if (!camUpdated && T >= 63.2) setCam(0, 1.6, 6, 0, 1.4, 0, 40);
+    if (!camUpdated && T >= 63.2 && T < 63.25) setCam(0, 1.6, 6, 0, 1.4, 0, 40);
 
     if (shake > .01) {
+      const q = cam.quaternion.clone();
       cam.position.x += rnd(-1, 1) * shake * .15;
       cam.position.y += rnd(-1, 1) * shake * .15;
       cam.position.z += rnd(-1, 1) * shake * .15;
+      cam.quaternion.copy(q);
       shake *= Math.exp(-8 * dt);
     }
+    cam.updateProjectionMatrix();
 
     if (caPass) {
       caPass.uniforms.amount.value *= Math.exp(-6 * dt);
@@ -1108,7 +1116,8 @@ function frame(now) {
    ============================================================ */
 $('go').addEventListener('click', async () => {
   $('st').style.display = 'none';
-  initAudio();
+
+  await initAudio();
   startMusic();
 
   try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (e) {}
@@ -1121,11 +1130,10 @@ $('go').addEventListener('click', async () => {
     setEnv('city');
     shrine.scale.y = 1; shrine.visible = false; throne.visible = false;
     blindfold.position.y = .13;
-    gojo.gojoEyes.forEach(e => e.visible = false);
+    gojo.eyes.forEach(e => e.visible = false);
     gojo.g.visible = true; sukuna.g.visible = true; sukuna.g.position.set(12, 0, 0);
     orbBlue.visible = orbRed.visible = orbPurple.visible = false;
     infinityGroup.visible = false;
-
     for (const f of [gojo, sukuna]) {
       f.cur = { ...POSE.idle };
       f.tgt = POSE.idle;
@@ -1138,6 +1146,10 @@ $('go').addEventListener('click', async () => {
     for (let i = 0; i < smokeParticles.max; i++) { smokeParticles.l[i] = 0; smokeParticles.s[i] = 0; }
   }, 350);
 });
+
+document.addEventListener('pointerdown', () => {
+  if (AC && AC.state === 'suspended') AC.resume();
+}, { passive: true });
 
 $('re').addEventListener('click', () => location.reload());
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
