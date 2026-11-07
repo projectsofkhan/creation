@@ -83,7 +83,6 @@ body.cine .lb{transform:none}
   <div id="combo"></div>
   <div id="knobBase"><div id="knob"></div></div>
 
-  <!-- Buttons: Slash, Power Slash, Hook L, Hook R, Titan, Dash -->
   <div class="btn" id="bSlash" style="--s:15;right:calc(var(--u)*4.5);bottom:calc(var(--u)*4.5)">
    <svg viewBox="0 0 64 64"><path d="M12 52 L50 8 L54 12 L18 56Z" fill="#ffe3d0"/><path d="M8 38 Q30 34 56 48" stroke="#ff6a20" stroke-width="4" fill="none" stroke-linecap="round"/></svg><b>SLASH</b><div class="cd"></div></div>
 
@@ -178,33 +177,26 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(600,32,16),new THREE.ShaderMat
  fragmentShader:'uniform vec3 top,mid,bot;varying vec3 vP;void main(){float h=vP.y;vec3 c=h>0.?mix(mid,top,smoothstep(0.,.65,h)):mix(mid,bot,smoothstep(0.,-.2,h));gl_FragColor=vec4(c,1.);}'}));
 scene.add(sky);
 
-// Sun
 const sunPos=new V3(100,140,60);
 const sun=new THREE.Mesh(new THREE.SphereGeometry(24,24,18),new THREE.MeshBasicMaterial({color:0xfff0dd,fog:false}));sun.position.copy(sunPos);scene.add(sun);
 const sunGlow=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffeedd,blending:ADD,depthWrite:false,fog:false,transparent:true,opacity:.85}));sunGlow.scale.set(220,220,1);sunGlow.position.copy(sunPos);scene.add(sunGlow);
 
-// Clouds
 for(let i=0;i<20;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex,color:0xffffff,transparent:true,opacity:rnd(.15,.4),depthWrite:false}));s.position.set(rnd(-250,250),rnd(70,130),rnd(-250,250));s.scale.set(rnd(40,90),rnd(20,45),1);scene.add(s)}
 
-// Lights
 scene.add(new THREE.HemisphereLight(0xd0e0ff,0x8a7a60,1.2));
 const sunLight=new THREE.DirectionalLight(0xfff4e0,2.0);sunLight.position.copy(sunPos).normalize().multiplyScalar(80);sunLight.castShadow=true;
 sunLight.shadow.mapSize.set(1024,1024);Object.assign(sunLight.shadow.camera,{left:-35,right:35,top:35,bottom:-35,near:1,far:220});sunLight.shadow.bias=-.0003;scene.add(sunLight);
 const fillLight=new THREE.DirectionalLight(0xaaccff,.4);fillLight.position.set(-40,30,-40);scene.add(fillLight);
 const flashL=new THREE.PointLight(0xff6030,0,80,2);scene.add(flashL);let flashI=0;
 
-// Ground — stone plaza
 const floorMat=new THREE.MeshStandardMaterial({map:stoneTex,color:0xb0a898,roughness:.88,metalness:.04});
 const floor=new THREE.Mesh(new THREE.CircleGeometry(70,72),floorMat);floor.rotation.x=-PI/2;floor.receiveShadow=true;scene.add(floor);
 
-// Dirt ring
 const dirtMat=new THREE.MeshStandardMaterial({color:0x7a5a3a,roughness:1});
 const dirt=new THREE.Mesh(new THREE.RingGeometry(70,130,72),dirtMat);dirt.rotation.x=-PI/2;dirt.position.y=-.02;dirt.receiveShadow=true;scene.add(dirt);
 
-// Paths
 [8,16,24,32,42,54].forEach((r,i)=>{const m=new THREE.Mesh(new THREE.RingGeometry(r-.08,r+.08,64),new THREE.MeshBasicMaterial({color:0x8a7a60,transparent:true,opacity:.4-i*.05,depthWrite:false}));m.rotation.x=-PI/2;m.position.y=.03;scene.add(m)});
 
-// Buildings
 const bldgMats=[];
 for(let i=0;i<4;i++){bldgMats.push(new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(.08+rnd(-.03,.03),.35+rnd(-.1,.1),.35+rnd(-.1,.1)),roughness:.9,metalness:.05}))}
 const roofMat=new THREE.MeshStandardMaterial({map:roofTex,color:0x8a4a2a,roughness:.85,metalness:.05});
@@ -213,37 +205,27 @@ const buildings=[];
 function addBuilding(x,z,w,d,h,rotY){
  const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rotY||rnd(0,PI*2);
  const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),bldgMats[Math.floor(rnd(0,bldgMats.length))]);body.position.y=h/2;body.castShadow=true;body.receiveShadow=true;g.add(body);
- // Roof
  const roof=new THREE.Mesh(new THREE.BoxGeometry(w+.4,.6,d+.4),roofMat);roof.position.y=h+.3;roof.castShadow=true;g.add(roof);
- // Windows
  const wc=Math.floor(w/1.6),dc=Math.floor(d/1.6);
  for(let i=0;i<wc;i++){for(let j=0;j<dc;j++){for(let k=0;k<Math.floor(h/2.2);k++){
   if(Math.random()<.3)continue;
   const wm=new THREE.Mesh(new THREE.BoxGeometry(.9,.9,.1),winMat);wm.position.set(-w/2+1.2+i*1.6,.8+k*2.2,d/2+.02);g.add(wm);
   const wm2=new THREE.Mesh(new THREE.BoxGeometry(.9,.9,.1),winMat);wm2.position.set(-w/2+1.2+i*1.6,.8+k*2.2,-d/2-.02);g.add(wm2);
  }}}
- // Door
  const door=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.2,.15),new THREE.MeshStandardMaterial({color:0x3a2010,roughness:.8}));door.position.set(0,1.1,d/2+.02);g.add(door);
- // Chimney
  if(Math.random()<.6){const ch=new THREE.Mesh(new THREE.BoxGeometry(.8,2,.8),bldgMats[0]);ch.position.set(rnd(-w/3,w/3),h+1,rnd(-d/3,d/3));ch.castShadow=true;g.add(ch)}
  scene.add(g);buildings.push({g,x,z,w,d,h});
  return g}
-// Ring of buildings
 for(let i=0;i<22;i++){const a=i/22*2*PI+rnd(-.05,.05),r=rnd(32,58);addBuilding(Math.cos(a)*r,Math.sin(a)*r,rnd(3,6),rnd(3,6),rnd(6,14),a+PI/2+rnd(-.3,.3))}
-// Outer ring (smaller, distant)
 for(let i=0;i<30;i++){const a=i/30*2*PI+rnd(-.1,.1),r=rnd(65,110);addBuilding(Math.cos(a)*r,Math.sin(a)*r,rnd(4,8),rnd(4,8),rnd(8,18),a+PI/2+rnd(-.4,.4))}
 
-// Wall (Shiganshina)
 const wallMat=new THREE.MeshStandardMaterial({color:0xa89880,roughness:.92,metalness:.03});
 const wallSegs=[];
 for(let i=0;i<64;i++){const a=i/64*2*PI;const w=new THREE.Mesh(new THREE.BoxGeometry(4,40,2),wallMat);w.position.set(Math.cos(a)*125,20,Math.sin(a)*125);w.rotation.y=a+PI/2;w.castShadow=true;w.receiveShadow=true;scene.add(w);wallSegs.push(w)}
-// Wall top walkway
 for(let i=0;i<64;i++){const a=i/64*2*PI;const w=new THREE.Mesh(new THREE.BoxGeometry(4.2,1.5,2.2),wallMat);w.position.set(Math.cos(a)*125,40.5,Math.sin(a)*125);w.rotation.y=a+PI/2;scene.add(w)}
 
-// Distant mountains
 for(let i=0;i<16;i++){const a=rnd(0,2*PI),r=rnd(180,280);const m=new THREE.Mesh(new THREE.ConeGeometry(rnd(25,50),rnd(60,140),6),new THREE.MeshBasicMaterial({color:0x6a8a9a,transparent:true,opacity:.6}));m.position.set(Math.cos(a)*r,25,Math.sin(a)*r);scene.add(m)}
 
-// Dust particles
 const ember=(()=>{const n=200,p=new Float32Array(n*3);for(let i=0;i<n;i++)p.set([rnd(-50,50),rnd(0,30),rnd(-50,50)],i*3);const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));const pts=new THREE.Points(g,new THREE.PointsMaterial({size:.2,map:glowTex,transparent:true,depthWrite:false,color:0xffeedd,blending:ADD,opacity:.4}));scene.add(pts);return pts})();
 
 /* ================= particles & fx ================= */
@@ -334,25 +316,24 @@ function makeAura(){const m=new THREE.ShaderMaterial({transparent:true,depthWrit
 function buildEren(){
  const skin=mat(0xe9c6ab),brown=mat(0x5a3a1a),green=mat(0x2a4a2a,{r:.5,m:.2}),dark=mat(0x1a1a1a);
  const b=buildBody({skin,pants:mat(0x3a2a1a),top:green,sleeve:brown,forearm:mat(0x3a2a1a),boots:mat(0x1a1208,{r:.4})});
- // Scarf (red)
  const scarf=new THREE.Mesh(new THREE.TorusGeometry(.12,.05,8,20),mat(0xaa1010,{e:0x400000}));scarf.rotation.x=PI/2;scarf.position.y=.62;b.torso.add(scarf);
- // Jacket
  const jacket=new THREE.Mesh(new THREE.CylinderGeometry(.24,.28,.5,12,1,true),mat(0x3a5a2a,{side:THREE.DoubleSide,r:.6}));jacket.position.y=.35;b.torso.add(jacket);
- // Hair (brown, short)
  const hairMat=mat(0x3a2a1a,{r:.5});
  for(let i=0;i<16;i++){const d=randDir();if(d.y<-.1)d.y=-d.y*.3;if(d.z>.35&&d.y<.55)d.y+=.6;d.normalize();
   const L=rnd(.15,.28),c=new THREE.Mesh(new THREE.ConeGeometry(.05,L,5),hairMat);c.position.set(0,.09,0).addScaledVector(d,.13+L*.3);c.quaternion.setFromUnitVectors(new V3(0,1,0),d);b.head.add(c)}
- // Eyes (green)
  const eyeMat=basic(0x40aa40);
  [1,-1].forEach(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.022,8,6),eyeMat);e.position.set(s*.06,.1,.14);e.scale.set(1.7,.7,.5);b.head.add(e);
   const br=new THREE.Mesh(new THREE.BoxGeometry(.07,.012,.01),mat(0x201a0a));br.position.set(s*.063,.14,.142);br.rotation.z=-s*.35;b.head.add(br)});
- // ODM gear (simplified)
+ // ODM gear
  const odmMat=mat(0x4a4a4a,{r:.4,m:.6}),gasMat=mat(0x8a8a8a,{r:.3,m:.7});
  [1,-1].forEach(s=>{
   const box=new THREE.Mesh(new THREE.BoxGeometry(.12,.18,.08),odmMat);box.position.set(s*.22,.45,-.1);box.castShadow=true;b.torso.add(box);
   const tank=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.35,8),gasMat);tank.position.set(s*.22,.55,-.15);tank.rotation.z=s*.1;b.torso.add(tank);
-  // Blade in hand
-  const blade=new THREE.Group();b.R.hand.add(blade);blade.rotation.x=1.25;
+ });
+ // Blades in hands
+ [1,-1].forEach(s=>{
+  const hand=s>0?b.L.hand:b.R.hand;
+  const blade=new THREE.Group();hand.add(blade);blade.rotation.x=1.25;
   const hilt=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.2,6),mat(0x2a2a2a));blade.add(hilt);
   const bl=new THREE.Mesh(new THREE.BoxGeometry(.02,.55,.06),mat(0xdddddd,{m:.8,r:.2}));bl.position.y=.4;bl.castShadow=true;blade.add(bl);
   const edge=new THREE.Mesh(new THREE.BoxGeometry(.005,.55,.065),basic(0xaaffaa));edge.position.set(.013,.4,0);blade.add(edge);
@@ -365,33 +346,26 @@ function buildEren(){
 
 function buildTitanForm(){
  const root=new THREE.Group();root.rotation.order='YXZ';
- // Titan body (much larger)
  const scale=2.8;
- const skinT=mat(0xd4a882,{r:.7}),muscle=mat(0xb87858,{r:.6}),darkT=mat(0x8a5a3a,{r:.7});
+ const skinT=mat(0xd4a882,{r:.7}),muscle=mat(0xb87858,{r:.6});
  const hips=joint(root,0,1.05*scale,0);
  const pel=new THREE.Mesh(new THREE.CapsuleGeometry(.2*scale,.16*scale,4,10),skinT);pel.rotation.z=PI/2;pel.scale.set(1,1,.85);pel.castShadow=true;hips.add(pel);
  const torso=joint(hips,0,.08*scale,0);
  const chest=new THREE.Mesh(new THREE.CapsuleGeometry(.2*scale,.26*scale,4,12),skinT);chest.position.y=.3*scale;chest.scale.set(1.3,1,.9);chest.castShadow=true;torso.add(chest);
- // Muscle lines
  for(let i=0;i<6;i++){const m=new THREE.Mesh(new THREE.BoxGeometry(.04*scale,.3*scale,.02*scale),muscle);m.position.set(rnd(-.2,.2)*scale,.2*scale,rnd(-.15,.15)*scale);torso.add(m)}
  const neck=new THREE.Mesh(new THREE.CylinderGeometry(.06*scale,.08*scale,.14*scale,8),skinT);neck.position.y=.63*scale;torso.add(neck);
  const head=joint(torso,0,.66*scale,0);
  const skull=new THREE.Mesh(new THREE.SphereGeometry(.15*scale,24,18),skinT);skull.position.y=.09*scale;skull.scale.set(.95,1.12,1);skull.castShadow=true;head.add(skull);
- // Face
  const jaw=new THREE.Mesh(new THREE.BoxGeometry(.2*scale,.08*scale,.1*scale),skinT);jaw.position.set(0,-.02*scale,.1*scale);head.add(jaw);
  const eyeMat=basic(0x80ff80);
  [1,-1].forEach(s=>{const e=new THREE.Mesh(new THREE.SphereGeometry(.03*scale,10,8),eyeMat);e.position.set(s*.07*scale,.1*scale,.13*scale);e.scale.set(1.5,.7,.5);head.add(e)});
- // Teeth (simple)
  for(let i=0;i<6;i++){const t=new THREE.Mesh(new THREE.BoxGeometry(.02*scale,.04*scale,.01*scale),mat(0xeeeedd));t.position.set(-.08*scale+i*.032*scale,-.04*scale,.14*scale);head.add(t)}
- // Hair (dark)
  const hairMat=mat(0x1a1a1a,{r:.4});
  for(let i=0;i<20;i++){const d=randDir();if(d.y<-.1)d.y=-d.y*.3;if(d.z>.35&&d.y<.55)d.y+=.6;d.normalize();
   const L=rnd(.2,.4)*scale,c=new THREE.Mesh(new THREE.ConeGeometry(.06*scale,L,5),hairMat);c.position.set(0,.09*scale,0).addScaledVector(d,.13*scale+L*.3);c.quaternion.setFromUnitVectors(new V3(0,1,0),d);head.add(c)}
- // Arms
  const arm=sx=>{const sh=joint(torso,sx*.33*scale,.54*scale,0);sh.add(new THREE.Mesh(new THREE.SphereGeometry(.085*scale,10,8),skinT));sh.add(limb(.07*scale,.34*scale,skinT));
   const el=joint(sh,0,-.34*scale,0);el.add(limb(.058*scale,.32*scale,muscle));const hand=joint(el,0,-.32*scale,0);hand.add(new THREE.Mesh(new THREE.SphereGeometry(.06*scale,10,8),skinT));return{sh,el,hand}};
  const L=arm(1),R=arm(-1);
- // Legs
  const leg=sx=>{const hp=joint(hips,sx*.13*scale,-.02*scale,0);hp.add(limb(.105*scale,.47*scale,skinT));const kn=joint(hp,0,-.47*scale,0);kn.add(limb(.08*scale,.47*scale,muscle));
   const ft=new THREE.Mesh(new THREE.BoxGeometry(.13*scale,.08*scale,.3*scale),skinT);ft.position.set(0,-.5*scale,.06*scale);ft.castShadow=true;kn.add(ft);return{hp,kn}};
  const legL=leg(1),legR=leg(-1);
@@ -416,7 +390,6 @@ const ANIMS={
  dash:{dur:.26,ev:[],keys:[K(0,{}),K(.06,{rx:.45,tx:.3,lhx:-1,lkx:.6,rhx:.8,rkx:1,rsx:.4,rsz:-.5}),K(.26,{})]},
  kneel:{dur:999,ev:[],keys:[K(0,KNEEL)]},
  rise:{dur:2.1,ev:[],keys:[K(0,KNEEL),K(1.4,{hy:-.4,lkx:1.1,lhx:-.9,rkx:1.3,rhx:.1,tx:.4,hd:.3}),K(2.1,{})]},
- // Titan-specific attacks
  tPunch:{dur:.8,ev:[{t:.4,e:'strike'}],keys:[K(0,{}),K(.2,{rsx:-1.5,rex:-.3,tx:-.2,hy:-.2}),K(.4,{rsx:-.5,rex:-.1,tx:.5,hy:-.3,lkx:.8,rkx:.7,rhx:.4}),K(.6,{rsx:-.5,rex:-.1,tx:.5,hy:-.3,lkx:.8,rkx:.7,rhx:.4}),K(.8,{})]},
  tSlam:{dur:1.2,ev:[{t:.6,e:'strike'}],keys:[K(0,{}),K(.3,{rsx:-3,rex:-.3,tx:-.4,hy:-.3,lkx:.9,rkx:.8,lsx:-2.5,lsz:.1}),K(.6,{rsx:-.6,rex:-.05,tx:.6,hy:-.5,lsx:-1,lex:-.3,lhx:-1.1,lkx:1.2,rkx:1,rhx:.5}),K(.9,{rsx:-.6,rex:-.05,tx:.6,hy:-.5,lsx:-1,lex:-.3,lhx:-1.1,lkx:1.2,rkx:1,rhx:.5}),K(1.2,{})]},
  tRoar:{dur:1.5,ev:[{t:.5,e:'roar'}],keys:[K(0,{}),K(.5,{tx:-.3,hd:-.5,rsx:-2.8,rsz:-1,lsx:-2.8,lsz:1,rex:-.2,lex:-.2,hy:-.1,lkx:.2,rkx:.2}),K(1,{tx:-.3,hd:-.5,rsx:-2.8,rsz:-1,lsx:-2.8,lsz:1,rex:-.2,lex:-.2,hy:-.1,lkx:.2,rkx:.2}),K(1.5,{})]}
@@ -427,7 +400,7 @@ function evalAnim(a,t){const ks=a.keys;let i=0;while(i<ks.length-1&&t>ks[i+1].t)
 
 class Fighter{
  constructor(rig,isHero){this.rig=rig;this.isHero=isHero;this.root=rig.root;this.pos=rig.root.position;this.yaw=0;this.hp=100;this.max=100;this.anim=null;this.cur={...IDLE};
-  this.knock=new V3();this.ph=0;this.spd=0;this.lean=0;this.invuln=0;this.stun=0;this.poise=0;this.t=rnd(0,9);this.lastVel=new V3();this.onEvent=null}
+  this.knock=new V3();this.ph=0;this.spd=0;this.lean=0;this.invuln=0;this.stun=0;this.poise=0;this.t=rnd(0,9);this.lastVel=new V3();this.onEvent=null;this.size=1}
  play(n,x={}){this.anim={n,a:ANIMS[n],t:0,fired:0,...x}}
  loco(){const o={...IDLE},s=Math.min(1,this.spd),A=.75*s,sn=Math.sin(this.ph);
   o.hy+=Math.sin(this.t*2.1)*.012-s*.02;o.tx+=Math.sin(this.t*2.1+1)*.015;
@@ -455,7 +428,6 @@ hero.pos.set(0,0,8);hero.yaw=PI;
 
 // Titans
 const titans=[];
-const titanRigs=[];
 function spawnTitan(x,z,size=1){
  const rig=buildTitanForm();
  const t=new Fighter(rig,false);
@@ -464,14 +436,11 @@ function spawnTitan(x,z,size=1){
  t.pos.set(x,0,z);
  t.yaw=rnd(0,PI*2);
  t.rig.root.scale.setScalar(size);
- // Adjust hips y for size
  t.rig.hips.position.y=1.05*size;
- t.rig.torso.position.y=0;
  scene.add(t.root);
- titans.push(t);titanRigs.push(rig);
+ titans.push(t);
  return t;
 }
-// Spawn 3 titans
 spawnTitan(-12,-15,1);
 spawnTitan(15,-10,1.2);
 spawnTitan(-5,18,0.9);
@@ -482,6 +451,8 @@ let energy=100,gas=100,combo=0,comboT=0,comboIdx=0,lastSlash=-9,buf={a:null,t:0}
 const state={titan:false,titanT:0,odm:true};
 const cd={power:0,hookL:0,hookR:0,dash:0,titan:0};
 const timers=[];
+// FIXED: define ai object so later() and endIntro() don't crash
+const ai={gen:0};
 const dm=()=>state.titan?4:1;
 function later(d,fn,guard=true){const g=ai.gen;timers.push({t:d,fn:()=>{if(guard&&g!==ai.gen)return;fn()}})}
 function hitstop(t){hitstopT=Math.max(hitstopT,t)}
@@ -497,10 +468,9 @@ function impact(p,pow,c){spark(p,Math.floor(30*pow),12*pow,.35,.6,c,8);flashSphe
 function setMode(){const r=hero.rig;
  r.aura.visible=state.titan;r.aura.material.uniforms.uC.value.set(0xff4020);r.aura.material.uniforms.uI.value=state.titan?1.5:1;
  r.eyeMat.color.set(state.titan?0xff4040:0x40aa40);
- r.torso.scale.setScalar(state.titan?2.8:1);
- r.head.scale.setScalar(state.titan?2.8:1);
- // Hide ODM when titan
- r.torso.traverse(c=>{if(c.isMesh&&c.geometry.type==='BoxGeometry'&&c.position.y>.4&&c.position.z<-.05)c.visible=!state.titan})}
+ // Titan form: scale hero up visually (keep hitbox same for simplicity)
+ hero.root.scale.setScalar(state.titan?2.8:1);
+}
 function titanBurst(){const p=hero.pos.clone();flashScreen('#ff4020',.8);shake=Math.max(shake,3);fovPunch=18;sfx('boom');
  shockwave(p,0xff4020,18,1.2);shockwave(p,0xff8040,26,1.5);shockwave(p,0xffffff,10,.7);pillar(p,2.5);
  flashSphere(p.clone().setY(1.5),0xff4020,7,.6);spark(p.clone().setY(1.2),200,25,.6,1.8,[1.2,.3,.1],-1);puff(p.clone().setY(.4),80,10,3,2.8);lightFlash(p.clone().setY(2.5),0xff4020,1000);
@@ -508,12 +478,11 @@ function titanBurst(){const p=hero.pos.clone();flashScreen('#ff4020',.8);shake=M
 
 /* ================= combat ================= */
 const ATKH={slash1:{d:18,r:3.6,k:'l',roll:.8,sc:2.3,lg:2.4},slash2:{d:18,r:3.6,k:'l',roll:-.8,sc:2.3,lg:2.4},slash3:{d:28,r:3.9,k:'l',roll:0,sc:2.8,lg:3.2},power:{d:60,r:5.2,k:'h',roll:.15,sc:3.8,lg:3.6}};
-const ATKT={tPunch:{d:40,r:5.5,roll:.3,sc:3.5},tSlam:{d:65,r:6.5,roll:0,sc:4.5}};
 hero.onEvent=(ev,an)=>{
- if(ev.e==='strike'){const a=ATKH[an.n];if(!a)return;const f=fwd(hero.yaw),c=hero.pos.clone();c.y+=1.25;c.addScaledVector(f,.9);
-  slashTrail(c,hero.yaw,a.roll,a.sc,state.titan?0xff4020:0xff6a20,state.titan);sfx('whoosh');impulse(hero,f,a.lg);
-  if(an.n==='power'){shockwave(hero.pos.clone().addScaledVector(f,2.6),0xff4020,7,.5);spark(hero.pos.clone().addScaledVector(f,3).setY(.2),60,10,.4,.7,[1,.3,.1],6);shake=Math.max(shake,.7)}
-  if(phase==='play'){titans.forEach(t=>{if(t.hp>0&&dXZ(hero.pos,t.pos)<a.r+.5)hurtTitan(t,a.d*dm(),a.k==='h'?'heavy':'light')})}}
+ if(ev.e==='strike'){const a=ATKH[an.n];if(!a)return;const f=fwd(hero.yaw),c=hero.pos.clone();c.y+=1.25*(state.titan?2.8:1);c.addScaledVector(f,.9*(state.titan?2.8:1));
+  slashTrail(c,hero.yaw,a.roll,a.sc*(state.titan?2.2:1),state.titan?0xff4020:0xff6a20,state.titan);sfx('whoosh');impulse(hero,f,a.lg);
+  if(an.n==='power'){shockwave(hero.pos.clone().addScaledVector(f,2.6*(state.titan?2.5:1)),0xff4020,7,.5);spark(hero.pos.clone().addScaledVector(f,3).setY(.2),60,10,.4,.7,[1,.3,.1],6);shake=Math.max(shake,.7)}
+  if(phase==='play'){titans.forEach(t=>{if(t.hp>0&&dXZ(hero.pos,t.pos)<a.r+.5+(state.titan?4:0))hurtTitan(t,a.d*dm(),a.k==='h'?'heavy':'light')})}}
  else if(ev.e==='burst'){if(an.n==='titan'){state.titan=true;state.titanT=25;banner('TITAN FORM','THE ATTACK TITAN',2.5);setMode();titanBurst()}}
  else if(ev.e==='roar'){const p=hero.pos.clone();shockwave(p,0xff8040,20,1.5);spark(p.clone().setY(2),150,20,.6,1.5,[1,.4,.1],0);flashScreen('#ff8040',.6);shake=Math.max(shake,2.5);sfx('boom');
   titans.forEach(t=>{if(t.hp>0&&dXZ(hero.pos,t.pos)<25)hurtTitan(t,50,'heavy')})}};
@@ -538,9 +507,7 @@ function hurtTitan(t,d,kind){
  return true}
 function killTitan(t){sfx('boom');shake=Math.max(shake,2);flashScreen('#fff',.5);
  spark(t.pos.clone().setY(3*t.size),80,15,.5,1.2,[1,.4,.1],4);puff(t.pos.clone().setY(1),40,8,2.5,2);
- // Respawn message
  const rm=$('respawnMsg');rm.style.opacity=1;setTimeout(()=>rm.style.opacity=0,1500);
- // Respawn after delay
  later(3,()=>{if(t.hp<=0){t.hp=t.max;t.pos.set(rnd(-25,25),0,rnd(-25,25));t.root.visible=true;t.anim=null;t.cur={...IDLE};t.play('rise')}},false)}
 function hurtHero(d,from,kb){
  if(hero.invuln>0||hero.hp<=0||phase!=='play')return false;
@@ -558,32 +525,34 @@ function endScreen(t,s){$('endT').textContent=t;$('endS').textContent=s;$('again
 $('again').addEventListener('click',()=>{try{sessionStorage.setItem('cm_skip','1')}catch(e){}location.reload()});
 
 /* ----- player actions ----- */
-function faceTarget(){const t=titans.reduce((a,b)=>dXZ(hero.pos,a.pos)<dXZ(hero.pos,b.pos)?a:b,titans[0]);if(t)hero.yaw=Math.atan2(t.pos.x-hero.pos.x,t.pos.z-hero.pos.z)}
+function faceTarget(){const alive=titans.filter(t=>t.hp>0);if(!alive.length)return;const t=alive.reduce((a,b)=>dXZ(hero.pos,a.pos)<dXZ(hero.pos,b.pos)?a:b);hero.yaw=Math.atan2(t.pos.x-hero.pos.x,t.pos.z-hero.pos.z)}
+const stick={x:0,y:0};const keys={};
 function tryAction(a){
  if(phase!=='play'||hero.hp<=0)return;
- if(a==='dash'){if(cd.dash>0)return;const f=new V3(titans[0]?.pos.x-hero.pos.x||0,0,titans[0]?.pos.z-hero.pos.z||0).normalize(),r=new V3(-f.z,0,f.x);
+ if(a==='dash'){if(cd.dash>0)return;const alive=titans.filter(t=>t.hp>0);const tt=alive[0];
+  const f=tt?new V3(tt.pos.x-hero.pos.x,0,tt.pos.z-hero.pos.z).normalize():new V3(0,0,1),r=new V3(-f.z,0,f.x);
   let d=f.clone().multiplyScalar(stick.y).add(r.clone().multiplyScalar(stick.x));if(d.lengthSq()<.05)d=f.clone().negate();
   hero.anim=null;hero.invuln=.34;impulse(hero,d,6);hero.play('dash');cd.dash=1;fovPunch=9;sfx('whoosh');dashT=.3;return}
  if(a==='hookL'||a==='hookR'){if(cd[a]>0)return;cd[a]=2;const t=titans.find(t=>t.hp>0);if(!t)return;
   const f=new V3(t.pos.x-hero.pos.x,0,t.pos.z-hero.pos.z).normalize();
-  hero.anim=null;hero.invuln=.3;impulse(hero,f,7);hero.play('dash');sfx('whoosh');gas-=8;
+  hero.anim=null;hero.invuln=.3;impulse(hero,f,7);hero.play('dash');sfx('whoosh');gas=Math.max(0,gas-8);
   for(let i=0;i<8;i++)glow.emit(hero.pos.x+rnd(-.3,.3),rnd(.5,2),hero.pos.z+rnd(-.3,.3),f.x*3,rnd(-.5,1),f.z*3,.4,.5,.3,.8,.3,0,2);return}
  if(hero.stun>0)return;
  if(hero.anim&&hero.anim.n!=='dash'&&hero.anim.t<hero.anim.a.dur*.6){buf={a,t:.3};return}
  if(a==='slash'){comboIdx=(T-lastSlash<.9)?(comboIdx+1)%3:0;lastSlash=T;faceTarget();hero.play('slash'+(comboIdx+1))}
  else if(a==='power'){if(energy<20||cd.power>0)return;energy-=20;cd.power=2.5;faceTarget();hero.play('power');sfx('charge');
   if(!fp){const r=rightOf(hero.yaw);shotSet(.75,k=>{const m=hero.pos.clone().lerp(titans[0]?.pos||hero.pos,.5);const p=hero.pos.clone().addScaledVector(r,3.4).addScaledVector(fwd(hero.yaw),-1+k*2);p.y=1+k*.5;camera.position.copy(p);camera.lookAt(m.x,1.4,m.z)},52)}}
- else if(a==='titan'){if(energy<70||cd.titan>0)return;energy-=70;cd.titan=15;hero.invuln=2;hero.play('titan',{n:'titan'});sfx('charge');say('EREN YEAGER','"I AM THE ATTACK TITAN!"',2);awakenShot()}}
+ else if(a==='titan'){if(energy<70||cd.titan>0||state.titan)return;energy-=70;cd.titan=15;hero.invuln=2;hero.play('titan');sfx('charge');say('EREN YEAGER','"I AM THE ATTACK TITAN!"',2);awakenShot()}}
 let dashT=0;
 function awakenShot(){if(fp)return;const c=hero.pos;shotSet(2.5,k=>{const a=lerp(.2,2.4,ease(k)),R=lerp(4,8,k);camera.position.set(c.x+Math.sin(a)*R,lerp(1.2,4,k),c.z-Math.cos(a)*R);camera.lookAt(c.x,2.5,c.z)},50)}
 
 /* ----- player update ----- */
-const stick={x:0,y:0};const keys={};
 function updateHero(dt){
  let mx=stick.x+(keys.d||keys.ArrowRight?1:0)-(keys.a||keys.ArrowLeft?1:0),my=stick.y+(keys.w||keys.ArrowUp?1:0)-(keys.s||keys.ArrowDown?1:0);
  const m=Math.hypot(mx,my);if(m>1){mx/=m;my/=m}
- const nearTitan=titans.reduce((a,b)=>dXZ(hero.pos,a.pos)<dXZ(hero.pos,b.pos)?a:b,titans[0]);
- if(!nearTitan)return;
+ const alive=titans.filter(t=>t.hp>0);
+ if(!alive.length)return;
+ const nearTitan=alive.reduce((a,b)=>dXZ(hero.pos,a.pos)<dXZ(hero.pos,b.pos)?a:b);
  const f=new V3(nearTitan.pos.x-hero.pos.x,0,nearTitan.pos.z-hero.pos.z).normalize(),r=new V3(-f.z,0,f.x);
  const sp=8*(state.titan?1.5:1);
  let fac=hero.stun>0?0:hero.anim?(hero.anim.n==='dash'?0:.2):1;
@@ -597,23 +566,23 @@ function updateState(dt){
  if(comboT>0){comboT-=dt;if(comboT<=0)combo=0}
  if(state.titan){state.titanT-=dt;if(state.titanT<=0){state.titan=false;setMode();banner('','TITAN FORM FADES',1.2)}}}
 function ambientFx(dt){
- if(state.titan){const n=6;for(let i=0;i<n;i++){const p=hero.pos;glow.emit(p.x+rnd(-.6,.6),rnd(.1,3),p.z+rnd(-.6,.6),rnd(-.5,.5),rnd(1,3),rnd(-.5,.5),.4,1.2,1.2,.2,.1,-.4,1);if(i<3)smoke.emit(p.x+rnd(-.6,.6),rnd(.2,2.5),p.z+rnd(-.6,.6),0,1.4,0,.9,1.5,.5,.4,.3,-.3,1)}}
+ if(state.titan){for(let i=0;i<6;i++){const p=hero.pos;glow.emit(p.x+rnd(-.6,.6),rnd(.1,3),p.z+rnd(-.6,.6),rnd(-.5,.5),rnd(1,3),rnd(-.5,.5),.4,1.2,1.2,.2,.1,-.4,1);if(i<3)smoke.emit(p.x+rnd(-.6,.6),rnd(.2,2.5),p.z+rnd(-.6,.6),0,1.4,0,.9,1.5,.5,.4,.3,-.3,1)}}
  const a=ember.geometry.attributes.position;for(let i=0;i<a.count;i++){let y=a.getY(i)+dt*(.5+(i%5)*.15);if(y>30)y=0;a.setY(i,y);a.setX(i,a.getX(i)+Math.sin(T+i)*dt*.4)}a.needsUpdate=true}
 
 /* ================= cinematic camera ================= */
 let shot=null,cp=new V3(),cl=new V3(),cpInit=false;const lkS=new V3(0,0,1);
 function shotSet(dur,fn,fov=60){shot={t:0,dur,fn,fov};cpInit=false}
 function gameplayCam(rdt){
- const t=titans.reduce((a,b)=>dXZ(hero.pos,a.pos)<dXZ(hero.pos,b.pos)?a:b,titans[0]);
+ const alive=titans.filter(t=>t.hp>0);const t=alive.length?alive.reduce((a,b)=>dXZ(hero.pos,a.pos)<dXZ(hero.pos,b.pos)?a:b):null;
  if(!t){camera.position.set(0,10,25);camera.lookAt(0,0,0);return}
  const d=t.pos.clone().sub(hero.pos).setY(0),dist=Math.max(.01,d.length());d.divideScalar(dist);
  if(!cpInit){cp.copy(camera.position);const t2=new V3();camera.getWorldDirection(t2);cl.copy(camera.position).addScaledVector(t2,10);lkS.copy(t2);cpInit=true}
  const yaw=Math.atan2(d.x,d.z)+camYawOff,f=fwd(yaw),r=rightOf(yaw);
- if(fp){const tp=hero.pos.clone();tp.y+=1.82;tp.addScaledVector(f,.14);const tg=t.pos.clone();tg.y+=2.5*t.size;const dir=tg.sub(tp).normalize();
+ if(fp){const tp=hero.pos.clone();tp.y+=1.82*(state.titan?2.8:1);tp.addScaledVector(f,.14);const tg=t.pos.clone();tg.y+=2.5*t.size;const dir=tg.sub(tp).normalize();
   const cy=Math.atan2(dir.x,dir.z)+camYawOff,pt=Math.atan2(dir.y,Math.hypot(dir.x,dir.z))+camPitchOff;
   const lk=new V3(Math.sin(cy)*Math.cos(pt),Math.sin(pt),Math.cos(cy)*Math.cos(pt));lkS.lerp(lk,1-Math.exp(-14*rdt)).normalize();
   cp.lerp(tp,1-Math.exp(-30*rdt));camera.position.copy(cp);cl.copy(cp).addScaledVector(lkS,10);camera.lookAt(cl)}
- else{const back=6.5+Math.min(dist,20)*.18,tp=hero.pos.clone().addScaledVector(f,-back).addScaledVector(r,1.8);tp.y=Math.max(1.5,3.5+Math.min(dist,20)*.08+camPitchOff*4);
+ else{const back=6.5+Math.min(dist,20)*.18+(state.titan?6:0),tp=hero.pos.clone().addScaledVector(f,-back).addScaledVector(r,1.8);tp.y=Math.max(1.5,3.5+Math.min(dist,20)*.08+camPitchOff*4+(state.titan?4:0));
   cp.lerp(tp,1-Math.exp(-5.5*rdt));const lt=hero.pos.clone().lerp(t.pos,.35);lt.y=2*t.size;lt.addScaledVector(r,1.2);cl.lerp(lt,1-Math.exp(-8*rdt));
   camera.position.copy(cp);camera.lookAt(cl)}}
 function updateCamera(rdt){
@@ -634,9 +603,9 @@ function buildCues(){
  C(0,()=>{document.body.classList.add('cine');shotSet(4.4,k=>{const a=lerp(-2.5,-.7,ease(k));camera.position.set(Math.sin(a)*22,lerp(10,3.4,ease(k)),Math.cos(a)*22);camera.lookAt(0,2.2,0)},55)});
  C(.5,()=>banner('WINGS OF FREEDOM','ATTACK ON TITAN · SHIGANSHINA',3.5));
  C(4.5,()=>{shotSet(3,k=>{camera.position.set(hero.pos.x+.5-k*.4,1.75,hero.pos.z+3.6-k*1.1);camera.lookAt(hero.pos.x,1.7,hero.pos.z)},36);say('EREN YEAGER','"I will destroy every last one of them."',2.8);sfx('shing')});
- C(7.7,()=>{shotSet(3,k=>{const t=titans[0];camera.position.set(t.pos.x-.6+k*.3,3.5,t.pos.z-3.4+k*1);camera.lookAt(t.pos.x,3,t.pos.z)},36);say('TITAN','"..."',2.8)});
+ C(7.7,()=>{const t=titans[0];if(!t)return;shotSet(3,k=>{camera.position.set(t.pos.x-.6+k*.3,3.5,t.pos.z-3.4+k*1);camera.lookAt(t.pos.x,3,t.pos.z)},36);say('TITAN','"..."',2.8)});
  C(10.9,()=>{shotSet(3.2,k=>{camera.position.set(lerp(16,13,k),5,0);camera.lookAt(0,4,0)},55);say('EREN YEAGER','"SHINZOU WO SASAGEYO!"',2.5);sfx('charge')});
- C(14,()=>{hero.play('titan',{n:'titan'});sfx('charge');shotSet(4,k=>{const a=lerp(.2,2.8,ease(k)),R=lerp(4,9,k);camera.position.set(hero.pos.x+Math.sin(a)*R,lerp(1.5,5,k),hero.pos.z-Math.cos(a)*R);camera.lookAt(hero.pos.x,2.5,hero.pos.z)},52)});
+ C(14,()=>{hero.play('titan');sfx('charge');shotSet(4,k=>{const a=lerp(.2,2.8,ease(k)),R=lerp(4,9,k);camera.position.set(hero.pos.x+Math.sin(a)*R,lerp(1.5,5,k),hero.pos.z-Math.cos(a)*R);camera.lookAt(hero.pos.x,2.5,hero.pos.z)},52)});
  C(18.5,()=>{const m=hero.pos.clone().lerp(titans[0].pos,.5);m.y=2;impact(m,3,[1.2,.4,.2]);shockwave(m.clone().setY(.05),0xffffff,18,.7);shockwave(m.clone().setY(.05),0xff4020,22,1);flashScreen('#fff',.85);sfx('boom');slowmo(.25,.9);spark(m,160,22,.5,1.2,[1.2,.5,.3],4)});
  C(20.5,()=>endIntro());
  cues.sort((a,b)=>a[0]-b[0]);
