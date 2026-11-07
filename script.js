@@ -16,10 +16,27 @@ const $   = i => document.getElementById(i);
 const rd  = () => { const u = rnd(-1, 1), a = rnd(0, 2*PI), s = Math.sqrt(1-u*u); return new V(s*Math.cos(a), u, s*Math.sin(a)); };
 
 /* ============================================================
-   STAGE
+   STAGE / RENDERER
    ============================================================ */
 const stage = $('stage');
 let W = innerWidth, H = innerHeight;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.4;
+stage.insertBefore(renderer.domElement, stage.firstChild);
+
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(50, 2, .1, 900);
+
+let composer = null;
+try {
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, cam));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 1.0, .65, .5));
+  composer.addPass(new OutputPass());
+} catch (e) { composer = null; }
 
 function layout() {
   W = innerWidth; H = innerHeight;
@@ -28,27 +45,6 @@ function layout() {
   cam.aspect = W / H;
   cam.updateProjectionMatrix();
 }
-
-/* ============================================================
-   RENDERER
-   ============================================================ */
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.4;
-stage.insertBefore(renderer.domElement, stage.firstChild);
-
-const scene = new THREE.Scene();
-const cam = new THREE.PerspectiveCamera(50, 2, .1, 800);
-
-let composer = null;
-try {
-  composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, cam));
-  composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 1.1, .7, .5));
-  composer.addPass(new OutputPass());
-} catch (e) { composer = null; }
-
 addEventListener('resize', layout);
 addEventListener('orientationchange', () => setTimeout(layout, 250));
 layout();
@@ -75,177 +71,323 @@ const winTex = (() => {
   return t;
 })();
 
+const roadTex = (() => {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#15151c'; g.fillRect(0, 0, 256, 256);
+  // asphalt noise
+  for (let i = 0; i < 900; i++) {
+    g.fillStyle = `rgba(${rnd(60,90)|0},${rnd(60,90)|0},${rnd(70,100)|0},.4)`;
+    g.fillRect(Math.random()*256, Math.random()*256, 2, 2);
+  }
+  // lane markings (double yellow center + white edges)
+  g.fillStyle = '#d8b040'; g.fillRect(122, 0, 4, 256); g.fillRect(130, 0, 4, 256);
+  g.fillStyle = '#e8e8e8'; g.fillRect(16, 0, 3, 256); g.fillRect(237, 0, 3, 256);
+  // dashed white
+  for (let y = 0; y < 256; y += 64) { g.fillStyle = '#e8e8e8'; g.fillRect(76, y, 3, 32); g.fillRect(177, y, 3, 32); }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+})();
+
 /* ============================================================
    LIGHTING
    ============================================================ */
-const ambient = new THREE.AmbientLight(0x8899cc, 1.8);
-scene.add(ambient);
-
-const hemi = new THREE.HemisphereLight(0xaabbff, 0x221122, 2.2);
+scene.add(new THREE.AmbientLight(0x8899cc, 1.6));
+const hemi = new THREE.HemisphereLight(0xaabbff, 0x221122, 2.0);
 scene.add(hemi);
-
-const keyLight = new THREE.DirectionalLight(0xffffff, 3.5);
+const keyLight = new THREE.DirectionalLight(0xffffff, 3.2);
 keyLight.position.set(5, 12, 8);
 scene.add(keyLight);
-
 const rimLight = new THREE.DirectionalLight(0xaa66ff, 2.0);
 rimLight.position.set(-8, 6, -10);
 scene.add(rimLight);
-
-const fillLight = new THREE.DirectionalLight(0xff5566, 1.5);
+const fillLight = new THREE.DirectionalLight(0xff5566, 1.4);
 fillLight.position.set(10, 4, -6);
 scene.add(fillLight);
-
-const combatLight = new THREE.PointLight(0xffffff, 0, 80, 2);
+const combatLight = new THREE.PointLight(0xffffff, 0, 90, 2);
 scene.add(combatLight);
 let combatLightI = 0;
 
 /* ============================================================
-   FLOOR
+   GROUND — road + asphalt with sidewalk
    ============================================================ */
 const floorMat = new THREE.MeshStandardMaterial({ color: 0x2a2a38, roughness: .7, metalness: .2 });
 const floorMesh = new THREE.Mesh(new THREE.CircleGeometry(120, 48), floorMat);
 floorMesh.rotation.x = -PI / 2;
 scene.add(floorMesh);
 
+// central road strip
+const roadMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: .85, metalness: .1 });
+roadTex.repeat.set(1, 18);
+const road = new THREE.Mesh(new THREE.PlaneGeometry(14, 180), roadMat);
+road.rotation.x = -PI / 2;
+road.position.y = 0.02;
+scene.add(road);
+
+// cross road
+const road2 = new THREE.Mesh(new THREE.PlaneGeometry(180, 14), roadMat.clone());
+road2.material.map = roadTex.clone(); road2.material.map.repeat.set(18, 1);
+road2.rotation.x = -PI / 2; road2.rotation.z = PI / 2;
+road2.position.y = 0.02;
+scene.add(road2);
+
+// sidewalks (raised curbs) — two long strips beside the road
+const curbMat = new THREE.MeshStandardMaterial({ color: 0x3a3a48, roughness: .9 });
+for (const s of [-1, 1]) {
+  const c = new THREE.Mesh(new THREE.BoxGeometry(3, .25, 180), curbMat);
+  c.position.set(s * 8.5, .12, 0);
+  scene.add(c);
+}
+
 /* ============================================================
-   CITY SKYLINE
+   CITY SKYLINE — layered, more detailed
    ============================================================ */
 const cityGroup = new THREE.Group();
 scene.add(cityGroup);
 const buildings = [];
-for (let i = 0; i < 90; i++) {
-  const a = rnd(0, 2 * PI), r = rnd(22, 85), h = rnd(8, 42), w = rnd(4, 9);
-  const m = new THREE.Mesh(
-    new THREE.BoxGeometry(w, h, rnd(4, 9)),
-    new THREE.MeshStandardMaterial({ color: 0x2a2c40, roughness: .9, emissive: 0xffffff, emissiveMap: winTex, emissiveIntensity: .6 })
-  );
-  m.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
-  m.userData = { y0: h / 2, f: -1, d: Math.random() < .5 ? 1 : -1 };
-  cityGroup.add(m);
-  buildings.push(m);
+
+function makeBuilding(w, h, d) {
+  const grp = new THREE.Group();
+  // main box
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x2a2c40, roughness: .9,
+    emissive: 0xffffff, emissiveMap: winTex, emissiveIntensity: .55
+  });
+  const box = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  box.position.y = h / 2;
+  grp.add(box);
+
+  // roof detail
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w * .9, h * .05, d * .9),
+    new THREE.MeshStandardMaterial({ color: 0x1a1c2a, roughness: .9 }));
+  roof.position.y = h + h * .025;
+  grp.add(roof);
+
+  // antenna on tall ones
+  if (h > 25 && Math.random() < .6) {
+    const ant = new THREE.Mesh(new THREE.CylinderGeometry(.08, .12, h * .2, 5),
+      new THREE.MeshStandardMaterial({ color: 0x555566 }));
+    ant.position.y = h + h * .1 + h * .1;
+    grp.add(ant);
+    const blink = new THREE.Mesh(new THREE.SphereGeometry(.25, 6, 5),
+      new THREE.MeshBasicMaterial({ color: 0xff2020 }));
+    blink.position.y = h + h * .22;
+    grp.add(blink);
+  }
+
+  // some side ledges for detail
+  if (Math.random() < .5) {
+    const ledge = new THREE.Mesh(new THREE.BoxGeometry(w * 1.05, .6, d * 1.05),
+      new THREE.MeshStandardMaterial({ color: 0x22222e, roughness: .9 }));
+    ledge.position.y = h * .4;
+    grp.add(ledge);
+  }
+
+  return grp;
 }
 
-const moonSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xbbccff, blending: AD, transparent: true, depthWrite: false, fog: false }));
+// build a full ring of buildings around the arena with variation
+for (let i = 0; i < 120; i++) {
+  const a = rnd(0, 2 * PI), r = rnd(26, 95);
+  const h = rnd(10, 55), w = rnd(4, 10), d = rnd(4, 10);
+  const b = makeBuilding(w, h, d);
+  b.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r);
+  b.userData = { y0: h / 2, f: -1, d: Math.random() < .5 ? 1 : -1, h };
+  cityGroup.add(b);
+  buildings.push(b);
+}
+
+// moon + stars
+const moonSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: glowTex, color: 0xbbccff, blending: AD, transparent: true, depthWrite: false, fog: false
+}));
 moonSprite.scale.set(90, 90, 1);
-moonSprite.position.set(-90, 90, -120);
+moonSprite.position.set(-90, 90, -140);
 scene.add(moonSprite);
 
 const stars = new THREE.Points((() => {
-  const n = 3000, p = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) { const d = new V(rnd(-1,1), rnd(-1,1), rnd(-1,1)).normalize().multiplyScalar(rnd(20, 90)); p.set([d.x, d.y, d.z], i*3); }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); return g;
-})(), new THREE.PointsMaterial({ size: .5, map: glowTex, color: 0xcfe4ff, blending: AD, transparent: true, depthWrite: false }));
+  const n = 2500, p = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const d = new V(rnd(-1,1), rnd(-1,1), rnd(-1,1)).normalize().multiplyScalar(rnd(30, 100));
+    p.set([d.x, d.y, d.z], i * 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  return g;
+})(), new THREE.PointsMaterial({ size: .6, map: glowTex, color: 0xcfe4ff, blending: AD, transparent: true, depthWrite: false }));
 stars.visible = false;
 scene.add(stars);
 
 /* ============================================================
-   SUKUNA'S THRONE + MALEVOLENT SHRINE
+   MALEVOLENT SHRINE — authentic skull-and-rib design
    ============================================================ */
 const shrine = new THREE.Group();
+const boneMat   = new THREE.MeshStandardMaterial({ color: 0xefe4d0, emissive: 0x330808, emissiveIntensity: .5, roughness: .55 });
+const darkBone  = new THREE.MeshStandardMaterial({ color: 0xa08e78, emissive: 0x220404, emissiveIntensity: .3, roughness: .7 });
+const shrineRed = new THREE.MeshStandardMaterial({ color: 0x2a0202, emissive: 0xd00018, emissiveIntensity: 1.6, roughness: .45, metalness: .25 });
+const shrineDark= new THREE.MeshStandardMaterial({ color: 0x0a0101, emissive: 0x770014, emissiveIntensity: 1.1, roughness: .5 });
+const goldMat   = new THREE.MeshStandardMaterial({ color: 0xc0a030, emissive: 0x664400, emissiveIntensity: .8, roughness: .3, metalness: .85 });
 
-const boneMat   = new THREE.MeshStandardMaterial({ color: 0xe8dcc8, emissive: 0x330808, emissiveIntensity: .5, roughness: .55 });
-const darkBone  = new THREE.MeshStandardMaterial({ color: 0x9a8878, emissive: 0x220404, emissiveIntensity: .3, roughness: .7 });
-const shrineRed = new THREE.MeshStandardMaterial({ color: 0x3a0404, emissive: 0xcc0018, emissiveIntensity: 1.4, roughness: .45, metalness: .2 });
-const shrineDark= new THREE.MeshStandardMaterial({ color: 0x120202, emissive: 0x660010, emissiveIntensity: .9, roughness: .5 });
-const goldMat   = new THREE.MeshStandardMaterial({ color: 0xaa8822, emissive: 0x553300, emissiveIntensity: .6, roughness: .3, metalness: .8 });
+// central altar / base
+const altar = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.8, 2.6, 10), shrineDark);
+altar.position.y = 1.3; shrine.add(altar);
+const altarTop = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, .15, 10), shrineRed);
+altarTop.position.y = 2.65; shrine.add(altarTop);
 
-const altar = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.6, 2.4, 8), shrineDark);
-altar.position.y = 1.2; shrine.add(altar);
-
+// ── Four massive bone pillars with skulls on top (malevolent shrine's signature) ──
 for (let i = 0; i < 4; i++) {
   const a = (i / 4) * PI * 2 + PI / 4;
-  const r = 4.2;
+  const r = 5.0;
   const px = Math.cos(a) * r, pz = Math.sin(a) * r;
-  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(.35, .5, 7, 7), shrineRed);
-  pillar.position.set(px, 3.5, pz);
+
+  // pillar body: tapered bone column
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(.4, .6, 8.5, 9), shrineRed);
+  pillar.position.set(px, 4.25, pz);
   shrine.add(pillar);
-  const base = new THREE.Mesh(new THREE.BoxGeometry(1.1, .4, 1.1), shrineDark);
-  base.position.set(px, .2, pz); shrine.add(base);
-  const sk = new THREE.Mesh(new THREE.SphereGeometry(.55, 12, 10), boneMat);
-  sk.position.set(px, 7.2, pz); sk.scale.set(1, 1.15, 1); shrine.add(sk);
-  const jw = new THREE.Mesh(new THREE.BoxGeometry(.7, .2, .5), darkBone);
-  jw.position.set(px, 6.85, pz + .2); shrine.add(jw);
-  for (const s of [-1, 1]) {
-    const e = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff1030 }));
-    e.position.set(px + s * .22, 7.3, pz + .35); shrine.add(e);
+
+  // bone rings on the pillar (vertebrae look)
+  for (let j = 0; j < 6; j++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.55, .12, 6, 14), boneMat);
+    ring.rotation.x = PI / 2;
+    ring.position.set(px, 1.2 + j * 1.4, pz);
+    shrine.add(ring);
   }
-  const arc = new THREE.Mesh(new THREE.TorusGeometry(.3, .06, 6, 12, PI), boneMat);
-  arc.position.set(px * .55, 5.5, pz * .55);
-  arc.lookAt(0, 6, 0);
+
+  // pillar base
+  const base = new THREE.Mesh(new THREE.BoxGeometry(1.4, .5, 1.4), shrineDark);
+  base.position.set(px, .25, pz); shrine.add(base);
+
+  // giant skull on top
+  const sk = new THREE.Mesh(new THREE.SphereGeometry(.75, 16, 12), boneMat);
+  sk.position.set(px, 9.0, pz); sk.scale.set(1, 1.15, 1); shrine.add(sk);
+  const jw = new THREE.Mesh(new THREE.BoxGeometry(.9, .25, .7), darkBone);
+  jw.position.set(px, 8.5, pz + .3); shrine.add(jw);
+  // eye sockets
+  for (const s of [-1, 1]) {
+    const e = new THREE.Mesh(new THREE.SphereGeometry(.16, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff1030 }));
+    e.position.set(px + s * .3, 9.1, pz + .5); shrine.add(e);
+    // brow
+    const br = new THREE.Mesh(new THREE.BoxGeometry(.35, .1, .15), darkBone);
+    br.position.set(px + s * .3, 9.35, pz + .48); br.rotation.z = s * .25; shrine.add(br);
+  }
+  // horns on skull
+  for (const s of [-1, 1]) {
+    const horn = new THREE.Mesh(new THREE.ConeGeometry(.12, .9, 6), boneMat);
+    horn.position.set(px + s * .55, 9.6, pz);
+    horn.rotation.z = s * .5;
+    shrine.add(horn);
+  }
+
+  // rib arc connecting pillar to center
+  const arc = new THREE.Mesh(new THREE.TorusGeometry(.5, .1, 6, 14, PI), boneMat);
+  arc.position.set(px * .6, 6.5, pz * .6);
+  arc.lookAt(0, 7, 0);
   shrine.add(arc);
 }
 
-const giantSkull = new THREE.Mesh(new THREE.SphereGeometry(1.4, 20, 16), boneMat);
-giantSkull.position.y = 5.8; giantSkull.scale.set(1, 1.2, .95); shrine.add(giantSkull);
-const giantJaw = new THREE.Mesh(new THREE.BoxGeometry(1.6, .4, 1.0), darkBone);
-giantJaw.position.set(0, 5.0, .5); shrine.add(giantJaw);
-for (const s of [-1, 1]) {
-  const e = new THREE.Mesh(new THREE.SphereGeometry(.35, 10, 8), new THREE.MeshBasicMaterial({ color: 0xff0018 }));
-  e.position.set(s * .5, 5.9, .9); shrine.add(e);
-  const br = new THREE.Mesh(new THREE.BoxGeometry(.6, .15, .2), darkBone);
-  br.position.set(s * .5, 6.25, .85); br.rotation.z = s * .2; shrine.add(br);
-  const horn = new THREE.Mesh(new THREE.ConeGeometry(.18, 1.6, 6), boneMat);
-  horn.position.set(s * .9, 7.0, .1); horn.rotation.z = s * .5; shrine.add(horn);
+// ── Central giant skull above the altar (the shrine's face) ──
+const giantSkull = new THREE.Mesh(new THREE.SphereGeometry(1.6, 22, 18), boneMat);
+giantSkull.position.y = 7.0; giantSkull.scale.set(1, 1.2, .95); shrine.add(giantSkull);
+const giantJaw = new THREE.Mesh(new THREE.BoxGeometry(1.9, .45, 1.2), darkBone);
+giantJaw.position.set(0, 6.0, .6); shrine.add(giantJaw);
+// teeth
+for (let t = -3; t <= 3; t++) {
+  const tooth = new THREE.Mesh(new THREE.ConeGeometry(.1, .3, 4), boneMat);
+  tooth.position.set(t * .22, 6.28, 1.05);
+  tooth.rotation.x = PI;
+  shrine.add(tooth);
 }
-const crownRing = new THREE.Mesh(new THREE.TorusGeometry(1.3, .06, 6, 20), goldMat);
-crownRing.rotation.x = PI / 2; crownRing.position.y = 7.1; shrine.add(crownRing);
+// giant eye sockets
+for (const s of [-1, 1]) {
+  const e = new THREE.Mesh(new THREE.SphereGeometry(.45, 12, 10), new THREE.MeshBasicMaterial({ color: 0xff0018 }));
+  e.position.set(s * .6, 7.1, 1.05); shrine.add(e);
+  const br = new THREE.Mesh(new THREE.BoxGeometry(.8, .18, .25), darkBone);
+  br.position.set(s * .6, 7.55, .95); br.rotation.z = s * .22; shrine.add(br);
+  // horns
+  const horn = new THREE.Mesh(new THREE.ConeGeometry(.22, 2.0, 7), boneMat);
+  horn.position.set(s * 1.05, 8.4, .15);
+  horn.rotation.z = s * .55;
+  shrine.add(horn);
+}
+// crown
+const crownRing = new THREE.Mesh(new THREE.TorusGeometry(1.5, .08, 8, 24), goldMat);
+crownRing.rotation.x = PI / 2; crownRing.position.y = 8.4; shrine.add(crownRing);
 
-for (let i = 0; i < 6; i++) {
-  const a = (i / 6) * PI * 2;
-  const rib = new THREE.Mesh(new THREE.TorusGeometry(2.8, .08, 5, 16, PI), boneMat);
-  rib.position.set(0, 3.2, 0);
+// ── Rib cage arches around the shrine ──
+for (let i = 0; i < 8; i++) {
+  const a = (i / 8) * PI * 2;
+  const rib = new THREE.Mesh(new THREE.TorusGeometry(3.4, .1, 6, 20, PI), boneMat);
+  rib.position.set(0, 3.6, 0);
   rib.rotation.set(PI / 2, a, 0);
   shrine.add(rib);
 }
 
-for (let i = 0; i < 12; i++) {
-  const a = (i / 12) * PI * 2;
-  const r = 3.5;
-  const spike = new THREE.Mesh(new THREE.ConeGeometry(.2, 1.2, 5), darkBone);
-  spike.position.set(Math.cos(a) * r, .4, Math.sin(a) * r);
-  spike.rotation.x = PI;
+// ── Ground spikes / bone teeth ring ──
+for (let i = 0; i < 16; i++) {
+  const a = (i / 16) * PI * 2;
+  const r = 4.0;
+  const spike = new THREE.Mesh(new THREE.ConeGeometry(.25, 1.5, 6), darkBone);
+  spike.position.set(Math.cos(a) * r, .75, Math.sin(a) * r);
   shrine.add(spike);
 }
 
+// ── SUKUNA'S THRONE — the famous skull throne ──
 const throne = new THREE.Group();
-const throneDarkMat = new THREE.MeshStandardMaterial({ color: 0x0a0202, emissive: 0xaa0018, emissiveIntensity: 1.2, roughness: .4 });
-const throneBoneMat = new THREE.MeshStandardMaterial({ color: 0xe0d0b8, emissive: 0x220000, emissiveIntensity: .5, roughness: .6 });
+const throneDarkMat = new THREE.MeshStandardMaterial({ color: 0x080101, emissive: 0xbb0018, emissiveIntensity: 1.3, roughness: .4 });
+const throneBoneMat = new THREE.MeshStandardMaterial({ color: 0xe8d8c0, emissive: 0x220000, emissiveIntensity: .5, roughness: .6 });
 
-const seat = new THREE.Mesh(new THREE.BoxGeometry(1.8, .35, 1.5), throneDarkMat);
-seat.position.y = 1.0; throne.add(seat);
-const back = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.2, .3), throneDarkMat);
-back.position.set(0, 2.1, -.7); throne.add(back);
+// main seat block
+const seat = new THREE.Mesh(new THREE.BoxGeometry(2.0, .4, 1.6), throneDarkMat);
+seat.position.y = 1.1; throne.add(seat);
+// tall back
+const back = new THREE.Mesh(new THREE.BoxGeometry(2.0, 2.6, .35), throneDarkMat);
+back.position.set(0, 2.4, -.75); throne.add(back);
+// armrests
 for (const s of [-1, 1]) {
-  const arm = new THREE.Mesh(new THREE.BoxGeometry(.3, .35, 1.4), throneDarkMat);
-  arm.position.set(s * 1.0, 1.35, 0); throne.add(arm);
-  const s2 = new THREE.Mesh(new THREE.SphereGeometry(.25, 10, 8), throneBoneMat);
-  s2.position.set(s * 1.0, 1.65, .6); throne.add(s2);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(.35, .4, 1.5), throneDarkMat);
+  arm.position.set(s * 1.15, 1.5, 0); throne.add(arm);
+  // skull on armrest
+  const s2 = new THREE.Mesh(new THREE.SphereGeometry(.3, 12, 9), throneBoneMat);
+  s2.position.set(s * 1.15, 1.85, .7); throne.add(s2);
+  // armrest bones
   for (let i = 0; i < 3; i++) {
-    const b = new THREE.Mesh(new THREE.CapsuleGeometry(.04, .35, 3, 5), throneBoneMat);
-    b.position.set(s * 1.0, 1.15 + i * .12, -.3 + i * .2);
+    const b = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .4, 3, 6), throneBoneMat);
+    b.position.set(s * 1.15, 1.25 + i * .15, -.4 + i * .25);
     b.rotation.z = s * .3;
     throne.add(b);
   }
+  // legs of throne (bone columns)
+  for (let j = 0; j < 2; j++) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(.12, .16, 1.1, 7), throneBoneMat);
+    leg.position.set(s * .85, .55, -.4 + j * .8);
+    throne.add(leg);
+  }
 }
-for (let i = 0; i < 2; i++) {
-  const step = new THREE.Mesh(new THREE.BoxGeometry(2.2 + i * .5, .2, 1.8 + i * .4), throneDarkMat);
-  step.position.y = .1 + i * .2; step.position.z = .2 - i * .1;
+// stepped base
+for (let i = 0; i < 3; i++) {
+  const step = new THREE.Mesh(new THREE.BoxGeometry(2.6 + i * .6, .22, 2.2 + i * .5), throneDarkMat);
+  step.position.y = .11 + i * .22; step.position.z = .3 - i * .12;
   throne.add(step);
 }
-const throneSkull = new THREE.Mesh(new THREE.SphereGeometry(.7, 14, 12), throneBoneMat);
-throneSkull.position.set(0, 3.5, -.7); throneSkull.scale.set(1, 1.1, 1); throne.add(throneSkull);
+// giant skull crowning the throne back
+const throneSkull = new THREE.Mesh(new THREE.SphereGeometry(.85, 16, 13), throneBoneMat);
+throneSkull.position.set(0, 4.1, -.75); throneSkull.scale.set(1, 1.15, 1); throne.add(throneSkull);
+const throneJaw = new THREE.Mesh(new THREE.BoxGeometry(1.0, .25, .7), darkBone);
+throneJaw.position.set(0, 3.6, -.35); throne.add(throneJaw);
+// glowing throne eyes
 for (const s of [-1, 1]) {
-  const e = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2030 }));
-  e.position.set(s * .22, 3.55, -.25); throne.add(e);
-  const horn = new THREE.Mesh(new THREE.ConeGeometry(.12, 1.4, 5), throneBoneMat);
-  horn.position.set(s * .8, 4.1, -.65);
-  horn.rotation.z = s * .4;
+  const e = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2030 }));
+  e.position.set(s * .28, 4.15, -.3); throne.add(e);
+  // horns
+  const horn = new THREE.Mesh(new THREE.ConeGeometry(.14, 1.6, 6), throneBoneMat);
+  horn.position.set(s * .95, 4.8, -.7);
+  horn.rotation.z = s * .45;
   throne.add(horn);
 }
 
-throne.position.set(0, 0, -3.2);
-throne.rotation.y = PI;
+// Place throne behind the altar, facing forward (toward the arena)
+throne.position.set(0, 0, -4.5);
 throne.visible = false;
 shrine.add(throne);
 
@@ -254,11 +396,11 @@ shrine.visible = false;
 scene.add(shrine);
 
 /* ============================================================
-   ENVIRONMENT PRESETS
+   ENVIRONMENTS
    ============================================================ */
 const ENV = {
   city:   { bg: 0x1a1030, fog: 0x302050, density: .008, hemi: 0x8899cc, floor: 0x2a2a38 },
-  shrine: { bg: 0x200000, fog: 0x500810, density: .014, hemi: 0xaa4444, floor: 0x400808 },
+  shrine: { bg: 0x1a0000, fog: 0x400810, density: .016, hemi: 0xcc4444, floor: 0x300606 },
   void:   { bg: 0x000000, fog: null,    density: 0,     hemi: 0x334488, floor: 0x000000 }
 };
 function setEnv(name) {
@@ -269,6 +411,8 @@ function setEnv(name) {
   floorMat.color.set(e.floor);
   cityGroup.visible = name === 'city';
   floorMesh.visible = name !== 'void';
+  road.visible = name === 'city';
+  road2.visible = name === 'city';
   shrine.visible = name === 'shrine';
   stars.visible = name === 'void';
   moonSprite.visible = name === 'city';
@@ -319,8 +463,8 @@ class ParticleSystem {
     for (const n of ['position', 'pc', 'ps', 'pa']) this.g.attributes[n].needsUpdate = true;
   }
 }
-const glowParticles = new ParticleSystem(3500, AD);
-const smokeParticles = new ParticleSystem(800, THREE.NormalBlending);
+const glowParticles = new ParticleSystem(3000, AD);
+const smokeParticles = new ParticleSystem(600, THREE.NormalBlending);
 
 const spark = (p, n, spd, sz, t, c, g = 6) => {
   for (let i = 0; i < n; i++) {
@@ -336,11 +480,11 @@ const puff = (p, n, spd, sz, t, c = [.4, .38, .4]) => {
 };
 
 /* ============================================================
-   FX
+   FX helpers
    ============================================================ */
 const fxList = [];
-const ringGeo = new THREE.RingGeometry(.9, 1, 64);
-const sphereGeo = new THREE.SphereGeometry(1, 16, 12);
+const ringGeo = new THREE.RingGeometry(.9, 1, 48);
+const sphereGeo = new THREE.SphereGeometry(1, 12, 10);
 let shake = 0;
 const BM = (c, ad = true) => new THREE.MeshBasicMaterial({ color: c, transparent: true, blending: ad ? AD : THREE.NormalBlending, depthWrite: false, side: THREE.DoubleSide });
 
@@ -371,9 +515,9 @@ function sphereFX(p, c, max, dur, ad = true) {
 }
 function boltFX(a, b, c) {
   const pts = [];
-  for (let i = 0; i <= 10; i++) {
-    const q = a.clone().lerp(b, i / 10);
-    if (i && i < 10) q.add(rd().multiplyScalar(.5));
+  for (let i = 0; i <= 8; i++) {
+    const q = a.clone().lerp(b, i / 8);
+    if (i && i < 8) q.add(rd().multiplyScalar(.5));
     pts.push(q);
   }
   const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: c, transparent: true, blending: AD }));
@@ -387,7 +531,7 @@ function boltFX(a, b, c) {
 }
 function lightFlash(p, c, i) { combatLight.position.copy(p); combatLight.color.set(c); combatLightI = i; }
 function impact(p, pw, c = [1.3, .7, .5]) {
-  spark(p, Math.floor(30 * pw), 12 * pw, .35, .6, c, 8);
+  spark(p, Math.floor(26 * pw), 12 * pw, .35, .6, c, 8);
   sphereFX(p, 0xffffff, 1.1 * pw, .22);
   ringFX(p, 0xffffff, 2.5 * pw, .3, true);
   lightFlash(p, 0xffa070, 200 * pw);
@@ -410,7 +554,7 @@ function say(name, text, d = 2.4) {
 }
 
 /* ============================================================
-   CHARACTERS
+   CHARACTERS — detailed rig, no spikes on heads
    ============================================================ */
 const POSE = {
   idle:   { hy: 0, tx: 0, ty: 0, hdx: 0, lsx: -.15, lsz: .15, lel: -.35, rsx: -.15, rsz: -.15, rel: -.35, lhx: 0, lkn: .1, rhx: 0, rkn: .1 },
@@ -443,113 +587,126 @@ function makeCharacter(opts) {
   const skinM  = M(opts.skin,  { r: .7 });
   const topM   = M(opts.top,   { r: .55, m: .2 });
   const pantsM = M(opts.pants, { r: .65, m: .15 });
-  const hairM  = M(opts.hair,  { r: .5,  m: .1 });
+  const hairM  = M(opts.hair,  { r: .55, m: .1 });
   const bootM  = M(opts.boots ?? 0x0a0a0e, { r: .5, m: .3 });
   const eyeM   = new THREE.MeshBasicMaterial({ color: opts.eye ?? 0x9fe0ff });
 
-  const cap = (r, l, m, y) => {
-    const x = new THREE.Mesh(new THREE.CapsuleGeometry(r, l, 6, 10), m);
-    x.position.y = y; x.castShadow = true; return x;
-  };
   const grp = (p, x, y, z) => { const q = new THREE.Group(); q.position.set(x, y, z); p.add(q); return q; };
 
+  // HIPS
   const hips = grp(g, 0, 1.0, 0);
   const pelvis = new THREE.Mesh(new THREE.SphereGeometry(.22, 14, 10), pantsM);
-  pelvis.scale.set(1.15, .8, .9); pelvis.castShadow = true; hips.add(pelvis);
+  pelvis.scale.set(1.15, .8, .9); hips.add(pelvis);
 
+  // TORSO
   const torso = grp(hips, 0, .1, 0);
-  const waist = cap(.19, .18, topM, .08); waist.scale.set(1.15, 1, .8); torso.add(waist);
-  const chest = cap(.23, .3, topM, .38); chest.scale.set(1.25, 1, .82); torso.add(chest);
+  const waist = new THREE.Mesh(new THREE.CapsuleGeometry(.19, .18, 5, 10), topM);
+  waist.position.y = .08; waist.scale.set(1.15, 1, .8); torso.add(waist);
+  const chest = new THREE.Mesh(new THREE.CapsuleGeometry(.23, .3, 5, 10), topM);
+  chest.position.y = .38; chest.scale.set(1.25, 1, .82); torso.add(chest);
   const upperChest = new THREE.Mesh(new THREE.SphereGeometry(.27, 16, 12), topM);
-  upperChest.scale.set(1.35, .65, .9); upperChest.position.y = .6; upperChest.castShadow = true; torso.add(upperChest);
+  upperChest.scale.set(1.35, .65, .9); upperChest.position.y = .6; torso.add(upperChest);
 
+  // abs
   for (let i = 0; i < 3; i++) {
-    const ab = new THREE.Mesh(new THREE.BoxGeometry(.28, .045, .03), M(opts.top, { r: .4, e: 0x111122, ei: .2 }));
+    const ab = new THREE.Mesh(new THREE.BoxGeometry(.26, .04, .02), M(opts.top, { r: .4, e: 0x111122, ei: .2 }));
     ab.position.set(0, .14 + i * .075, .32); torso.add(ab);
   }
 
-  const collar = new THREE.Mesh(new THREE.CylinderGeometry(.1, .12, .08, 14), topM);
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(.1, .12, .08, 12), topM);
   collar.position.y = .68; torso.add(collar);
 
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, .14, 12), skinM);
+  // NECK
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, .14, 10), skinM);
   neck.position.y = .75; torso.add(neck);
 
+  // HEAD
   const head = grp(torso, 0, .88, 0);
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(.16, 24, 18), skinM);
-  skull.position.y = .1; skull.scale.set(.95, 1.12, 1); skull.castShadow = true; head.add(skull);
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(.16, 20, 16), skinM);
+  skull.position.y = .1; skull.scale.set(.95, 1.12, 1); head.add(skull);
   const jaw = new THREE.Mesh(new THREE.BoxGeometry(.18, .09, .14), skinM);
   jaw.position.set(0, .02, .04); head.add(jaw);
 
-  if (opts.hairStyle === 'spiky') {
-    for (let i = 0; i < 28; i++) {
-      const d = rd(); if (d.y < .1) d.y = Math.abs(d.y) * .4; d.normalize();
-      const L = rnd(.18, .36);
-      const c = new THREE.Mesh(new THREE.ConeGeometry(.05, L, 5), hairM);
-      c.position.set(0, .1, 0).addScaledVector(d, .13 + L * .35);
-      c.quaternion.setFromUnitVectors(new V(0, 1, 0), d);
-      head.add(c);
+  // ── HAIR — clean cap, NO spikes ──
+  const hairCap = new THREE.Mesh(
+    new THREE.SphereGeometry(.168, 20, 15, 0, PI * 2, 0, PI * .58),
+    hairM
+  );
+  hairCap.position.y = .1;
+  hairCap.scale.set(1.02, 1.12, 1.04);
+  head.add(hairCap);
+
+  // side hair tufts (small, not spikes)
+  if (opts.hairStyle === 'gojo') {
+    // Gojo: smooth white cap with a soft forward fringe
+    for (let i = 0; i < 8; i++) {
+      const a = -PI * .5 + (i / 7) * PI;
+      const tuft = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 5), hairM);
+      tuft.position.set(Math.cos(a) * .13, .18, Math.sin(a) * .1 + .04);
+      tuft.scale.set(.9, .8, 1.2);
+      head.add(tuft);
     }
   } else {
-    const hairCap = new THREE.Mesh(new THREE.SphereGeometry(.165, 22, 16, 0, PI * 2, 0, PI * .56), hairM);
-    hairCap.position.y = .1; hairCap.scale.set(1.02, 1.15, 1.06); head.add(hairCap);
-    for (let i = 0; i < 10; i++) {
-      const a = (i / 10) * PI * 2, L = rnd(.12, .22);
-      const c = new THREE.Mesh(new THREE.ConeGeometry(.03, L, 4), hairM);
-      c.position.set(Math.cos(a) * .12, .16, Math.sin(a) * .1);
-      c.rotation.z = Math.cos(a) * .4; c.rotation.x = Math.sin(a) * .4;
-      head.add(c);
+    // Sukuna: slicked back with pointed fringe
+    for (let i = 0; i < 5; i++) {
+      const a = -PI * .4 + (i / 4) * PI * .8;
+      const tuft = new THREE.Mesh(new THREE.SphereGeometry(.06, 6, 5), hairM);
+      tuft.position.set(Math.cos(a) * .12, .15, Math.sin(a) * .08 - .05);
+      tuft.scale.set(1.1, .7, 1);
+      head.add(tuft);
     }
   }
 
+  // FACE
   for (const s of [1, -1]) {
-    const sclera = new THREE.Mesh(new THREE.SphereGeometry(.03, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    const sclera = new THREE.Mesh(new THREE.SphereGeometry(.03, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffffff }));
     sclera.position.set(s * .062, .13, .142); sclera.scale.set(1.6, .8, .4); head.add(sclera);
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(.025, 12, 10), eyeM);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(.025, 10, 8), eyeM);
     eye.position.set(s * .062, .13, .148); eye.scale.set(1.5, .8, .5); head.add(eye);
     const brow = new THREE.Mesh(new THREE.BoxGeometry(.06, .012, .01), M(opts.hair, { r: .8 }));
     brow.position.set(s * .065, .175, .15); brow.rotation.z = -s * .25; head.add(brow);
-    const nostril = new THREE.Mesh(new THREE.SphereGeometry(.008, 6, 4), new THREE.MeshBasicMaterial({ color: 0x550000 }));
+    const nostril = new THREE.Mesh(new THREE.SphereGeometry(.008, 4, 3), new THREE.MeshBasicMaterial({ color: 0x550000 }));
     nostril.position.set(s * .02, .065, .155); head.add(nostril);
   }
   const mouth = new THREE.Mesh(new THREE.BoxGeometry(.07, .01, .01), new THREE.MeshBasicMaterial({ color: 0x331111 }));
   mouth.position.set(0, .045, .152); head.add(mouth);
 
+  // ARMS
   const arm = (s, p, y, slM, faM) => {
     const sh = grp(p, s * .34, y, 0);
-    sh.add(new THREE.Mesh(new THREE.SphereGeometry(.11, 14, 12), slM));
-    const upper = new THREE.Mesh(new THREE.CapsuleGeometry(.075, .24, 6, 12), slM);
-    upper.position.y = -.19; upper.castShadow = true; sh.add(upper);
+    sh.add(new THREE.Mesh(new THREE.SphereGeometry(.11, 10, 8), slM));
+    const upper = new THREE.Mesh(new THREE.CapsuleGeometry(.075, .24, 4, 8), slM);
+    upper.position.y = -.19; sh.add(upper);
     const el = grp(sh, 0, -.35, 0);
-    el.add(new THREE.Mesh(new THREE.SphereGeometry(.065, 10, 8), faM));
-    const fore = new THREE.Mesh(new THREE.CapsuleGeometry(.062, .24, 6, 12), faM);
-    fore.position.y = -.18; fore.castShadow = true; el.add(fore);
+    el.add(new THREE.Mesh(new THREE.SphereGeometry(.065, 8, 6), faM));
+    const fore = new THREE.Mesh(new THREE.CapsuleGeometry(.062, .24, 4, 8), faM);
+    fore.position.y = -.18; el.add(fore);
 
     const hand = grp(el, 0, -.36, 0);
     const palm = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .05), faM);
-    palm.position.y = -.02; palm.castShadow = true; hand.add(palm);
+    palm.position.y = -.02; hand.add(palm);
     for (let i = 0; i < 4; i++) {
-      const fg = new THREE.Mesh(new THREE.CapsuleGeometry(.013, .04, 4, 6), faM);
+      const fg = new THREE.Mesh(new THREE.CapsuleGeometry(.013, .04, 3, 5), faM);
       fg.position.set(-.036 + i * .024, -.09, 0); hand.add(fg);
-      const knuckle = new THREE.Mesh(new THREE.SphereGeometry(.015, 6, 5), faM);
-      knuckle.position.set(-.036 + i * .024, -.06, .015); hand.add(knuckle);
     }
-    const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(.014, .04, 4, 6), faM);
+    const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(.014, .04, 3, 5), faM);
     thumb.position.set(.055, -.04, .025); thumb.rotation.z = -.7; hand.add(thumb);
     return { sh, el, hand };
   };
   const armL = arm(1, torso, .62, topM, skinM);
   const armR = arm(-1, torso, .62, topM, skinM);
 
+  // LEGS
   const leg = s => {
     const hp = grp(hips, s * .13, 0, 0);
-    const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(.1, .32, 6, 12), pantsM);
-    thigh.position.y = -.23; thigh.castShadow = true; hp.add(thigh);
+    const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(.1, .32, 4, 8), pantsM);
+    thigh.position.y = -.23; hp.add(thigh);
     const kn = grp(hp, 0, -.46, 0);
-    kn.add(new THREE.Mesh(new THREE.SphereGeometry(.085, 12, 10), pantsM));
-    const shin = new THREE.Mesh(new THREE.CapsuleGeometry(.078, .32, 6, 12), pantsM);
-    shin.position.y = -.23; shin.castShadow = true; kn.add(shin);
+    kn.add(new THREE.Mesh(new THREE.SphereGeometry(.085, 8, 6), pantsM));
+    const shin = new THREE.Mesh(new THREE.CapsuleGeometry(.078, .32, 4, 8), pantsM);
+    shin.position.y = -.23; kn.add(shin);
     const foot = new THREE.Mesh(new THREE.BoxGeometry(.12, .08, .3), bootM);
-    foot.position.set(0, -.46, .07); foot.castShadow = true; kn.add(foot);
+    foot.position.set(0, -.46, .07); kn.add(foot);
     const toe = new THREE.Mesh(new THREE.BoxGeometry(.11, .04, .08), bootM);
     toe.position.set(0, -.48, .2); kn.add(toe);
     return { hp, kn };
@@ -570,15 +727,16 @@ function makeCharacter(opts) {
 
 const gojo = makeCharacter({
   skin: 0xf2d3bd, top: 0x0c0c18, pants: 0x0c0c18,
-  hair: 0xeef2ff, boots: 0x0a0a0e, eye: 0x9fe0ff, hairStyle: 'spiky'
+  hair: 0xf0f4ff, boots: 0x0a0a0e, eye: 0x9fe0ff, hairStyle: 'gojo'
 });
 const sukuna = makeCharacter({
   skin: 0xe6b898, top: 0xe8e0d0, pants: 0x16121c,
-  hair: 0x1a0a10, boots: 0x0a0202, eye: 0xff3030, hairStyle: 'slick'
+  hair: 0xd04a2a, boots: 0x0a0202, eye: 0xff3030, hairStyle: 'sukuna'
 });
 
+// Gojo's blindfold
 const blindfold = new THREE.Mesh(
-  new THREE.TorusGeometry(.16, .028, 10, 28),
+  new THREE.TorusGeometry(.16, .03, 8, 24),
   new THREE.MeshStandardMaterial({ color: 0x050508, roughness: .9 })
 );
 blindfold.rotation.x = PI / 2; blindfold.position.y = .13; gojo.head.add(blindfold);
@@ -590,51 +748,85 @@ gojo.head.traverse(o => {
   }
 });
 
-const hairband = new THREE.Mesh(
-  new THREE.TorusGeometry(.165, .02, 6, 24),
-  new THREE.MeshStandardMaterial({ color: 0x0c0c18 })
-);
-hairband.rotation.x = PI / 2; hairband.position.y = .19; gojo.head.add(hairband);
-
+// Sukuna's extra background arms
 for (const s of [1, -1]) {
   const a = new THREE.Group();
   a.position.set(s * .28, .5, -.12); sukuna.torso.add(a);
   a.rotation.x = -0.9; a.rotation.z = s * 0.3;
-  const u = new THREE.Mesh(new THREE.CapsuleGeometry(.055, .2, 4, 8), new THREE.MeshStandardMaterial({ color: 0xe8e0d0 }));
+  const u = new THREE.Mesh(new THREE.CapsuleGeometry(.055, .2, 3, 6), new THREE.MeshStandardMaterial({ color: 0xe8e0d0 }));
   u.position.y = -.15; a.add(u);
   const el = new THREE.Group(); el.position.y = -.3; el.rotation.x = -1.2; a.add(el);
-  const f2 = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .2, 4, 8), new THREE.MeshStandardMaterial({ color: 0xe6b898 }));
+  const f2 = new THREE.Mesh(new THREE.CapsuleGeometry(.05, .2, 3, 6), new THREE.MeshStandardMaterial({ color: 0xe6b898 }));
   f2.position.y = -.15; el.add(f2);
   const hand2 = new THREE.Mesh(new THREE.BoxGeometry(.08, .09, .04), new THREE.MeshStandardMaterial({ color: 0xe6b898 }));
   hand2.position.y = -.3; el.add(hand2);
 }
 
+// Sukuna facial markings (thin black lines — the tattoos)
 for (const s of [1, -1]) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(.04, .12, .015), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  const m = new THREE.Mesh(new THREE.BoxGeometry(.035, .1, .012), new THREE.MeshBasicMaterial({ color: 0x000000 }));
   m.position.set(s * .09, .06, .14); m.rotation.z = -s * .3; sukuna.head.add(m);
-  const m2 = new THREE.Mesh(new THREE.BoxGeometry(.025, .08, .012), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  const m2 = new THREE.Mesh(new THREE.BoxGeometry(.025, .07, .01), new THREE.MeshBasicMaterial({ color: 0x000000 }));
   m2.position.set(s * .13, .12, .11); m2.rotation.z = -s * .5; sukuna.head.add(m2);
+  // under-eye line
+  const m3 = new THREE.Mesh(new THREE.BoxGeometry(.06, .012, .01), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  m3.position.set(s * .07, .08, .152); sukuna.head.add(m3);
 }
 
-const sukunaCollar = new THREE.Mesh(
-  new THREE.TorusGeometry(.1, .018, 8, 20),
-  new THREE.MeshStandardMaterial({ color: 0x0a0a0a })
-);
-sukunaCollar.rotation.x = PI / 2; sukunaCollar.position.y = .66; sukuna.torso.add(sukunaCollar);
-
+// Gojo's high black collar
 const gojoCollar = new THREE.Mesh(
-  new THREE.CylinderGeometry(.11, .12, .14, 14, 1, true),
+  new THREE.CylinderGeometry(.11, .12, .14, 12, 1, true),
   new THREE.MeshStandardMaterial({ color: 0x050508, side: THREE.DoubleSide })
 );
 gojoCollar.position.y = .72; gojo.torso.add(gojoCollar);
 
-const infinitySphere = new THREE.Mesh(
-  new THREE.SphereGeometry(1.7, 24, 16),
-  new THREE.MeshBasicMaterial({ color: 0x66b8ff, transparent: true, opacity: .15, blending: AD, depthWrite: false, side: THREE.DoubleSide })
+// Sukuna collar trim
+const sukunaCollar = new THREE.Mesh(
+  new THREE.TorusGeometry(.1, .018, 6, 16),
+  new THREE.MeshStandardMaterial({ color: 0x0a0a0a })
 );
-infinitySphere.visible = false; scene.add(infinitySphere);
+sukunaCollar.rotation.x = PI / 2; sukunaCollar.position.y = .66; sukuna.torso.add(sukunaCollar);
 
-function setPose(c, name, hold = false) { c.tgt = POSE[name]; c.ret = hold ? 0 : .25; }
+/* ============================================================
+   INFINITY BARRIER — layered, swirling hex pattern
+   ============================================================ */
+const infinityGroup = new THREE.Group();
+const infinityCore = new THREE.Mesh(
+  new THREE.SphereGeometry(1.75, 32, 20),
+  new THREE.MeshBasicMaterial({
+    color: 0x66b8ff, transparent: true, opacity: .12,
+    blending: AD, depthWrite: false, side: THREE.DoubleSide
+  })
+);
+infinityGroup.add(infinityCore);
+
+// hex wireframe shell
+const hexGeo = new THREE.IcosahedronGeometry(1.82, 2);
+const hexWire = new THREE.Mesh(
+  hexGeo,
+  new THREE.MeshBasicMaterial({ color: 0x88d0ff, wireframe: true, transparent: true, opacity: .35, blending: AD, depthWrite: false })
+);
+infinityGroup.add(hexWire);
+
+// inner swirl ring
+const swirlRing = new THREE.Mesh(
+  new THREE.TorusGeometry(1.4, .02, 6, 48),
+  new THREE.MeshBasicMaterial({ color: 0xaad8ff, transparent: true, opacity: .6, blending: AD, depthWrite: false })
+);
+infinityGroup.add(swirlRing);
+const swirlRing2 = swirlRing.clone();
+swirlRing2.rotation.x = PI / 2;
+infinityGroup.add(swirlRing2);
+
+// outer glow sprite
+const infinityGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: glowTex, color: 0x66b8ff, blending: AD, transparent: true, depthWrite: false
+}));
+infinityGlow.scale.set(5, 5, 1);
+infinityGroup.add(infinityGlow);
+
+infinityGroup.visible = false;
+scene.add(infinityGroup);
 
 /* ============================================================
    POSITION TRACKS
@@ -705,7 +897,7 @@ function updateFighter(f, trackArr, other, dt, time) {
    ============================================================ */
 function makeOrb(color, glowColor) {
   const q = new THREE.Group();
-  q.add(new THREE.Mesh(new THREE.SphereGeometry(.5, 24, 16), new THREE.MeshBasicMaterial({ color })));
+  q.add(new THREE.Mesh(new THREE.SphereGeometry(.5, 20, 14), new THREE.MeshBasicMaterial({ color })));
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: glowColor, blending: AD, transparent: true, depthWrite: false }));
   s.scale.set(5, 5, 1); q.add(s);
   q.visible = false; scene.add(q);
@@ -721,7 +913,7 @@ const orbPurple = makeOrb(0xd8a0ff, 0x8a2cff);
 const dropBuilding = b => {
   if (b.userData.f < 0) {
     b.userData.f = T;
-    puff(new V(b.position.x, 2, b.position.z), 6, 6, 3, 2, [.3, .28, .3]);
+    puff(new V(b.position.x, 2, b.position.z), 5, 6, 3, 2, [.3, .28, .3]);
   }
 };
 const collapseBuildings = (filterFn, count) => {
@@ -746,9 +938,9 @@ function fireProjectile() {
     glowParticles.e(m.position.x + 1.5, y, z, 0, 0, 0, .35, .3, 1.4, 1.4, 1.6);
     if (m.position.x <= gojo.p.x + 1.8) {
       const p = new V(m.position.x, y, z);
-      spark(p, 14, 8, .3, .5, [.6, .9, 1.6]);
+      spark(p, 12, 8, .3, .5, [.6, .9, 1.6]);
       ringFX(p, 0x66b8ff, 3, .4, true);
-      infinitySphere.material.opacity = .7;
+      if (infinityGroup.visible) infinityCore.material.opacity = .7;
       sfx('explode');
       shake = Math.max(shake, .5);
       collapseBuildings(q => q.x < -24 && Math.abs(q.z) < 14, 1);
@@ -763,14 +955,14 @@ function blackFlash(p) {
   sphereFX(p, 0x000000, 2.4, .55, false);
   sphereFX(p, 0xff1030, 3.2, .4);
   ringFX(p, 0xff1030, 7, .5);
-  for (let i = 0; i < 10; i++) boltFX(p, p.clone().add(rd().multiplyScalar(4)), i % 2 ? 0xff2040 : 0x111118);
-  spark(p, 90, 16, .4, .9, [1.4, .1, .2], 2);
+  for (let i = 0; i < 8; i++) boltFX(p, p.clone().add(rd().multiplyScalar(4)), i % 2 ? 0xff2040 : 0x111118);
+  spark(p, 80, 16, .4, .9, [1.4, .1, .2], 2);
   flashScreen('#300', .7, .5);
   lightFlash(p, 0xff1030, 600); shake = 4;
 }
 
 /* ============================================================
-   TIMELINE
+   TIMELINE — extended for cinematic hollow purple
    ============================================================ */
 const EVENTS = [];
 const at = (t, fn) => EVENTS.push([t, fn]);
@@ -787,7 +979,7 @@ at(5.2, () => say('SUKUNA', '"Let me see what you are, sorcerer."', 1.6));
 at(6.9, () => {
   blindfold.position.y = .24;
   gojoEyes.forEach(e => e.visible = true);
-  spark(new V(gojo.p.x, 1.9, 0), 30, 3, .3, 1, [.5, .9, 1.6], 0);
+  spark(new V(gojo.p.x, 1.9, 0), 25, 3, .3, 1, [.5, .9, 1.6], 0);
   sfx('shing');
   say('GOJO', '"Don\'t worry. I\'m the strongest."', 2);
 });
@@ -801,7 +993,7 @@ at(9, () => {
   impact(m, 2.4);
   ringFX(m.clone().setY(.05), 0xffffff, 16, .8);
   flashScreen('#fff', .8, .5); shake = 2;
-  puff(m.clone().setY(.3), 30, 9, 2.4, 1.8);
+  puff(m.clone().setY(.3), 26, 9, 2.4, 1.8);
 });
 
 at(10.05, () => { setPose(sukuna, 'uppercut'); setPose(gojo, 'hit'); impact(hitPoint(gojo), 1.3); });
@@ -812,7 +1004,7 @@ at(11.7, () => { setPose(gojo, 'hit'); impact(hitPoint(gojo), 1); });
 at(12.1, () => say('GOJO', '"Black Flash."', 1.2));
 at(12.2, () => setPose(gojo, 'punchR'));
 at(12.38, () => { setPose(sukuna, 'hit', true); blackFlash(hitPoint(sukuna)); });
-at(13.2, () => { puff(new V(sukuna.p.x, .3, 0), 30, 10, 3, 2); shake = 1.4; sfx('boom'); });
+at(13.2, () => { puff(new V(sukuna.p.x, .3, 0), 24, 10, 3, 2); shake = 1.4; sfx('boom'); });
 at(13.6, () => setPose(sukuna, 'idle'));
 
 at(14, () => { say('SUKUNA', '"Dismantle."', 1.3); sfx('riser'); setPose(gojo, 'idle'); });
@@ -826,7 +1018,7 @@ at(18.9, () => { setPose(gojo, 'point', true); sfx('riser'); say('GOJO', '"Lapse
 at(22.9, () => {
   sphereFX(orbBlue.position, 0x66b8ff, 5, .4);
   ringFX(orbBlue.position.clone().setY(.1), 0x66b8ff, 9, .6);
-  spark(orbBlue.position.clone(), 60, 14, .4, .7, [.5, .9, 1.6], 0);
+  spark(orbBlue.position.clone(), 50, 14, .4, .7, [.5, .9, 1.6], 0);
   setPose(sukuna, 'hit');
   shake = 2; sfx('explode');
 });
@@ -839,8 +1031,8 @@ at(24, () => {
   sphereFX(p, 0xffffff, 4, .3);
   ringFX(p.clone().setY(.1), 0xff2040, 18, 1);
   ringFX(p, 0xff2040, 8, .6, true);
-  spark(p, 160, 22, .5, 1.2, [1.6, .2, .3], 2);
-  puff(p, 40, 10, 3, 2.4);
+  spark(p, 120, 22, .5, 1.2, [1.6, .2, .3], 2);
+  puff(p, 30, 10, 3, 2.4);
   flashScreen('#f02', .8, .6);
   shake = 4;
   lightFlash(p, 0xff1030, 900);
@@ -849,10 +1041,10 @@ at(24, () => {
   collapseBuildings(q => q.x > 20 && Math.abs(q.z) < 16, 14);
 });
 at(24.8, () => sfx('boom'));
-at(26.4, () => { sukuna.g.visible = false; spark(new V(24, 1.2, 0), 40, 8, .3, .7, [.6, .9, 1.6], 0); });
-at(26.95, () => { sukuna.g.visible = true; setPose(sukuna, 'idle'); spark(new V(9, 1.2, 0), 40, 8, .3, .7, [.6, .9, 1.6], 0); sfx('shing'); shake = 1; });
+at(26.4, () => { sukuna.g.visible = false; spark(new V(24, 1.2, 0), 30, 8, .3, .7, [.6, .9, 1.6], 0); });
+at(26.95, () => { sukuna.g.visible = true; setPose(sukuna, 'idle'); spark(new V(9, 1.2, 0), 30, 8, .3, .7, [.6, .9, 1.6], 0); sfx('shing'); shake = 1; });
 
-/* SHRINE — domain expansion early, malevolent shrine ~8s later */
+/* SHRINE — Sukuna on his throne, "Domain Expansion" then "Malevolent Shrine" 8s later */
 at(27.2, () => {
   sfx('sukunaDomain');
   setPose(sukuna, 'open', true);
@@ -869,8 +1061,9 @@ at(35.0, () => {
   sfx('heavyBoom'); shake = 4;
   showBanner('MALEVOLENT SHRINE', '', 2.5);
 });
+// Sukuna teleports onto his throne (sitting pose facing the arena)
 at(36.0, () => {
-  sukuna.g.position.set(0, 2.2, -3.2);
+  sukuna.g.position.set(0, 2.4, -4.5);
   setPose(sukuna, 'sit', true);
   shake = 2;
 });
@@ -894,25 +1087,35 @@ at(43.1, () => {
   showBanner('UNLIMITED VOID', '', 2.5); shake = 2;
 });
 at(50.3, () => { flashScreen('#fff', 1, 1); sfx('heavyBoom'); });
-at(50.5, () => { setEnv('city'); setPose(sukuna, 'kneel', true); setPose(gojo, 'idle'); puff(new V(0, .3, 0), 40, 10, 3, 2.4); });
+at(50.5, () => {
+  setEnv('city');
+  setPose(sukuna, 'kneel', true);
+  setPose(gojo, 'idle');
+  puff(new V(0, .3, 0), 30, 10, 3, 2.4);
+  // Move Sukuna far away for the cinematic Hollow Purple sequence
+  sukuna.g.position.set(22, 0, 6);
+});
 
-/* HOLLOW PURPLE */
+/* ── CINEMATIC HOLLOW PURPLE ── */
 at(51.5, () => {
   sfx('sukunaLaugh');
   setPose(gojo, 'cast', true);
   say('GOJO', '"Blue... and Red."', 1.5);
   sfx('charge');
 });
+// Blue forms at Gojo's left hand
 at(52.5, () => {
   orbBlue.visible = true;
-  orbBlue.position.set(gojo.p.x + 1.5, 1.5, .8);
-  orbBlue.scale.setScalar(.3);
+  orbBlue.position.set(gojo.p.x + 1.2, 1.5, 1.2);
+  orbBlue.scale.setScalar(.2);
 });
+// Red forms at Gojo's right hand
 at(53.3, () => {
   orbRed.visible = true;
-  orbRed.position.set(gojo.p.x + 1.5, 1.5, -.8);
-  orbRed.scale.setScalar(.3);
+  orbRed.position.set(gojo.p.x + 1.2, 1.5, -1.2);
+  orbRed.scale.setScalar(.2);
 });
+// Merge into purple at Gojo's hands
 at(54.0, () => {
   const mid = new V(gojo.p.x + 1.5, 1.5, 0);
   orbBlue.position.copy(mid); orbRed.position.copy(mid);
@@ -920,54 +1123,105 @@ at(54.0, () => {
   ringFX(mid, 0x9a40ff, 5, .5);
   sfx('charge');
 });
+// Purple orb forms — Sukuna is far away
 at(54.5, () => {
   orbBlue.visible = false; orbRed.visible = false;
   orbPurple.visible = true;
   orbPurple.position.set(gojo.p.x + 1.5, 1.5, 0);
-  orbPurple.scale.setScalar(1);
+  orbPurple.scale.setScalar(.8);
   ringFX(orbPurple.position, 0x9a40ff, 10, 1);
   sphereFX(orbPurple.position, 0xb070ff, 3, .5);
   sfx('hollowPurple');
   say('GOJO', '"Hollow Purple."', 1.5);
 });
+// Purple charges in Gojo's hand, growing
 at(55.0, () => {
   const t0 = T;
   const grow = () => {
     if (!orbPurple.visible) return;
-    const k = cl((T - t0) / 1.0, 0, 1);
-    orbPurple.scale.setScalar(1 + 3 * es(k));
-    ringFX(orbPurple.position, 0x9a40ff, 3 * k, .3);
+    const k = cl((T - t0) / 1.2, 0, 1);
+    orbPurple.scale.setScalar(.8 + 2.6 * es(k));
+    ringFX(orbPurple.position, 0x9a40ff, 2.5 * k, .3);
     if (k < 1) requestAnimationFrame(grow);
   };
   grow();
 });
-at(56.0, () => {
-  setPose(gojo, 'point', true); setPose(sukuna, 'raise', true);
+// Launch
+at(56.5, () => {
+  setPose(gojo, 'point', true);
+  sfx('purpleLaunch');
+  flashScreen('#a4f', .6, .6);
   shake = 2;
-  flashScreen('#a4f', .5, .5);
 });
-at(56.8, () => {
-  const p = new V(sukuna.p.x, 1.5, 0);
-  orbPurple.visible = false;
-  sfx('nuke');
-  sphereFX(p, 0xffffff, 8, .5);
-  sphereFX(p, 0xa040ff, 30, 1.4);
-  ringFX(p.clone().setY(.1), 0xb070ff, 40, 1.6);
-  ringFX(p, 0xb070ff, 18, 1.2, true);
-  spark(p, 400, 32, .8, 2.0, [1.2, .5, 1.8], -1);
-  puff(p, 80, 18, 5, 3.5, [.25, .2, .3]);
-  flashScreen('#fff', 1, 1.2);
-  shake = 8;
-  lightFlash(p, 0x9a40ff, 3000);
-  setPose(sukuna, 'hit', true);
-  collapseBuildings(q => q.x > 5, 80);
-  for (let i = 0; i < 8; i++) {
-    const rp = p.clone().add(rd().multiplyScalar(15));
-    sphereFX(rp, 0xff80ff, 5, 1.0);
-    ringFX(rp, 0xb070ff, 15, 1.2);
-  }
+// PURPLE FLIES toward Sukuna — the projectile travels across the arena
+const purpleLaunchStart = { pos: new V() };
+at(56.6, () => {
+  purpleLaunchStart.pos.copy(orbPurple.position);
+  const startX = orbPurple.position.x;
+  const endX = sukuna.p.x;
+  const startY = orbPurple.position.y;
+  const endY = 1.5;
+  const startZ = orbPurple.position.z;
+  const endZ = sukuna.p.z;
+  let pt = 0;
+  const dur = 1.4; // flight time
+  fxList.push(dt => {
+    pt += dt;
+    const k = cl(pt / dur, 0, 1);
+    const ease = k * k;
+    orbPurple.position.set(
+      lerp(startX, endX, ease),
+      lerp(startY, endY, ease) + Math.sin(k * PI) * 1.5, // arc upward
+      lerp(startZ, endZ, ease)
+    );
+    const s = 3 + 4 * k;
+    orbPurple.scale.setScalar(s);
+    // trail
+    for (let i = 0; i < 4; i++) {
+      glowParticles.e(
+        orbPurple.position.x + rnd(-1, 1),
+        orbPurple.position.y + rnd(-1, 1),
+        orbPurple.position.z + rnd(-1, 1),
+        rnd(-2, 2), rnd(-2, 2), rnd(-2, 2),
+        rnd(.4, .8), rnd(.4, .8),
+        1.2, .5, 1.8, 0, 1
+      );
+    }
+    // leave rings behind
+    if (Math.random() < .3) ringFX(orbPurple.position.clone(), 0x9a40ff, 3, .5);
+    if (k >= 1) {
+      // IMPACT — massive
+      const p = new V(endX, endY, endZ);
+      orbPurple.visible = false;
+      sfx('nuke');
+      // Massive multi-layer explosion
+      sphereFX(p, 0xffffff, 8, .6);
+      sphereFX(p, 0xa040ff, 35, 1.6);
+      sphereFX(p, 0xd080ff, 20, 1.2);
+      ringFX(p.clone().setY(.1), 0xb070ff, 50, 1.8);
+      ringFX(p, 0xb070ff, 22, 1.4, true);
+      ringFX(p.clone().setY(.1), 0xffffff, 30, 1.2);
+      spark(p, 500, 40, .9, 2.4, [1.3, .5, 1.9], -1);
+      puff(p, 90, 20, 6, 4, [.25, .2, .3]);
+      flashScreen('#fff', 1, 1.4);
+      shake = 10;
+      lightFlash(p, 0x9a40ff, 4000);
+      setPose(sukuna, 'hit', true);
+      // Maximum destruction
+      collapseBuildings(q => q.x > 0, 100);
+      // Secondary explosions scattered
+      for (let i = 0; i < 12; i++) {
+        const rp = p.clone().add(rd().multiplyScalar(rnd(8, 30)));
+        sphereFX(rp, 0xff80ff, rnd(4, 8), rnd(.8, 1.4));
+        ringFX(rp, 0xb070ff, rnd(10, 20), rnd(1, 1.6));
+      }
+      return false;
+    }
+    return true;
+  });
 });
-at(58, () => { setPose(gojo, 'idle'); puff(new V(10, .3, 0), 40, 10, 4, 3); });
+// Gojo lowers his hand
+at(58.5, () => { setPose(gojo, 'idle'); puff(new V(10, .3, 0), 30, 10, 4, 3); });
 at(60, () => setPose(sukuna, 'idle'));
 
 at(61.5, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); sfx('whoosh'); sfx('riser'); });
@@ -985,7 +1239,7 @@ at(63.6, () => {
 });
 
 /* ============================================================
-   CAMERA
+   CAMERA — cinematic, follows Hollow Purple
    ============================================================ */
 const CAMERA_SHOTS = [];
 const addShot = (a, b, fn) => CAMERA_SHOTS.push([a, b, fn]);
@@ -997,20 +1251,20 @@ function setCam(px, py, pz, lx, ly, lz, fov = 50) {
 }
 
 addShot(0, 5, k => {
-  const dist = lerp(28, 11, es(k));
-  const height = lerp(9, 2.2, es(k));
+  const dist = lerp(30, 12, es(k));
+  const height = lerp(10, 2.4, es(k));
   setCam(0, height, dist, 0, 1.4, 0, 48);
 });
 addShot(5, 6.8, k => setCam(gojo.p.x + 2, 1.7, gojo.p.z - 3, gojo.p.x, 1.6, 0, 42));
 addShot(6.8, 7.7, k => setCam(gojo.p.x + 1.2, 1.7, 1.8, gojo.p.x, 1.7, 0, 38));
 addShot(7.7, 8.5, k => setCam(sukuna.p.x - 1.2, 1.7, -1.8, sukuna.p.x, 1.7, 0, 38));
-addShot(8.5, 9, k => setCam(0, 2.2, 8, 0, 1.4, 0, 52));
+addShot(8.5, 9, k => setCam(0, 2.4, 8, 0, 1.4, 0, 52));
 
 addShot(9, 12.2, k => {
   const a = lerp(.15, 1.9, k);
   const mid = midPoint();
-  const h = 2.5 + Math.sin(k * PI) * 1.5;
-  setCam(Math.sin(a) * 6, h, Math.cos(a) * 6, mid.x, 1.4, 0, 50);
+  const h = 2.8 + Math.sin(k * PI) * 1.6;
+  setCam(Math.sin(a) * 7, h, Math.cos(a) * 7, mid.x, 1.4, 0, 50);
 });
 
 addShot(12.2, 13, k => setCam(sukuna.p.x + 2, 1.7, 3, sukuna.p.x, 1.5, 0, 38));
@@ -1019,21 +1273,26 @@ addShot(16.8, 19, k => setCam(gojo.p.x + 2.5, 1.7, 2, gojo.p.x, 1.5, 0, 42));
 addShot(19, 20.3, k => setCam(gojo.p.x + 2, 1.7, 2.5, gojo.p.x + 1.5, 1.6, 0, 40));
 addShot(20.3, 23, k => {
   const mid = midPoint();
-  setCam(0, lerp(2.5, 1.8, k), lerp(12, 8, k), mid.x, 1.4, 0, 52);
+  setCam(0, lerp(2.6, 1.9, k), lerp(13, 8, k), mid.x, 1.4, 0, 52);
 });
 addShot(23, 24, k => setCam(sukuna.p.x - 2, 1.7, 2, sukuna.p.x + 2, 1.6, 0, 48));
 addShot(24, 26.4, k => setCam(lerp(12, 16, k), lerp(3, 5, k), 12, sukuna.p.x * .9, 1.4, 0, 52));
 addShot(26.4, 28.4, k => setCam(0, 2, 12, 0, 1.4, 0, 52));
 
+/* shrine cinematic pan */
 addShot(28.4, 29.8, k => {
-  const a = lerp(-.3, .3, k);
-  setCam(Math.sin(a) * 8, lerp(1.5, 3.5, k), Math.cos(a) * 8 + 2, shrine.position.x, lerp(1.4, 4.5, k), 0, 55);
+  const a = lerp(-.4, .4, k);
+  setCam(Math.sin(a) * 10, lerp(1.5, 4, k), Math.cos(a) * 10 + 3, shrine.position.x, lerp(1.4, 5, k), 0, 55);
 });
 addShot(29.8, 32.3, k => {
-  const a = lerp(0, 1.2, k);
-  setCam(shrine.position.x + Math.sin(a) * 6, 2.8, 6.5, shrine.position.x, 3.2, -2.5, 52);
+  const a = lerp(0, 1.4, k);
+  setCam(shrine.position.x + Math.sin(a) * 8, 3.2, 8, shrine.position.x, 3.5, -3, 52);
 });
-addShot(32.3, 35.4, k => setCam(gojo.p.x + 2, 1.5, 3, gojo.p.x, 1.4, 0, 48));
+/* throne close-up */
+addShot(32.3, 35.4, k => {
+  const a = lerp(.2, 1.0, k);
+  setCam(Math.sin(a) * 5, 2.8, 4, 0, 3.5, -4, 42);
+});
 
 addShot(35.4, 36.1, k => setCam(gojo.p.x + 1.5, 1.7, 2.2, gojo.p.x, 1.7, 0, 38));
 addShot(36.1, 38.6, k => setCam(0, 1.8, lerp(14, 10, k), 0, 2, 0, 55));
@@ -1044,107 +1303,83 @@ addShot(38.6, 41, k => {
 addShot(41, 43.5, k => setCam(gojo.p.x - 2.5, 1.9, 1, sukuna.p.x, 1.9, 0, 42));
 addShot(43.5, 44.5, k => setCam(0, 2.2, 14, 0, 2, 0, 52));
 
-addShot(44.5, 46, k => setCam(gojo.p.x + 2.8, 1.8, 3, gojo.p.x + 1.5, 1.5, 0, 40));
-addShot(46, 47.5, k => {
+/* PURPLE CHARGE — close-up on Gojo */
+addShot(44.5, 51.5, k => {
+  const a = lerp(.3, 1.6, k);
+  setCam(gojo.p.x + Math.sin(a) * 4, 1.9, Math.cos(a) * 4 + 1, gojo.p.x, 1.6, 0, 42);
+});
+/* Blue/Red form — very close */
+addShot(51.5, 54.5, k => setCam(gojo.p.x + 2.8, 1.8, 3, gojo.p.x + 1.5, 1.5, 0, 40));
+addShot(54.5, 56.5, k => {
   const p = gojo.p.x + 1.5;
-  setCam(p + 3, 2.0, 3, p, 1.5, 0, 42);
+  setCam(p + 3.5, 2.1, 3.5, p, 1.5, 0, 42);
 });
-addShot(47.5, 48.5, k => {
-  const p = orbPurple.position;
-  setCam(p.x - 4, 2.2, 4, p.x + 4, 1.5, 0, 55);
-});
-addShot(48.5, 51, k => setCam(lerp(14, 22, k), 6, 26, 18, 2, 0, 58));
 
-addShot(51, 54.4, k => {
+/* PURPLE FLIGHT — camera follows the orb across the arena */
+addShot(56.5, 58, k => {
+  const op = orbPurple.position;
+  // camera trails behind and above the orb
+  const camX = op.x - 4;
+  const camY = op.y + 2.5;
+  const camZ = op.z + 6;
+  setCam(camX, camY, camZ, op.x + 4, op.y - .5, op.z, 55);
+});
+
+/* IMPACT — wide explosive view */
+addShot(58, 61, k => setCam(lerp(20, 26, k), 8, 30, 18, 2, 0, 58));
+
+/* AFTERMATH — orbit */
+addShot(61, 63.2, k => {
   const a = lerp(0, 1.3, k);
   setCam(gojo.p.x + Math.sin(a) * 6, lerp(1.5, 2.8, k), Math.cos(a) * 6, gojo.p.x + 3, 1.5, 0, 48);
 });
-addShot(54.4, 56.1, k => setCam(0, 1.8, lerp(10, 7, k), 0, 1.4, 0, 52));
 
 /* ============================================================
-   AUDIO — real sound effects with robust fallback
-   ============================================================ */
+   AUDIO — synthesized engine (real files via optional local /audio/*.mp3)
+   ============================================================
+   MyInstants blocks direct hotlinking via CORS. If you download the
+   real MP3s and place them in ./audio/, they will be used instead of
+   the synthesized versions. Name them exactly as shown in REAL_FILES.
+*/
 let AC = null, masterGain = null, noiseBuf = null, musicStep = 0;
-const audioCache = {};   // key -> { el, ready }
+const realAudio = {};  // key -> Audio element (only if local file loads)
 
-/*
- * MyInstants blocks direct hotlinking of MP3s with CORS.
- * We attempt several direct URL patterns per sound and use the
- * first one that actually loads. If all fail, we fall back to
- * the synthesized sound so the scene is never silent.
- */
-const SOUND_SOURCES = {
-  gojoDomain: [
-    'https://www.myinstants.com/media/sounds/gojo-domain-expansion.mp3',
-    'https://www.myinstants.com/media/sounds/gojo-domain-expansion-60533.mp3'
-  ],
-  sukunaDomain: [
-    'https://www.myinstants.com/media/sounds/domain-expansion-sukuna.mp3',
-    'https://www.myinstants.com/media/sounds/domain-expansion-sukuna-17759.mp3'
-  ],
-  malevolentShrine: [
-    'https://www.myinstants.com/media/sounds/malevolent-shrine.mp3',
-    'https://www.myinstants.com/media/sounds/domain-expansion-sukuna.mp3'
-  ],
-  hollowPurple: [
-    'https://www.myinstants.com/media/sounds/hollow-purple.mp3',
-    'https://www.myinstants.com/media/sounds/hollow-purple-6717.mp3'
-  ],
-  sukunaLaugh: [
-    'https://www.myinstants.com/media/sounds/sukuna-laugh.mp3',
-    'https://www.myinstants.com/media/sounds/sukuna-laugh-22823.mp3'
-  ],
-  explode: [
-    'https://www.myinstants.com/media/sounds/exploded.mp3',
-    'https://www.myinstants.com/media/sounds/exploded-27513.mp3'
-  ],
-  nuke: [
-    'https://www.myinstants.com/media/sounds/nuke-bomb.mp3',
-    'https://www.myinstants.com/media/sounds/nuke-bomb-99687.mp3'
-  ]
+const REAL_FILES = {
+  gojoDomain:       'audio/gojo-domain-expansion.mp3',
+  sukunaDomain:     'audio/domain-expansion-sukuna.mp3',
+  malevolentShrine: 'audio/malevolent-shrine.mp3',
+  hollowPurple:     'audio/hollow-purple.mp3',
+  sukunaLaugh:      'audio/sukuna-laugh.mp3',
+  explode:          'audio/exploded.mp3',
+  nuke:             'audio/nuke-bomb.mp3'
 };
-
-function tryLoadSound(key, urls, idx = 0) {
-  if (idx >= urls.length) { audioCache[key] = { el: null, ready: false }; return; }
-  const a = new Audio();
-  a.preload = 'auto';
-  a.crossOrigin = 'anonymous';
-  a.src = urls[idx];
-  let settled = false;
-  const ok = () => {
-    if (settled) return; settled = true;
-    audioCache[key] = { el: a, ready: true };
-    console.log('[audio] loaded', key, 'from', urls[idx]);
-  };
-  const fail = () => {
-    if (settled) return; settled = true;
-    console.warn('[audio] failed', key, urls[idx]);
-    tryLoadSound(key, urls, idx + 1);
-  };
-  a.addEventListener('canplaythrough', ok, { once: true });
-  a.addEventListener('loadeddata', ok, { once: true });
-  a.addEventListener('error', fail, { once: true });
-  // Timeout safety
-  setTimeout(() => { if (!settled) fail(); }, 6000);
-  a.load();
-}
 
 function initAudio() {
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
-    masterGain = AC.createGain(); masterGain.gain.value = .7; masterGain.connect(AC.destination);
+    masterGain = AC.createGain(); masterGain.gain.value = .65; masterGain.connect(AC.destination);
     noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    // ambient drone
     [55, 55.6, 82.4].forEach((f, i) => {
       const o = AC.createOscillator(), g = AC.createGain();
       o.type = i > 1 ? 'triangle' : 'sine';
       o.frequency.value = f;
-      g.gain.value = i > 1 ? .015 : .06;
+      g.gain.value = i > 1 ? .012 : .05;
       o.connect(g); g.connect(masterGain); o.start();
     });
-    // Kick off all real sound loads in parallel
-    for (const [k, urls] of Object.entries(SOUND_SOURCES)) tryLoadSound(k, urls);
+    // Try loading local real audio files (optional)
+    for (const [k, path] of Object.entries(REAL_FILES)) {
+      const a = new Audio();
+      a.preload = 'auto';
+      a.src = path;
+      a.addEventListener('canplaythrough', () => {
+        realAudio[k] = a;
+        console.log('[audio] loaded real file:', k);
+      }, { once: true });
+      a.addEventListener('error', () => { /* silent — use synth */ }, { once: true });
+    }
   } catch (e) { AC = null; }
 }
 
@@ -1176,17 +1411,55 @@ function tone(type, f0, f1, dur, vol, delay = 0) {
   o.start(t); o.stop(t + dur + .05);
 }
 
+// Try real file, else use synth callback
 function playReal(key) {
-  const entry = audioCache[key];
-  if (!entry || !entry.ready || !entry.el) return false;
-  try {
-    const a = entry.el;
-    a.currentTime = 0;
-    a.volume = .9;
-    const p = a.play();
-    if (p && p.catch) p.catch(() => {});
-    return true;
-  } catch (e) { return false; }
+  const a = realAudio[key];
+  if (!a) return false;
+  try { a.currentTime = 0; a.volume = .9; a.play().catch(() => {}); return true; }
+  catch (e) { return false; }
+}
+
+// Simulated "domain chant" — two bell-like tones + low rumble
+function synthDomainChant(pitchOffset = 0) {
+  tone('sine', 180 + pitchOffset, 120 + pitchOffset, .8, .25);
+  tone('sine', 270 + pitchOffset, 180 + pitchOffset, .8, .18, .15);
+  tone('sine', 400 + pitchOffset, 260 + pitchOffset, 1.0, .15, .3);
+  noise('lowpass', 400, 80, 2.4, .35);
+}
+
+function synthSukunaDomain() {
+  // deep rumble + rising drone
+  noise('lowpass', 150, 40, 2.5, .7);
+  tone('sawtooth', 55, 110, 2.4, .2);
+  tone('sine', 40, 60, 2.6, .5);
+}
+
+function synthShrine() {
+  noise('lowpass', 1200, 30, 2.5, .9);
+  tone('sine', 90, 20, 2.2, 1.0);
+  tone('triangle', 55, 22, 2.4, .7);
+}
+
+function synthHollowPurple() {
+  // charging hum
+  tone('sine', 80, 220, 1.2, .35);
+  tone('sawtooth', 60, 180, 1.2, .15);
+  noise('bandpass', 800, 3000, 1.2, .25, 2);
+}
+
+function synthPurpleLaunch() {
+  // whoosh + charge
+  noise('bandpass', 400, 4000, 1.4, .55, 1.5);
+  tone('sawtooth', 60, 900, 1.4, .3);
+}
+
+function synthLaugh() {
+  // Sukuna-style short laugh — three staccato bursts
+  for (let i = 0; i < 3; i++) {
+    tone('sawtooth', 280 - i * 20, 220 - i * 20, .12, .35, i * .18);
+    noise('bandpass', 800 + i * 100, 1200, .1, .25, 3);
+  }
+  tone('sine', 100, 60, .6, .4);
 }
 
 function sfx(n) {
@@ -1195,34 +1468,43 @@ function sfx(n) {
     switch (n) {
       case 'gojoDomain':
         if (playReal('gojoDomain')) return;
-        tone('sawtooth', 60, 900, 2.2, .12); noise('highpass', 300, 6000, 2.2, .25);
+        synthDomainChant(0);
+        tone('sine', 220, 440, 1.5, .25);
+        tone('sine', 330, 660, 1.5, .18, .2);
         break;
       case 'sukunaDomain':
         if (playReal('sukunaDomain')) return;
-        noise('lowpass', 200, 50, 2.0, .8); tone('sine', 60, 20, 2.0, .9);
+        synthSukunaDomain();
         break;
       case 'malevolentShrine':
         if (playReal('malevolentShrine')) return;
-        noise('lowpass', 1000, 40, 2.0, 1); tone('sine', 70, 18, 2.0, 1);
+        synthShrine();
         break;
       case 'hollowPurple':
         if (playReal('hollowPurple')) return;
-        noise('lowpass', 200, 3000, .8, .7); tone('sawtooth', 40, 500, .9, .3); tone('sine', 70, 25, 1.5, .9);
+        synthHollowPurple();
+        break;
+      case 'purpleLaunch':
+        synthPurpleLaunch();
         break;
       case 'sukunaLaugh':
         if (playReal('sukunaLaugh')) return;
-        noise('bandpass', 400, 900, 1.2, .4, 2);
+        synthLaugh();
         break;
       case 'explode':
         if (playReal('explode')) return;
-        noise('lowpass', 2800, 200, .18, .9); tone('sine', 150, 40, .22, .8);
+        noise('lowpass', 2800, 200, .18, .9);
+        tone('sine', 150, 40, .22, .8);
         break;
       case 'nuke':
         if (playReal('nuke')) return;
-        noise('lowpass', 1200, 30, 2.0, 1.0);
-        tone('sine', 90, 18, 1.8, 1.2);
-        tone('triangle', 55, 22, 2.2, .8);
-        tone('sine', 35, 15, 2.5, 1.0);
+        // Massive layered explosion
+        noise('lowpass', 1500, 25, 2.4, 1.0);
+        noise('lowpass', 600, 40, 3.0, .8);
+        tone('sine', 90, 18, 2.0, 1.2);
+        tone('triangle', 55, 22, 2.4, .9);
+        tone('sine', 35, 15, 2.8, 1.0);
+        tone('sawtooth', 70, 25, 1.8, .4);
         break;
       case 'whoosh': noise('bandpass', 400, 2600, .28, .5, 1.2); break;
       case 'hit': noise('lowpass', 2800, 200, .18, .9); tone('sine', 150, 40, .22, .8); break;
@@ -1305,17 +1587,29 @@ function frame(now) {
   updateFighter(sukuna, sukunaTrack, gojo, dt, T);
   musicTick();
 
-  const gx = gojo.p.x, gy = gojo.p.y;
-  infinitySphere.visible = (T > 14 && T < 19.6) || (T > 36.6 && T < 43.2);
-  infinitySphere.position.set(gx, 1.2 + gy, 0);
-  infinitySphere.material.opacity = Math.max(.15 + .08 * Math.sin(T * 18), infinitySphere.material.opacity - dt * 2);
+  // Infinity barrier
+  const showInf = (T > 14 && T < 19.6) || (T > 36.6 && T < 43.2);
+  infinityGroup.visible = showInf;
+  if (showInf) {
+    infinityGroup.position.set(gojo.p.x, 1.2 + gojo.p.y, 0);
+    const pulse = .12 + .08 * Math.sin(T * 14);
+    infinityCore.material.opacity = Math.max(pulse, infinityCore.material.opacity - dt * 2);
+    hexWire.material.opacity = .3 + .15 * Math.sin(T * 6);
+    swirlRing.rotation.z += dt * 3;
+    swirlRing.rotation.x = Math.sin(T) * .5;
+    swirlRing2.rotation.y += dt * 2.5;
+    swirlRing2.rotation.z = Math.cos(T) * .5;
+    const s = 1 + .04 * Math.sin(T * 5);
+    hexWire.scale.setScalar(s);
+    infinityGlow.material.opacity = .6 + .3 * Math.sin(T * 8);
+  }
 
   if (T >= 45 && T < 47) {
     const k = cl((T - 45) / 1, 0, 1);
     if (orbBlue.visible) orbBlue.scale.setScalar(.3 + 1.5 * k);
     if (orbRed.visible) orbRed.scale.setScalar(.3 + 1.5 * k);
     if (orbBlue.visible) {
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 4; i++) {
         const a = rnd(0, 2 * PI), r = rnd(2, 4);
         glowParticles.e(orbBlue.position.x + Math.cos(a) * r, orbBlue.position.y + Math.sin(a) * r * .6, rnd(-1, 1),
           -Math.cos(a) * 5, -Math.sin(a) * 5, 0, .3, .5, .3, .7, 1.6);
@@ -1326,8 +1620,8 @@ function frame(now) {
   if (T >= 36.6 && T < 43.2) {
     shrine.scale.y = Math.min(1, shrine.scale.y + dt * 1.2);
     acc += dt;
-    while (acc > .05) {
-      acc -= .05;
+    while (acc > .06) {
+      acc -= .06;
       const a = new V(rnd(-7, 7), rnd(.5, 4), rnd(-4, 4));
       const b = a.clone().add(new V(rnd(-6, 6), rnd(-2, 2), rnd(-4, 4)));
       const line = new THREE.Mesh(new THREE.BoxGeometry(.05, .05, a.distanceTo(b)), BM(Math.random() < .7 ? 0xffffff : 0xff2030));
@@ -1344,19 +1638,19 @@ function frame(now) {
     stars.rotation.y += dt * .15;
     stars.rotation.z += dt * .05;
     vacc += dt;
-    if (vacc > .4) {
+    if (vacc > .5) {
       vacc = 0;
       ringFX(new V(0, 1.5, 0), Math.random() < .5 ? 0xffffff : 0x66b8ff, 30, 1.6, true);
       ringFX(new V(0, 1.5, 0), 0xaaccff, 25, 1.4);
     }
-    for (let i = 0; i < 8; i++) glowParticles.e(rnd(-12, 12), rnd(-3, 8), rnd(-12, 12), 0, 0, -30, rnd(.2, .5), .5, .9, 1.1, 1.6);
+    for (let i = 0; i < 6; i++) glowParticles.e(rnd(-12, 12), rnd(-3, 8), rnd(-12, 12), 0, 0, -30, rnd(.2, .5), .5, .9, 1.1, 1.6);
   }
 
   for (const b of buildings) {
     const u = b.userData;
     if (u.f >= 0) {
       const k = T - u.f;
-      b.position.y = Math.max(-b.geometry.parameters.height, u.y0 - k * k * 6);
+      b.position.y = Math.max(-u.h, u.y0 - k * k * 6);
       b.rotation.z = u.d * Math.min(1, k * .5) * .5;
     }
   }
@@ -1377,7 +1671,7 @@ function frame(now) {
       break;
     }
   }
-  if (!camUpdated && T >= 63.1) setCam(0, 1.6, 6, 0, 1.4, 0, 40);
+  if (!camUpdated && T >= 63.2) setCam(0, 1.6, 6, 0, 1.4, 0, 40);
 
   if (shake > .01) {
     cam.position.x += rnd(-1, 1) * shake * .1;
@@ -1421,7 +1715,7 @@ $('go').addEventListener('click', async () => {
     sukuna.g.visible = true;
     sukuna.g.position.set(12, 0, 0);
     orbBlue.visible = orbRed.visible = orbPurple.visible = false;
-    infinitySphere.visible = false;
+    infinityGroup.visible = false;
     for (const f of [gojo, sukuna]) {
       f.cur = { ...POSE.idle };
       f.tgt = POSE.idle;
