@@ -1,187 +1,304 @@
 // ============================================================================
-// APEX DRIVE - CORE ENGINE
+// APEX DRIVE - ULTIMATE RACING ENGINE (GAME.JS)
 // ============================================================================
 
 // ----------------------------------------------------------------------------
-// 1. CONFIGURATION & CONSTANTS
+// SECTION 1: CONFIGURATION AND CONSTANTS
 // ----------------------------------------------------------------------------
-const CONFIG = {
+const ENGINE_CONFIG = {
   physics: {
-    gravity: -25.0,
+    gravity: -30.0,
     fixedTimeStep: 1 / 60,
-    maxSubSteps: 3,
+    maxSubSteps: 4,
     airDensity: 1.225,
-    dragCoefficient: 0.35
+    dragCoefficient: 0.35,
+    frictionCoefficient: 0.8,
+    rollingResistance: 0.015
   },
   camera: {
-    fov: 65,
-    near: 0.1,
-    far: 2000,
-    followDistance: 8.5,
-    followHeight: 3.5,
+    fov: 68,
+    near: 0.5,
+    far: 3000,
+    followDistance: 9.0,
+    followHeight: 3.8,
     lookAtHeight: 1.2,
-    lerpSpeed: 5.0,
-    shakeIntensity: 0.05
+    lerpFactor: 6.0,
+    shakeIntensity: 0.08,
+    shakeSpeed: 15.0
   },
   render: {
     pixelRatioCap: 2,
-    fogColor: 0x0a0a14,
-    fogDensity: 0.0025,
-    skyGradientTop: '#070714',
-    skyGradientMid: '#1a1a2e',
-    skyGradientBot: '#2a2a3e',
-    roadColor: '#222224',
-    roadLineColor: '#ffdd00',
-    grassColor: '#111a11',
-    maxParticles: 200
+    fogColor: '#07070a',
+    fogDensity: 0.002,
+    skyTop: '#050508',
+    skyMid: '#12121c',
+    skyBot: '#2a2a35',
+    roadColor: '#1e1e20',
+    roadLineColor: '#ffcc00',
+    grassColor: '#0f140f',
+    maxParticles: 300,
+    particleSpawnRate: 0.4
   },
   cars: [
-    { id: 'm5', name: 'BMW M5', power: 4500, drive: 'AWD', color: '#1a2338', length: 4.6, width: 1.9, mass: 1900, topSpeed: 72 },
-    { id: 'mustang', name: 'Mustang 1969', power: 3800, drive: 'RWD', color: '#7a1c1c', length: 4.7, width: 1.9, mass: 1550, topSpeed: 62 },
-    { id: 'porsche', name: 'Porsche 911', power: 4200, drive: 'RWD', color: '#2c2c2c', length: 4.4, width: 1.85, mass: 1420, topSpeed: 76 },
-    { id: 'ferrari', name: 'LaFerrari', power: 5500, drive: 'RWD', color: '#b81414', length: 4.7, width: 1.95, mass: 1350, topSpeed: 92 }
+    {
+      id: 'm5',
+      name: 'BMW M5',
+      description: 'AWD High-Performance Sedan',
+      power: 4500,
+      maxTorque: 750,
+      mass: 1900,
+      drive: 'AWD',
+      color: '#1a2338',
+      accentColor: '#4a7eb8',
+      length: 4.6,
+      width: 1.9,
+      height: 1.4,
+      wheelBase: 2.9,
+      trackWidth: 1.6,
+      topSpeed: 72,
+      gearRatios: [3.4, 2.3, 1.7, 1.3, 1.0, 0.8],
+      suspensionStiffness: 32,
+      downforce: 0.35
+    },
+    {
+      id: 'mustang',
+      name: 'Mustang 1969',
+      description: 'Classic RWD Muscle Car',
+      power: 3800,
+      maxTorque: 600,
+      mass: 1550,
+      drive: 'RWD',
+      color: '#7a1c1c',
+      accentColor: '#d4af37',
+      length: 4.7,
+      width: 1.9,
+      height: 1.3,
+      wheelBase: 2.75,
+      trackWidth: 1.6,
+      topSpeed: 62,
+      gearRatios: [2.9, 1.9, 1.35, 1.0, 0.78, 0.62],
+      suspensionStiffness: 28,
+      downforce: 0.2
+    },
+    {
+      id: 'porsche',
+      name: 'Porsche 911',
+      description: 'Lightweight Balanced Sports Car',
+      power: 4200,
+      maxTorque: 700,
+      mass: 1420,
+      drive: 'RWD',
+      color: '#2c2c2c',
+      accentColor: '#cc0000',
+      length: 4.4,
+      width: 1.85,
+      height: 1.25,
+      wheelBase: 2.45,
+      trackWidth: 1.55,
+      topSpeed: 76,
+      gearRatios: [3.1, 2.0, 1.45, 1.05, 0.82, 0.66],
+      suspensionStiffness: 35,
+      downforce: 0.45
+    },
+    {
+      id: 'ferrari',
+      name: 'LaFerrari',
+      description: 'Extreme Hypercar',
+      power: 5500,
+      maxTorque: 900,
+      mass: 1350,
+      drive: 'RWD',
+      color: '#b81414',
+      accentColor: '#ffcc00',
+      length: 4.7,
+      width: 1.95,
+      height: 1.15,
+      wheelBase: 2.65,
+      trackWidth: 1.65,
+      topSpeed: 92,
+      gearRatios: [3.6, 2.3, 1.65, 1.25, 0.95, 0.7],
+      suspensionStiffness: 40,
+      downforce: 0.7
+    }
   ]
 };
 
 // ----------------------------------------------------------------------------
-// 2. MATH & UTILITIES
+// SECTION 2: MATH UTILITIES AND HELPERS
 // ----------------------------------------------------------------------------
-const MathUtils = {
-  clamp: (val, min, max) => Math.max(min, Math.min(max, val)),
-  lerp: (a, b, t) => a + (b - a) * t,
-  inverseLerp: (a, b, v) => (v - a) / (b - a),
+const MathHelper = {
+  clamp: (value, min, max) => Math.max(min, Math.min(max, value)),
+  lerp: (start, end, amount) => start + (end - start) * amount,
+  inverseLerp: (start, end, value) => (value - start) / (end - start),
   smoothstep: (edge0, edge1, x) => {
-    const t = MathUtils.clamp((x - edge0) / (edge1 - edge0), 0, 1);
+    const t = MathHelper.clamp((x - edge0) / (edge1 - edge0), 0, 1);
     return t * t * (3 - 2 * t);
   },
-  toRadians: (deg) => deg * (Math.PI / 180),
-  toDegrees: (rad) => rad * (180 / Math.PI),
+  toRadians: (degrees) => degrees * (Math.PI / 180),
+  toDegrees: (radians) => radians * (180 / Math.PI),
   randomRange: (min, max) => Math.random() * (max - min) + min,
   randomInt: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
-  formatTime: (ms) => {
-    const totalSec = Math.floor(ms / 1000);
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    const msStr = Math.floor((ms % 1000) / 10).toString().padStart(2, '0');
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${msStr}`;
-  }
+  distance: (x1, y1, x2, y2) => Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)),
+  isFiniteSafe: (val, fallback = 0) => (isFinite(val) && !isNaN(val)) ? val : fallback
 };
 
-const DOM = {
-  rotateOverlay: document.getElementById('rotate-overlay'),
+// ----------------------------------------------------------------------------
+// SECTION 3: DOM ELEMENTS CACHE
+// ----------------------------------------------------------------------------
+const DOM_CACHE = {
+  portraitBlocker: document.getElementById('portrait-blocker'),
   loadingScreen: document.getElementById('loading-screen'),
-  loaderFill: document.getElementById('loader-fill'),
-  loaderText: document.getElementById('loader-text'),
-  selectScreen: document.getElementById('select-screen'),
-  carGrid: document.getElementById('car-grid'),
-  startBtn: document.getElementById('start-btn'),
-  hud: document.getElementById('hud'),
-  hudCarName: document.getElementById('hud-car-name'),
-  hudTransMode: document.getElementById('hud-trans-mode'),
-  speedoValue: document.getElementById('speedo-value'),
-  speedoGear: document.getElementById('speedo-gear'),
-  speedoArc: document.getElementById('speedo-arc'),
-  btnBack: document.getElementById('btn-back'),
-  btnLeft: document.getElementById('btn-left'),
-  btnRight: document.getElementById('btn-right'),
-  btnGas: document.getElementById('btn-gas'),
-  btnBrake: document.getElementById('btn-brake'),
-  btnPadUp: document.getElementById('btn-pad-up'),
-  btnPadDown: document.getElementById('btn-pad-down'),
-  canvas: document.getElementById('render-canvas')
+  loadBar: document.getElementById('load-bar'),
+  loadPct: document.getElementById('load-pct'),
+  loadStatus: document.getElementById('load-status'),
+  gameStage: document.getElementById('game-stage'),
+  canvas: document.getElementById('game-canvas'),
+  menuScreen: document.getElementById('menu-screen'),
+  menuCarList: document.getElementById('menu-car-list'),
+  btnStartGame: document.getElementById('btn-start-game'),
+  hudLayer: document.getElementById('hud-layer'),
+  hudCarName: document.getElementById('hud-car-name-display'),
+  hudTransmission: document.getElementById('hud-transmission-display'),
+  hudSpeedValue: document.getElementById('hud-speed-value'),
+  hudGearValue: document.getElementById('hud-gear-value'),
+  hudSpeedArc: document.getElementById('hud-speed-arc'),
+  btnBackToMenu: document.getElementById('btn-back-to-menu'),
+  btnSteerLeft: document.getElementById('btn-steer-left'),
+  btnSteerRight: document.getElementById('btn-steer-right'),
+  btnPedalGas: document.getElementById('btn-pedal-gas'),
+  btnPedalBrake: document.getElementById('btn-pedal-brake'),
+  btnShiftUp: document.getElementById('btn-shift-up'),
+  btnShiftDown: document.getElementById('btn-shift-down')
 };
 
 // ----------------------------------------------------------------------------
-// 3. STATE MANAGER
+// SECTION 4: GLOBAL STATE MANAGER
 // ----------------------------------------------------------------------------
-const State = {
-  isRunning: false,
-  isPaused: false,
-  carIndex: 0,
-  speed: 0, // m/s
+const GLOBAL_STATE = {
+  appState: 'LOADING', // LOADING, MENU, DRIVING, PAUSED
+  selectedCarIndex: 0,
+  
+  // Vehicle Dynamics
+  speed: 0,
   rpm: 900,
   gear: 1,
   throttle: 0,
   brake: 0,
   steer: 0,
-  wheelSpin: 0,
+  
+  // World State
   distance: 0,
-  time: 0,
-  manualMode: false,
+  timeElapsed: 0,
+  wheelSpin: 0,
+  cameraShake: 0,
+  
+  // Transmission
+  isManual: false,
+  shiftCooldown: 0,
+  
+  // Collections
   particles: [],
-  input: {
-    gas: false, brake: false, left: false, right: false
-  }
+  trafficCars: [],
+  
+  // Inputs
+  inputs: {
+    gas: false,
+    brake: false,
+    left: false,
+    right: false
+  },
+  
+  // Timing
+  lastFrameTime: performance.now(),
+  physicsAccumulator: 0
 };
 
 // ----------------------------------------------------------------------------
-// 4. AUDIO ENGINE (Procedural Web Audio API)
+// SECTION 5: PROCEDURAL AUDIO ENGINE
 // ----------------------------------------------------------------------------
-class EngineAudio {
+class SoundEngine {
   constructor() {
     this.ctx = null;
-    this.initialized = false;
     this.masterGain = null;
-    this.oscillators = [];
     this.filter = null;
+    this.oscillators = [];
+    this.isInitialized = false;
+    this.isMuted = false;
   }
 
-  init() {
-    if (this.initialized) return;
+  initialize() {
+    if (this.isInitialized) return;
+    
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       this.ctx = new AudioContext();
       
+      // Master Gain
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = 0.0;
+      this.masterGain.gain.value = 0.0; // Start silent
       this.masterGain.connect(this.ctx.destination);
 
+      // Dynamic Lowpass Filter
       this.filter = this.ctx.createBiquadFilter();
       this.filter.type = 'lowpass';
-      this.filter.frequency.value = 400;
-      this.filter.Q.value = 2;
+      this.filter.frequency.value = 500;
+      this.filter.Q.value = 3;
       this.filter.connect(this.masterGain);
 
-      const freqs = [40, 80, 160];
-      const types = ['sawtooth', 'square', 'sawtooth'];
-      
-      freqs.forEach((f, i) => {
+      // Create Oscillators (Engine tone simulation)
+      const oscConfigs = [
+        { type: 'sawtooth', freq: 40, gain: 0.4 },
+        { type: 'square', freq: 80, gain: 0.2 },
+        { type: 'sawtooth', freq: 20, gain: 0.5 }
+      ];
+
+      oscConfigs.forEach(cfg => {
         const osc = this.ctx.createOscillator();
-        osc.type = types[i];
-        osc.frequency.value = f;
-        const gain = this.ctx.createGain();
-        gain.gain.value = 0.3 / (i + 1);
-        osc.connect(gain);
-        gain.connect(this.filter);
+        osc.type = cfg.type;
+        osc.frequency.value = cfg.freq;
+
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.value = cfg.gain;
+
+        osc.connect(gainNode);
+        gainNode.connect(this.filter);
+        
         osc.start();
         this.oscillators.push(osc);
       });
 
-      this.initialized = true;
+      this.isInitialized = true;
+      console.log("[AUDIO] Sound engine initialized.");
     } catch (e) {
-      console.warn("Web Audio API not supported", e);
+      console.warn("[AUDIO] Web Audio API not supported.", e);
     }
   }
 
-  update(rpm, throttle) {
-    if (!this.initialized) return;
-    
+  update(rpm, throttle, speed) {
+    if (!this.isInitialized || this.isMuted) return;
+
     // Guard against NaN/Infinity
-    const safeRpm = isFinite(rpm) ? MathUtils.clamp(rpm, 900, 8000) : 900;
-    const safeThrottle = isFinite(throttle) ? MathUtils.clamp(throttle, 0, 1) : 0;
+    const safeRpm = MathHelper.isFiniteSafe(rpm, 900);
+    const safeThrottle = MathHelper.isFiniteSafe(throttle, 0);
+    const safeSpeed = MathHelper.isFiniteSafe(speed, 0);
+
+    const clampedRpm = MathHelper.clamp(safeRpm, 900, 8000);
+    const clampedThrottle = MathHelper.clamp(safeThrottle, 0, 1);
     
-    const baseFreq = 30 + (safeRpm / 8000) * 150;
     const now = this.ctx.currentTime;
+    const baseFreq = 35 + (clampedRpm / 8000) * 180;
 
     this.oscillators[0].frequency.setTargetAtTime(baseFreq, now, 0.05);
-    this.oscillators[1].frequency.setTargetAtTime(baseFreq * 2.01, now, 0.05);
+    this.oscillators[1].frequency.setTargetAtTime(baseFreq * 2.02, now, 0.05);
     this.oscillators[2].frequency.setTargetAtTime(baseFreq * 0.5, now, 0.05);
 
-    const filterFreq = 300 + safeThrottle * 1200 + (safeRpm / 8000) * 600;
-    this.filter.frequency.setTargetAtTime(filterFreq, now, 0.08);
+    // Filter frequency based on throttle and RPM
+    const filterFreq = 300 + clampedThrottle * 1500 + (clampedRpm / 8000) * 1000;
+    this.filter.frequency.setTargetAtTime(MathHelper.clamp(filterFreq, 200, 6000), now, 0.1);
 
-    const vol = 0.1 + safeThrottle * 0.15;
-    this.masterGain.gain.setTargetAtTime(vol, now, 0.1);
+    // Volume based on throttle and speed
+    const targetVol = 0.05 + clampedThrottle * 0.15 + (safeSpeed / 100) * 0.05;
+    this.masterGain.gain.setTargetAtTime(MathHelper.clamp(targetVol, 0, 0.3), now, 0.1);
   }
 
   resume() {
@@ -190,130 +307,210 @@ class EngineAudio {
     }
   }
 
-  mute() {
+  setMute(mute) {
+    this.isMuted = mute;
     if (this.masterGain) {
-      this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
+      this.masterGain.gain.setTargetAtTime(mute ? 0 : 0.15, this.ctx.currentTime, 0.1);
     }
   }
 }
-const audio = new EngineAudio();
+
+const AudioEngine = new SoundEngine();
 
 // ----------------------------------------------------------------------------
-// 5. RENDERER & CANVAS
+// SECTION 6: RENDERER AND CANVAS MANAGER
 // ----------------------------------------------------------------------------
-const canvas = DOM.canvas;
-const ctx = canvas.getContext('2d');
-let width = window.innerWidth;
-let height = window.innerHeight;
+class Renderer {
+  constructor(canvasId) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.pixelRatio = Math.min(window.devicePixelRatio, ENGINE_CONFIG.render.pixelRatioCap);
+    
+    this.resize();
+    window.addEventListener('resize', () => this.resize());
+  }
 
-function handleResize() {
-  const isPortrait = window.innerHeight > window.innerWidth;
-  width = isPortrait ? window.innerHeight : window.innerWidth;
-  height = isPortrait ? window.innerWidth : window.innerHeight;
-  
-  canvas.width = width * Math.min(window.devicePixelRatio, CONFIG.render.pixelRatioCap);
-  canvas.height = height * Math.min(window.devicePixelRatio, CONFIG.render.pixelRatioCap);
-  
-  ctx.scale(Math.min(window.devicePixelRatio, CONFIG.render.pixelRatioCap), Math.min(window.devicePixelRatio, CONFIG.render.pixelRatioCap));
+  resize() {
+    const isPortrait = window.innerHeight > window.innerWidth;
+    this.width = isPortrait ? window.innerHeight : window.innerWidth;
+    this.height = isPortrait ? window.innerWidth : window.innerHeight;
+    
+    this.canvas.width = this.width * this.pixelRatio;
+    this.canvas.height = this.height * this.pixelRatio;
+    
+    this.ctx.scale(this.pixelRatio, this.pixelRatio);
+    
+    // Re-adjust canvas CSS to match forced landscape
+    if (isPortrait) {
+      this.canvas.style.width = `${this.height}px`;
+      this.canvas.style.height = `${this.width}px`;
+    } else {
+      this.canvas.style.width = '100%';
+      this.canvas.style.height = '100%';
+    }
+  }
+
+  clear() {
+    this.ctx.clearRect(0, 0, this.width, this.height);
+  }
 }
-window.addEventListener('resize', handleResize);
-handleResize();
+
+const GameRenderer = new Renderer('game-canvas');
 
 // ----------------------------------------------------------------------------
-// 6. WORLD RENDERER (Pseudo-3D)
+// SECTION 7: SCENE RENDERING (PSEUDO-3D)
 // ----------------------------------------------------------------------------
-function drawSky() {
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, CONFIG.render.skyGradientTop);
-  gradient.addColorStop(0.5, CONFIG.render.skyGradientMid);
-  gradient.addColorStop(1, CONFIG.render.skyGradientBot);
+function renderSky() {
+  const ctx = GameRenderer.ctx;
+  const w = GameRenderer.width;
+  const h = GameRenderer.height;
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, h);
+  gradient.addColorStop(0, ENGINE_CONFIG.render.skyTop);
+  gradient.addColorStop(0.4, ENGINE_CONFIG.render.skyMid);
+  gradient.addColorStop(1, ENGINE_CONFIG.render.skyBot);
+  
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillRect(0, 0, w, h);
 }
 
-function drawRoad() {
-  const horizon = height * 0.45;
-  const roadWidthTop = width * 0.04;
-  const roadWidthBot = width * 1.8;
+function renderRoad() {
+  const ctx = GameRenderer.ctx;
+  const w = GameRenderer.width;
+  const h = GameRenderer.height;
   
-  const startX = width / 2;
-  const startY = horizon;
-  const endY = height;
+  const horizon = h * 0.45;
+  const roadWidthTop = w * 0.04;
+  const roadWidthBot = w * 1.8;
+  const centerX = w / 2;
 
-  // Grass
-  ctx.fillStyle = CONFIG.render.grassColor;
+  // Draw Grass
+  ctx.fillStyle = ENGINE_CONFIG.render.grassColor;
+  
+  // Left grass
   ctx.beginPath();
-  ctx.moveTo(0, startY);
-  ctx.lineTo(startX - roadWidthTop, startY);
-  ctx.lineTo(startX - roadWidthBot, endY);
-  ctx.lineTo(0, endY);
+  ctx.moveTo(0, horizon);
+  ctx.lineTo(centerX - roadWidthTop, horizon);
+  ctx.lineTo(centerX - roadWidthBot, h);
+  ctx.lineTo(0, h);
   ctx.fill();
+  
+  // Right grass
   ctx.beginPath();
-  ctx.moveTo(width, startY);
-  ctx.lineTo(startX + roadWidthTop, startY);
-  ctx.lineTo(startX + roadWidthBot, endY);
-  ctx.lineTo(width, endY);
-  ctx.fill();
-
-  // Road Base
-  ctx.fillStyle = CONFIG.render.roadColor;
-  ctx.beginPath();
-  ctx.moveTo(startX - roadWidthTop, startY);
-  ctx.lineTo(startX + roadWidthTop, startY);
-  ctx.lineTo(startX + roadWidthBot, endY);
-  ctx.lineTo(startX - roadWidthBot, endY);
+  ctx.moveTo(w, horizon);
+  ctx.lineTo(centerX + roadWidthTop, horizon);
+  ctx.lineTo(centerX + roadWidthBot, h);
+  ctx.lineTo(w, h);
   ctx.fill();
 
-  // Road Edge Lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-  ctx.lineWidth = 4;
+  // Draw Road Base
+  ctx.fillStyle = ENGINE_CONFIG.render.roadColor;
   ctx.beginPath();
-  ctx.moveTo(startX - roadWidthTop + 10, startY);
-  ctx.lineTo(startX - roadWidthBot + (width * 0.1), endY);
+  ctx.moveTo(centerX - roadWidthTop, horizon);
+  ctx.lineTo(centerX + roadWidthTop, horizon);
+  ctx.lineTo(centerX + roadWidthBot, h);
+  ctx.lineTo(centerX - roadWidthBot, h);
+  ctx.fill();
+
+  // Draw Road Edge Lines
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 3;
+  
+  // Left edge
+  ctx.beginPath();
+  ctx.moveTo(centerX - roadWidthTop + 8, horizon);
+  ctx.lineTo(centerX - roadWidthBot + (w * 0.1), h);
   ctx.stroke();
+  
+  // Right edge
   ctx.beginPath();
-  ctx.moveTo(startX + roadWidthTop - 10, startY);
-  ctx.lineTo(startX + roadWidthBot - (width * 0.1), endY);
+  ctx.moveTo(centerX + roadWidthTop - 8, horizon);
+  ctx.lineTo(centerX + roadWidthBot - (w * 0.1), h);
   ctx.stroke();
 
-  // Center Dashes
-  ctx.strokeStyle = CONFIG.render.roadLineColor;
-  const dashCount = 20;
-  const offset = (State.distance * 2) % 1;
+  // Draw Center Dashes
+  ctx.strokeStyle = ENGINE_CONFIG.render.roadLineColor;
+  const dashCount = 25;
+  const scrollOffset = (GLOBAL_STATE.distance * 3) % 1;
   
   for (let i = 0; i < dashCount; i++) {
-    const t1 = (i + offset) / dashCount;
-    const t2 = (i + 0.4 + offset) / dashCount;
+    const t1 = (i + scrollOffset) / dashCount;
+    const t2 = (i + 0.35 + scrollOffset) / dashCount;
+    
     if (t2 > 1) continue;
     
-    const y1 = startY + (endY - startY) * t1 * t1;
-    const y2 = startY + (endY - startY) * t2 * t2;
+    const y1 = horizon + (h - horizon) * Math.pow(t1, 2);
+    const y2 = horizon + (h - horizon) * Math.pow(t2, 2);
     
-    ctx.lineWidth = 2 + (t1 * 8);
+    ctx.lineWidth = 1 + (t1 * 8);
     ctx.beginPath();
-    ctx.moveTo(startX, y1);
-    ctx.lineTo(startX, y2);
+    ctx.moveTo(centerX, y1);
+    ctx.lineTo(centerX, y2);
     ctx.stroke();
   }
 }
 
-function drawPlayerCar() {
-  const car = CONFIG.cars[State.carIndex];
-  const carW = width * 0.28;
+function renderTraffic() {
+  const ctx = GameRenderer.ctx;
+  const w = GameRenderer.width;
+  const h = GameRenderer.height;
+  const horizon = h * 0.45;
+  
+  // Draw simple boxes for traffic cars to simulate depth
+  GLOBAL_STATE.trafficCars.forEach(car => {
+    // Map Z depth to screen Y
+    const depthRatio = MathHelper.clamp(car.z / 1000, 0, 1);
+    const y = horizon + (h - horizon) * Math.pow(depthRatio, 2);
+    
+    // Map X offset to screen X
+    const scale = 0.1 + depthRatio * 0.9;
+    const x = (w / 2) + (car.x * w * 0.4);
+    
+    const carW = w * 0.1 * scale;
+    const carH = carW * 0.5;
+    
+    ctx.fillStyle = car.color;
+    ctx.fillRect(x - carW/2, y - carH, carW, carH);
+    
+    // Taillights
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(x - carW*0.4, y - carH*0.6, carW*0.2, carH*0.2);
+    ctx.fillRect(x + carW*0.2, y - carH*0.6, carW*0.2, carH*0.2);
+  });
+}
+
+function renderPlayerCar() {
+  const ctx = GameRenderer.ctx;
+  const w = GameRenderer.width;
+  const h = GameRenderer.height;
+  
+  const carSpec = ENGINE_CONFIG.cars[GLOBAL_STATE.selectedCarIndex];
+  
+  const carW = w * 0.28;
   const carH = carW * 0.42;
   
-  // Steering shifts car slightly
-  const cx = (width / 2) + (State.steer * -30);
-  const cy = height - carH - 40;
+  // Add slight sway based on steering
+  const sway = GLOBAL_STATE.steer * -25;
+  const cx = (w / 2) + sway;
+  const cy = h - carH - 40;
 
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  // Camera Shake
+  const shakeX = (Math.random() - 0.5) * GLOBAL_STATE.cameraShake;
+  const shakeY = (Math.random() - 0.5) * GLOBAL_STATE.cameraShake;
+  
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+
+  // Car Shadow
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   ctx.beginPath();
   ctx.ellipse(cx, cy + carH - 5, carW * 0.55, carH * 0.2, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Chassis
-  ctx.fillStyle = car.color;
+  // Car Chassis
+  ctx.fillStyle = carSpec.color;
   ctx.beginPath();
   ctx.moveTo(cx - carW/2, cy + carH/2);
   ctx.lineTo(cx - carW/2 + 15, cy);
@@ -323,8 +520,12 @@ function drawPlayerCar() {
   ctx.lineTo(cx - carW/2 + 10, cy + carH);
   ctx.fill();
 
+  // Accent Stripe
+  ctx.fillStyle = carSpec.accentColor;
+  ctx.fillRect(cx - carW*0.05, cy + 5, carW*0.1, carH*0.8);
+
   // Windshield
-  ctx.fillStyle = '#0a0a0a';
+  ctx.fillStyle = '#050508';
   ctx.beginPath();
   ctx.moveTo(cx - carW*0.3, cy + 8);
   ctx.lineTo(cx + carW*0.3, cy + 8);
@@ -332,10 +533,10 @@ function drawPlayerCar() {
   ctx.lineTo(cx - carW*0.4, cy + carH*0.5);
   ctx.fill();
 
-  // Taillights
+  // Glowing Taillights
   ctx.fillStyle = '#ff1111';
   ctx.shadowColor = '#ff1111';
-  ctx.shadowBlur = 10;
+  ctx.shadowBlur = 15;
   ctx.fillRect(cx - carW*0.45, cy + carH*0.6, carW*0.15, carH*0.2);
   ctx.fillRect(cx + carW*0.3, cy + carH*0.6, carW*0.15, carH*0.2);
   ctx.shadowBlur = 0;
@@ -343,38 +544,50 @@ function drawPlayerCar() {
   // Wheels
   const wheelW = carW * 0.15;
   const wheelH = carH * 0.4;
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = '#050505';
   
-  // Spin calculation
-  const spin = State.wheelSpin * 5;
+  const spin = GLOBAL_STATE.wheelSpin * 5;
   
   const drawWheel = (wx) => {
     ctx.fillRect(wx, cy + carH*0.55, wheelW, wheelH);
-    ctx.strokeStyle = '#666';
+    
+    // Spokes
+    ctx.strokeStyle = '#555';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(wx + wheelW/2 - Math.cos(spin)*wheelW*0.3, cy + carH*0.55 + wheelH/2 - Math.sin(spin)*wheelH*0.3);
-    ctx.lineTo(wx + wheelW/2 + Math.cos(spin)*wheelW*0.3, cy + carH*0.55 + wheelH/2 + Math.sin(spin)*wheelH*0.3);
+    ctx.moveTo(
+      wx + wheelW/2 - Math.cos(spin) * wheelW * 0.3, 
+      cy + carH*0.55 + wheelH/2 - Math.sin(spin) * wheelH * 0.3
+    );
+    ctx.lineTo(
+      wx + wheelW/2 + Math.cos(spin) * wheelW * 0.3, 
+      cy + carH*0.55 + wheelH/2 + Math.sin(spin) * wheelH * 0.3
+    );
     ctx.stroke();
   };
 
   drawWheel(cx - carW/2 - 2);
   drawWheel(cx + carW/2 - wheelW + 2);
+
+  ctx.restore();
 }
 
-function drawParticles() {
-  for (let i = State.particles.length - 1; i >= 0; i--) {
-    const p = State.particles[i];
+function renderParticles() {
+  const ctx = GameRenderer.ctx;
+  
+  for (let i = GLOBAL_STATE.particles.length - 1; i >= 0; i--) {
+    const p = GLOBAL_STATE.particles[i];
+    
     p.life -= 0.02;
     p.y -= p.speed;
     p.x += p.drift;
     
     if (p.life <= 0) {
-      State.particles.splice(i, 1);
+      GLOBAL_STATE.particles.splice(i, 1);
       continue;
     }
     
-    ctx.fillStyle = `rgba(255, 255, 255, ${p.life * 0.5})`;
+    ctx.fillStyle = `rgba(255, 255, 255, ${p.life * 0.6})`;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
     ctx.fill();
@@ -382,322 +595,429 @@ function drawParticles() {
 }
 
 function renderScene() {
-  ctx.clearRect(0, 0, width, height);
+  GameRenderer.clear();
   
-  drawSky();
-  drawRoad();
-  drawParticles();
-  drawPlayerCar();
+  renderSky();
+  renderRoad();
+  renderTraffic();
+  renderParticles();
+  renderPlayerCar();
 }
 
 // ----------------------------------------------------------------------------
-// 7. PHYSICS & SIMULATION
+// SECTION 8: TRAFFIC AI AND SPAWNING
 // ----------------------------------------------------------------------------
-function updatePhysics(dt) {
-  const car = CONFIG.cars[State.carIndex];
+function updateTraffic(dt) {
+  const w = GameRenderer.width;
   
-  // Inputs
-  State.throttle = State.input.gas ? 1 : 0;
-  State.brake = State.input.brake ? 1 : 0;
-  
-  // Steering
-  const steerTarget = (State.input.left ? 1 : 0) - (State.input.right ? 1 : 0);
-  State.steer += (steerTarget - State.steer) * 8 * dt;
-
-  // Gear Ratios
-  const ratios = [3.4, 2.3, 1.7, 1.3, 1.0, 0.8];
-  const currentRatio = ratios[Math.min(State.gear - 1, ratios.length - 1)];
-  
-  // Forces
-  const engineForce = State.throttle * (car.power * currentRatio * 0.08);
-  const brakeForce = State.brake * 2500;
-  const drag = State.speed * 2.5;
-  
-  // Update Speed
-  State.speed += (engineForce - brakeForce - drag) * dt;
-  State.speed = MathUtils.clamp(State.speed, 0, car.topSpeed);
-  
-  // Update Distance & Wheel Spin
-  State.distance += State.speed * dt;
-  State.wheelSpin += (State.speed * 0.8) * dt;
-  
-  // RPM Calculation
-  const targetRpm = 900 + (State.speed / car.topSpeed) * 7000;
-  State.rpm += (targetRpm - State.rpm) * 5 * dt;
-  
-  // Auto Gearbox (if not in manual mode)
-  if (!State.manualMode) {
-    if (State.rpm > 6500 && State.gear < 6) {
-      State.gear++;
-      updateGearUI();
-    }
-    if (State.rpm < 3000 && State.gear > 1) {
-      State.gear--;
-      updateGearUI();
-    }
+  // Spawn logic
+  if (Math.random() < 0.02 && GLOBAL_STATE.trafficCars.length < 10) {
+    GLOBAL_STATE.trafficCars.push({
+      z: 1000,
+      x: MathHelper.randomRange(-1.5, 1.5), // Lateral offset
+      speed: MathHelper.randomRange(10, 25),
+      color: `hsl(${MathHelper.randomInt(0, 360)}, 50%, 40%)`
+    });
   }
 
-  // Exhaust Particles
-  if (State.throttle > 0 && Math.random() > 0.5) {
-    State.particles.push({
-      x: (width / 2) + (State.steer * -30) + MathUtils.randomRange(-20, 20),
-      y: height - 80,
-      size: MathUtils.randomRange(5, 15),
+  // Move and remove
+  for (let i = GLOBAL_STATE.trafficCars.length - 1; i >= 0; i--) {
+    const car = GLOBAL_STATE.trafficCars[i];
+    
+    // Relative speed (player moves faster, so traffic z decreases)
+    car.z -= (GLOBAL_STATE.speed - car.speed) * dt * 10;
+    
+    // Remove if behind player
+    if (car.z < 0) {
+      GLOBAL_STATE.trafficCars.splice(i, 1);
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// SECTION 9: PHYSICS SIMULATION
+// ----------------------------------------------------------------------------
+function updateVehiclePhysics(dt) {
+  const carSpec = ENGINE_CONFIG.cars[GLOBAL_STATE.selectedCarIndex];
+  
+  // 1. Inputs
+  GLOBAL_STATE.throttle = GLOBAL_STATE.inputs.gas ? 1 : 0;
+  GLOBAL_STATE.brake = GLOBAL_STATE.inputs.brake ? 1 : 0;
+  
+  // 2. Steering
+  const steerTarget = (GLOBAL_STATE.inputs.left ? 1 : 0) - (GLOBAL_STATE.inputs.right ? 1 : 0);
+  GLOBAL_STATE.steer += (steerTarget - GLOBAL_STATE.steer) * 8 * dt;
+  
+  // 3. Gear Ratios & Torque
+  const currentRatio = carSpec.gearRatios[Math.min(GLOBAL_STATE.gear - 1, carSpec.gearRatios.length - 1)];
+  const engineTorque = GLOBAL_STATE.throttle * (carSpec.maxTorque * currentRatio);
+  
+  // 4. Forces
+  const driveForce = engineTorque * 0.05; 
+  const brakeForce = GLOBAL_STATE.brake * 2500;
+  const dragForce = Math.pow(GLOBAL_STATE.speed, 2) * ENGINE_CONFIG.physics.dragCoefficient * 0.1;
+  const rollingResistance = GLOBAL_STATE.speed * ENGINE_CONFIG.physics.rollingResistance * 50;
+  
+  // 5. Update Speed
+  const netForce = driveForce - brakeForce - dragForce - rollingResistance;
+  GLOBAL_STATE.speed += (netForce / carSpec.mass) * dt * 60;
+  
+  GLOBAL_STATE.speed = MathHelper.clamp(GLOBAL_STATE.speed, 0, carSpec.topSpeed);
+  
+  // 6. Update Distance
+  GLOBAL_STATE.distance += GLOBAL_STATE.speed * dt;
+  
+  // 7. Wheel Spin
+  GLOBAL_STATE.wheelSpin += (GLOBAL_STATE.speed * 0.8) * dt;
+  
+  // 8. RPM Calculation
+  const targetRpm = 900 + (GLOBAL_STATE.speed / carSpec.topSpeed) * 7000;
+  GLOBAL_STATE.rpm += (targetRpm - GLOBAL_STATE.rpm) * 5 * dt;
+  
+  // 9. Automatic Transmission
+  if (!GLOBAL_STATE.isManual && GLOBAL_STATE.shiftCooldown <= 0) {
+    if (GLOBAL_STATE.rpm > 6500 && GLOBAL_STATE.gear < 6) {
+      GLOBAL_STATE.gear++;
+      GLOBAL_STATE.shiftCooldown = 0.5;
+      updateHUDGear();
+    }
+    if (GLOBAL_STATE.rpm < 3000 && GLOBAL_STATE.gear > 1) {
+      GLOBAL_STATE.gear--;
+      GLOBAL_STATE.shiftCooldown = 0.5;
+      updateHUDGear();
+    }
+  }
+  
+  if (GLOBAL_STATE.shiftCooldown > 0) {
+    GLOBAL_STATE.shiftCooldown -= dt;
+  }
+
+  // 10. Camera Shake
+  GLOBAL_STATE.cameraShake = (GLOBAL_STATE.speed / carSpec.topSpeed) * ENGINE_CONFIG.camera.shakeIntensity * 10;
+
+  // 11. Particles (Exhaust/Tire Smoke)
+  if (GLOBAL_STATE.throttle > 0 && Math.random() > 0.4) {
+    GLOBAL_STATE.particles.push({
+      x: (GameRenderer.width / 2) + (GLOBAL_STATE.steer * -25) + MathHelper.randomRange(-20, 20),
+      y: GameRenderer.height - 80,
+      size: MathHelper.randomRange(5, 12),
       life: 1.0,
-      speed: MathUtils.randomRange(2, 5),
-      drift: MathUtils.randomRange(-1, 1)
+      speed: MathHelper.randomRange(2, 5),
+      drift: MathHelper.randomRange(-1, 1)
     });
   }
 }
 
 // ----------------------------------------------------------------------------
-// 8. GAME LOOP
+// SECTION 10: UI UPDATES
 // ----------------------------------------------------------------------------
-let lastTime = performance.now();
-let accumulator = 0;
-
-function gameLoop(time) {
-  requestAnimationFrame(gameLoop);
+function updateHUDSpeed() {
+  const kmh = Math.round(GLOBAL_STATE.speed * 3.6);
+  const safeKmh = MathHelper.isFiniteSafe(kmh, 0);
   
-  let dt = (time - lastTime) / 1000;
-  lastTime = time;
-  
-  if (!isFinite(dt) || dt > 0.1) dt = 0.016;
-  if (dt <= 0) dt = 0.016;
-
-  if (State.isRunning && !State.isPaused) {
-    accumulator += dt;
-    let steps = 0;
-    
-    while (accumulator >= CONFIG.physics.fixedTimeStep && steps < CONFIG.physics.maxSubSteps) {
-      updatePhysics(CONFIG.physics.fixedTimeStep);
-      accumulator -= CONFIG.physics.fixedTimeStep;
-      steps++;
-    }
-    if (steps >= CONFIG.physics.maxSubSteps) accumulator = 0;
-    
-    State.time += dt;
-    
-    // Update Audio
-    audio.update(State.rpm, State.throttle);
-    
-    // Update HUD
-    updateHUD();
-  }
-  
-  renderScene();
-}
-
-// ----------------------------------------------------------------------------
-// 9. UI UPDATES
-// ----------------------------------------------------------------------------
-function updateHUD() {
-  const kmh = Math.round(State.speed * 3.6);
-  DOM.speedoValue.textContent = isFinite(kmh) ? kmh : 0;
+  DOM_CACHE.hudSpeedValue.textContent = safeKmh;
   
   const maxDisplay = 300;
-  const ratio = MathUtils.clamp(kmh / maxDisplay, 0, 1);
-  DOM.speedoArc.setAttribute('stroke-dasharray', `${ratio * 267} 267`);
+  const ratio = MathHelper.clamp(safeKmh / maxDisplay, 0, 1);
+  const arcLength = 298;
+  
+  DOM_CACHE.hudSpeedArc.setAttribute('stroke-dasharray', `${ratio * arcLength} ${arcLength}`);
 }
 
-function updateGearUI() {
-  DOM.speedoGear.textContent = State.gear;
-  if (State.manualMode) {
-    DOM.hudTransMode.textContent = "MANUAL";
+function updateHUDGear() {
+  DOM_CACHE.hudGearValue.textContent = GLOBAL_STATE.gear;
+  
+  if (GLOBAL_STATE.isManual) {
+    DOM_CACHE.hudTransmission.textContent = 'MANUAL';
   } else {
-    DOM.hudTransMode.textContent = "AUTOMATIC";
+    DOM_CACHE.hudTransmission.textContent = 'AUTOMATIC';
   }
 }
 
 // ----------------------------------------------------------------------------
-// 10. INPUT HANDLING
+// SECTION 11: INPUT HANDLERS
 // ----------------------------------------------------------------------------
-function setupInputs() {
-  const bindHold = (el, onDown, onUp) => {
-    const start = (e) => { e.preventDefault(); el.classList.add('pressed'); onDown(); };
-    const end = (e) => { e.preventDefault(); el.classList.remove('pressed'); onUp(); };
+function setupInputBindings() {
+  const bindHold = (element, onDown, onUp) => {
+    const start = (e) => {
+      e.preventDefault();
+      element.classList.add('pressed');
+      onDown();
+      AudioEngine.resume();
+    };
     
-    el.addEventListener('pointerdown', start);
-    el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', end);
-    el.addEventListener('pointerleave', end);
-    el.addEventListener('contextmenu', e => e.preventDefault());
+    const end = (e) => {
+      e.preventDefault();
+      element.classList.remove('pressed');
+      onUp();
+    };
+    
+    element.addEventListener('pointerdown', start);
+    element.addEventListener('pointerup', end);
+    element.addEventListener('pointercancel', end);
+    element.addEventListener('pointerleave', end);
+    element.addEventListener('contextmenu', e => e.preventDefault());
   };
 
-  bindHold(DOM.btnLeft, () => State.input.left = true, () => State.input.left = false);
-  bindHold(DOM.btnRight, () => State.input.right = true, () => State.input.right = false);
-  bindHold(DOM.btnGas, () => State.input.gas = true, () => State.input.gas = false);
-  bindHold(DOM.btnBrake, () => State.input.brake = true, () => State.input.brake = false);
+  // Steering
+  bindHold(DOM_CACHE.btnSteerLeft, () => GLOBAL_STATE.inputs.left = true, () => GLOBAL_STATE.inputs.left = false);
+  bindHold(DOM_CACHE.btnSteerRight, () => GLOBAL_STATE.inputs.right = true, () => GLOBAL_STATE.inputs.right = false);
+  
+  // Pedals
+  bindHold(DOM_CACHE.btnPedalGas, () => GLOBAL_STATE.inputs.gas = true, () => GLOBAL_STATE.inputs.gas = false);
+  bindHold(DOM_CACHE.btnPedalBrake, () => GLOBAL_STATE.inputs.brake = true, () => GLOBAL_STATE.inputs.brake = false);
 
   // Paddle Shifters (Manual Override)
-  DOM.btnPadUp.addEventListener('pointerdown', (e) => {
+  DOM_CACHE.btnShiftUp.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    if (State.isRunning) {
-      State.manualMode = true;
-      State.gear = Math.min(State.gear + 1, 6);
-      updateGearUI();
+    if (GLOBAL_STATE.appState === 'DRIVING' && GLOBAL_STATE.gear < 6) {
+      GLOBAL_STATE.isManual = true;
+      GLOBAL_STATE.gear++;
+      updateHUDGear();
     }
   });
 
-  DOM.btnPadDown.addEventListener('pointerdown', (e) => {
+  DOM_CACHE.btnShiftDown.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    if (State.isRunning) {
-      State.manualMode = true;
-      State.gear = Math.max(State.gear - 1, 1);
-      updateGearUI();
+    if (GLOBAL_STATE.appState === 'DRIVING' && GLOBAL_STATE.gear > 1) {
+      GLOBAL_STATE.isManual = true;
+      GLOBAL_STATE.gear--;
+      updateHUDGear();
     }
   });
 
-  // Keyboard Support (for PC testing)
+  // Keyboard Fallback (PC Testing)
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
-    if (e.key === 'ArrowUp' || e.key === 'w') State.input.gas = true;
-    if (e.key === 'ArrowDown' || e.key === 's') State.input.brake = true;
-    if (e.key === 'ArrowLeft' || e.key === 'a') State.input.left = true;
-    if (e.key === 'ArrowRight' || e.key === 'd') State.input.right = true;
+    if (e.key === 'ArrowUp' || e.key === 'w') GLOBAL_STATE.inputs.gas = true;
+    if (e.key === 'ArrowDown' || e.key === 's') GLOBAL_STATE.inputs.brake = true;
+    if (e.key === 'ArrowLeft' || e.key === 'a') GLOBAL_STATE.inputs.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') GLOBAL_STATE.inputs.right = true;
+    
     if (e.key === 'Shift') {
-      State.manualMode = true;
-      State.gear = Math.min(State.gear + 1, 6);
-      updateGearUI();
+      GLOBAL_STATE.isManual = true;
+      GLOBAL_STATE.gear = Math.min(GLOBAL_STATE.gear + 1, 6);
+      updateHUDGear();
     }
     if (e.key === 'Control') {
-      State.manualMode = true;
-      State.gear = Math.max(State.gear - 1, 1);
-      updateGearUI();
+      GLOBAL_STATE.isManual = true;
+      GLOBAL_STATE.gear = Math.max(GLOBAL_STATE.gear - 1, 1);
+      updateHUDGear();
     }
   });
 
   window.addEventListener('keyup', (e) => {
-    if (e.key === 'ArrowUp' || e.key === 'w') State.input.gas = false;
-    if (e.key === 'ArrowDown' || e.key === 's') State.input.brake = false;
-    if (e.key === 'ArrowLeft' || e.key === 'a') State.input.left = false;
-    if (e.key === 'ArrowRight' || e.key === 'd') State.input.right = false;
+    if (e.key === 'ArrowUp' || e.key === 'w') GLOBAL_STATE.inputs.gas = false;
+    if (e.key === 'ArrowDown' || e.key === 's') GLOBAL_STATE.inputs.brake = false;
+    if (e.key === 'ArrowLeft' || e.key === 'a') GLOBAL_STATE.inputs.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') GLOBAL_STATE.inputs.right = false;
   });
 }
 
 // ----------------------------------------------------------------------------
-// 11. SCREEN MANAGEMENT
+// SECTION 12: SCREEN MANAGEMENT AND FLOW
 // ----------------------------------------------------------------------------
-const SVG_CARS = {
-  m5: `<svg viewBox="0 0 120 50"><path d="M 15 35 L 25 20 L 95 20 L 105 35 Z" /><circle cx="30" cy="37" r="7"/><circle cx="90" cy="37" r="7"/></svg>`,
-  mustang: `<svg viewBox="0 0 120 50"><path d="M 10 35 L 20 18 L 100 18 L 110 35 Z" /><circle cx="28" cy="37" r="7"/><circle cx="92" cy="37" r="7"/></svg>`,
-  porsche: `<svg viewBox="0 0 120 50"><path d="M 20 35 L 30 22 L 90 22 L 100 35 Z" /><circle cx="33" cy="37" r="7"/><circle cx="87" cy="37" r="7"/></svg>`,
-  ferrari: `<svg viewBox="0 0 120 50"><path d="M 15 35 L 22 16 L 98 16 L 105 35 Z" /><circle cx="30" cy="37" r="7"/><circle cx="90" cy="37" r="7"/></svg>`
+const SVG_TEMPLATES = {
+  m5: `<svg viewBox="0 0 150 60"><path d="M 20 45 L 30 25 L 120 25 L 130 45 Z" /><circle cx="40" cy="47" r="8"/><circle cx="110" cy="47" r="8"/></svg>`,
+  mustang: `<svg viewBox="0 0 150 60"><path d="M 15 45 L 25 20 L 125 20 L 135 45 Z" /><circle cx="35" cy="47" r="8"/><circle cx="115" cy="47" r="8"/></svg>`,
+  porsche: `<svg viewBox="0 0 150 60"><path d="M 25 45 L 35 28 L 115 28 L 125 45 Z" /><circle cx="45" cy="47" r="8"/><circle cx="105" cy="47" r="8"/></svg>`,
+  ferrari: `<svg viewBox="0 0 150 60"><path d="M 20 45 L 28 18 L 122 18 L 130 45 Z" /><circle cx="40" cy="47" r="8"/><circle cx="110" cy="47" r="8"/></svg>`
 };
 
-function buildSelectScreen() {
-  DOM.carGrid.innerHTML = '';
-  CONFIG.cars.forEach((car, i) => {
+function buildMenuScreen() {
+  DOM_CACHE.menuCarList.innerHTML = '';
+  
+  ENGINE_CONFIG.cars.forEach((car, index) => {
     const card = document.createElement('div');
-    card.className = `car-card ${i === 0 ? 'active' : ''}`;
+    card.className = `car-card ${index === 0 ? 'active' : ''}`;
+    
     card.innerHTML = `
-      <div class="car-svg-container">${SVG_CARS[car.id]}</div>
-      <div class="car-details">
-        <div class="car-name">${car.name}</div>
-        <div class="car-specs">
-          <div class="car-spec-row"><span>DRIVE</span><span>${car.drive}</span></div>
-          <div class="car-spec-row"><span>POWER</span><span>${car.power} hp</span></div>
+      <div class="car-card-visual">
+        ${SVG_TEMPLATES[car.id]}
+      </div>
+      <div class="car-card-info">
+        <h3>${car.name}</h3>
+        <div class="car-card-specs">
+          <div class="spec-item">
+            <span class="spec-label">DRIVE</span>
+            <span class="spec-value">${car.drive}</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">POWER</span>
+            <span class="spec-value">${car.power} hp</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">TORQUE</span>
+            <span class="spec-value">${car.maxTorque} Nm</span>
+          </div>
+          <div class="spec-item">
+            <span class="spec-label">WEIGHT</span>
+            <span class="spec-value">${car.mass} kg</span>
+          </div>
         </div>
       </div>
     `;
+
     card.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       document.querySelectorAll('.car-card').forEach(c => c.classList.remove('active'));
       card.classList.add('active');
-      State.carIndex = i;
+      GLOBAL_STATE.selectedCarIndex = index;
+      AudioEngine.initialize();
+      AudioEngine.resume();
     });
-    DOM.carGrid.appendChild(card);
+
+    DOM_CACHE.menuCarList.appendChild(card);
   });
 }
 
-function startGame() {
-  // Force Fullscreen
+function transitionToDriving() {
+  // Force fullscreen
   const el = document.documentElement;
-  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
   else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
 
-  // Init Audio
-  audio.init();
-  audio.resume();
-
   // UI Transitions
-  DOM.selectScreen.classList.add('hidden');
-  DOM.hud.classList.remove('hidden');
+  DOM_CACHE.menuScreen.classList.add('hidden');
+  DOM_CACHE.hudLayer.classList.remove('hidden');
+  DOM_CACHE.hudLayer.classList.add('visible');
+
+  // Initialization
+  AudioEngine.initialize();
+  AudioEngine.resume();
+
+  GLOBAL_STATE.appState = 'DRIVING';
+  GLOBAL_STATE.speed = 0;
+  GLOBAL_STATE.rpm = 900;
+  GLOBAL_STATE.gear = 1;
+  GLOBAL_STATE.steer = 0;
+  GLOBAL_STATE.distance = 0;
+  GLOBAL_STATE.isManual = false;
+  GLOBAL_STATE.particles = [];
+  GLOBAL_STATE.trafficCars = [];
+  GLOBAL_STATE.inputs = { gas: false, brake: false, left: false, right: false };
+
+  const carSpec = ENGINE_CONFIG.cars[GLOBAL_STATE.selectedCarIndex];
+  DOM_CACHE.hudCarName.textContent = carSpec.name;
   
-  // Reset State
-  State.isRunning = true;
-  State.speed = 0;
-  State.rpm = 900;
-  State.gear = 1;
-  State.steer = 0;
-  State.distance = 0;
-  State.manualMode = false;
-  State.particles = [];
-  State.input = { gas: false, brake: false, left: false, right: false };
+  updateHUDGear();
+  updateHUDSpeed();
   
-  // Update HUD Info
-  DOM.hudCarName.textContent = CONFIG.cars[State.carIndex].name;
-  updateGearUI();
-  updateHUD();
-  
-  lastTime = performance.now();
-  accumulator = 0;
+  GLOBAL_STATE.lastFrameTime = performance.now();
+  GLOBAL_STATE.physicsAccumulator = 0;
 }
 
-function returnToMenu() {
-  State.isRunning = false;
-  State.isPaused = true;
-  audio.mute();
-  DOM.hud.classList.add('hidden');
-  DOM.selectScreen.classList.remove('hidden');
+function transitionToMenu() {
+  GLOBAL_STATE.appState = 'MENU';
+  AudioEngine.setMute(true);
+  
+  DOM_CACHE.hudLayer.classList.add('hidden');
+  DOM_CACHE.hudLayer.classList.remove('visible');
+  DOM_CACHE.menuScreen.classList.remove('hidden');
 }
 
 // ----------------------------------------------------------------------------
-// 12. BOOTSTRAP & INITIALIZATION
+// SECTION 13: CORE GAME LOOP
 // ----------------------------------------------------------------------------
-function checkOrientation() {
+function gameLoop(timestamp) {
+  requestAnimationFrame(gameLoop);
+
+  let dt = (timestamp - GLOBAL_STATE.lastFrameTime) / 1000;
+  GLOBAL_STATE.lastFrameTime = timestamp;
+
+  // Guard against NaN or massive frame drops
+  if (!isFinite(dt) || dt > 0.2) dt = 0.016;
+  if (dt <= 0) dt = 0.016;
+
+  if (GLOBAL_STATE.appState === 'DRIVING') {
+    GLOBAL_STATE.physicsAccumulator += dt;
+    let steps = 0;
+
+    while (GLOBAL_STATE.physicsAccumulator >= ENGINE_CONFIG.physics.fixedTimeStep && steps < ENGINE_CONFIG.physics.maxSubSteps) {
+      updateVehiclePhysics(ENGINE_CONFIG.physics.fixedTimeStep);
+      updateTraffic(ENGINE_CONFIG.physics.fixedTimeStep);
+      GLOBAL_STATE.physicsAccumulator -= ENGINE_CONFIG.physics.fixedTimeStep;
+      steps++;
+    }
+
+    if (steps >= ENGINE_CONFIG.physics.maxSubSteps) {
+      GLOBAL_STATE.physicsAccumulator = 0;
+    }
+
+    GLOBAL_STATE.timeElapsed += dt;
+    
+    // Update Audio
+    AudioEngine.update(GLOBAL_STATE.rpm, GLOBAL_STATE.throttle, GLOBAL_STATE.speed);
+    
+    // Update HUD
+    updateHUDSpeed();
+  }
+
+  // Render scene (always render, even if paused/menu, to prevent flashing)
+  renderScene();
+}
+
+// ----------------------------------------------------------------------------
+// SECTION 14: INITIALIZATION AND BOOTSTRAP
+// ----------------------------------------------------------------------------
+function handleOrientation() {
   const isPortrait = window.innerHeight > window.innerWidth;
-  DOM.rotateOverlay.classList.toggle('active', isPortrait);
+  DOM_CACHE.portraitBlocker.classList.toggle('visible', isPortrait);
 }
 
 function boot() {
-  console.log("[BOOT] Initializing Apex Drive...");
-  
-  // UI Setup
-  buildSelectScreen();
-  setupInputs();
-  
-  // Events
-  DOM.startBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); startGame(); });
-  DOM.btnBack.addEventListener('pointerdown', (e) => { e.preventDefault(); returnToMenu(); });
-  
-  window.addEventListener('resize', checkOrientation);
-  checkOrientation();
+  console.log("[BOOT] Starting Apex Drive initialization sequence...");
+
+  // Event Listeners
+  window.addEventListener('resize', handleOrientation);
+  handleOrientation();
+
+  DOM_CACHE.btnStartGame.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    transitionToDriving();
+  });
+
+  DOM_CACHE.btnBackToMenu.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    transitionToMenu();
+  });
+
+  buildMenuScreen();
+  setupInputBindings();
 
   // Simulated Loading Sequence
   let progress = 0;
-  const loadInterval = setInterval(() => {
-    progress += Math.random() * 15;
+  const loadingInterval = setInterval(() => {
+    progress += MathHelper.randomRange(5, 15);
+    
     if (progress > 100) progress = 100;
     
-    DOM.loaderFill.style.width = `${progress}%`;
+    DOM_CACHE.loadBar.style.width = `${progress}%`;
+    DOM_CACHE.loadPct.textContent = `${Math.floor(progress)}%`;
     
-    if (progress > 30) DOM.loaderText.textContent = "Loading Assets...";
-    if (progress > 70) DOM.loaderText.textContent = "Preparing Track...";
+    if (progress > 20) DOM_CACHE.loadStatus.textContent = "Loading track data...";
+    if (progress > 50) DOM_CACHE.loadStatus.textContent = "Initializing physics engine...";
+    if (progress > 80) DOM_CACHE.loadStatus.textContent = "Warming up tires...";
+    
     if (progress >= 100) {
-      DOM.loaderText.textContent = "Ready.";
-      clearInterval(loadInterval);
+      DOM_CACHE.loadStatus.textContent = "Ready.";
+      clearInterval(loadingInterval);
       
       setTimeout(() => {
-        DOM.loadingScreen.classList.add('hidden');
-        DOM.selectScreen.classList.remove('hidden');
+        DOM_CACHE.loadingScreen.classList.add('hidden');
+        DOM_CACHE.menuScreen.classList.remove('hidden');
         
-        // Start Render Loop
+        GLOBAL_STATE.appState = 'MENU';
+        GLOBAL_STATE.lastFrameTime = performance.now();
+        
+        // Start main loop
         requestAnimationFrame(gameLoop);
-      }, 400);
+        
+        console.log("[BOOT] Initialization complete. Engine running.");
+      }, 500);
     }
-  }, 150);
+  }, 100);
 }
 
-// Fire it up
+// Fire when window is ready
 window.addEventListener('load', boot);
