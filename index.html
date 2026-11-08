@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
 <meta name="theme-color" content="#1a2a1a" />
-<title>Verdant Vale — First Person Farm</title>
+<title>Verdant Vale</title>
 
 <script type="importmap">
 {
@@ -16,9 +16,6 @@
 </script>
 
 <style>
-/* ════════════════════════════════════════════════════════════
-   BASE
-   ════════════════════════════════════════════════════════════ */
 * {
   margin: 0; padding: 0; box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -34,22 +31,18 @@ html, body {
 }
 canvas { display: block; touch-action: none; }
 
-/* ════════════════════════════════════════════════════════════
-   LOADING
-   ════════════════════════════════════════════════════════════ */
+/* ═══ LOADER ═══ */
 #loader {
   position: fixed; inset: 0; z-index: 5000;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  background:
-    radial-gradient(ellipse at 50% 40%, #3a5040 0%, #1a2a20 60%, #0a1410 100%);
+  background: radial-gradient(ellipse at 50% 40%, #3a5040 0%, #1a2a20 60%, #0a1410 100%);
   transition: opacity 1.2s ease, visibility 1.2s;
 }
 #loader.hide { opacity: 0; visibility: hidden; pointer-events: none; }
 #loader .leaf {
   font-size: 68px; margin-bottom: 28px;
   animation: breathe 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 30px rgba(190, 220, 160, 0.5));
 }
 @keyframes breathe {
   0%,100% { transform: scale(1) rotate(-4deg); opacity: 0.9; }
@@ -58,7 +51,6 @@ canvas { display: block; touch-action: none; }
 #loader .title {
   font-size: 28px; letter-spacing: 16px; font-weight: 300;
   color: #c8e0b0; margin-bottom: 44px;
-  text-shadow: 0 0 40px rgba(180, 220, 140, 0.35);
 }
 #loader .subtitle {
   font-size: 11px; letter-spacing: 5px; opacity: 0.5;
@@ -72,34 +64,23 @@ canvas { display: block; touch-action: none; }
 #loader .bar-fill {
   height: 100%; width: 0%;
   background: linear-gradient(90deg, #6a9a5a, #b8dc8a, #e0f4c0);
-  transition: width 0.5s ease;
-  box-shadow: 0 0 24px rgba(180, 220, 140, 0.8);
+  transition: width 0.4s ease;
 }
 #loader .status {
   font-size: 10px; letter-spacing: 5px;
   opacity: 0.45; text-transform: uppercase;
-  padding: 0 20px; text-align: center;
 }
 
-/* ════════════════════════════════════════════════════════════
-   MAIN MENU
-   ════════════════════════════════════════════════════════════ */
+/* ═══ MENU ═══ */
 #menu {
   position: fixed; inset: 0; z-index: 3000;
   display: none; flex-direction: column;
   align-items: center; justify-content: center;
-  background:
-    radial-gradient(ellipse at 50% 30%, #4a6a4a 0%, #2a3e2a 55%, #0a1410 100%);
+  background: radial-gradient(ellipse at 50% 30%, #4a6a4a 0%, #2a3e2a 55%, #0a1410 100%);
   transition: opacity 1.2s ease, visibility 1.2s;
-  padding: 20px; overflow: hidden;
+  padding: 20px;
 }
 #menu.hide { opacity: 0; visibility: hidden; pointer-events: none; }
-#menu::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(circle at 50% 45%, transparent 20%, rgba(10,20,10,0.8) 90%);
-  pointer-events: none;
-}
 #menu .sun {
   position: absolute; top: -120px; right: -120px;
   width: 380px; height: 380px; border-radius: 50%;
@@ -107,16 +88,14 @@ canvas { display: block; touch-action: none; }
   filter: blur(30px); pointer-events: none;
 }
 #menu h1 {
-  position: relative; z-index: 1;
   font-size: clamp(38px, 7.5vw, 82px);
   letter-spacing: clamp(10px, 2.2vw, 22px);
   font-weight: 300; color: #ebe4d0;
-  text-shadow: 0 4px 60px rgba(0,0,0,0.9), 0 0 100px rgba(180, 220, 140, 0.3);
+  text-shadow: 0 4px 60px rgba(0,0,0,0.9);
   line-height: 1; margin-bottom: 14px;
   text-align: center;
 }
 #menu .tag {
-  position: relative; z-index: 1;
   font-size: clamp(11px, 1.6vw, 14px);
   letter-spacing: clamp(4px, 1vw, 8px);
   font-style: italic; color: #b8d0a0;
@@ -124,7 +103,7 @@ canvas { display: block; touch-action: none; }
   opacity: 0.8; text-align: center;
 }
 #playBtn {
-  position: relative; z-index: 2;
+  position: relative;
   padding: clamp(16px, 3vh, 22px) clamp(64px, 15vw, 100px);
   font-family: 'Georgia', serif;
   font-size: clamp(16px, 2.4vw, 22px);
@@ -137,31 +116,14 @@ canvas { display: block; touch-action: none; }
   box-shadow:
     0 8px 0 #2a5a2a,
     0 20px 50px rgba(0,0,0,0.6),
-    0 0 80px rgba(180, 220, 140, 0.4),
-    inset 0 3px 8px rgba(255,255,255,0.85),
-    inset 0 -4px 10px rgba(0,0,0,0.25);
-  transition: transform 0.16s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.16s;
-  overflow: hidden;
+    inset 0 3px 8px rgba(255,255,255,0.85);
+  transition: transform 0.16s cubic-bezier(0.34,1.56,0.64,1);
 }
 #playBtn:hover { transform: translateY(-3px) scale(1.04); }
-#playBtn:active {
-  transform: translateY(6px) scale(0.96);
-  box-shadow: 0 2px 0 #2a5a2a, 0 8px 20px rgba(0,0,0,0.5);
-}
-#playBtn::before {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.55) 50%, transparent 65%);
-  transform: translateX(-100%);
-  animation: shine 3.5s ease-in-out infinite;
-}
-@keyframes shine {
-  0% { transform: translateX(-100%); }
-  60%, 100% { transform: translateX(100%); }
-}
+#playBtn:active { transform: translateY(6px) scale(0.96); }
 #menu .hint {
   position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
-  z-index: 1; font-size: clamp(9px, 1.2vw, 11px);
+  font-size: clamp(9px, 1.2vw, 11px);
   letter-spacing: 2px; opacity: 0.55;
   text-align: center; max-width: 90vw;
   line-height: 1.8;
@@ -172,39 +134,10 @@ canvas { display: block; touch-action: none; }
   border: 1px solid rgba(255,255,255,0.2);
   padding: 1px 7px; border-radius: 4px;
   font-family: monospace; font-size: 0.95em;
-  color: #d8f0c0; margin: 0 1px;
+  color: #d8f0c0;
 }
 
-/* ════════════════════════════════════════════════════════════
-   PORTRAIT WARNING
-   ════════════════════════════════════════════════════════════ */
-#rotate {
-  position: fixed; inset: 0; z-index: 4000;
-  background: rgba(10, 20, 10, 0.98);
-  display: none; flex-direction: column;
-  align-items: center; justify-content: center;
-  text-align: center; padding: 30px;
-  color: #ebe4d0;
-}
-#rotate.show { display: flex; }
-#rotate .ico {
-  font-size: 78px; margin-bottom: 24px;
-  animation: rotateIcon 2.4s ease-in-out infinite;
-}
-@keyframes rotateIcon {
-  0%, 100% { transform: rotate(-15deg); }
-  50% { transform: rotate(105deg); }
-}
-#rotate p {
-  font-size: 15px; letter-spacing: 2px;
-  opacity: 0.9; max-width: 320px;
-  line-height: 1.7;
-}
-#rotate strong { color: #c8e0b0; letter-spacing: 3px; }
-
-/* ════════════════════════════════════════════════════════════
-   IN-GAME HUD (minimalist, calming)
-   ════════════════════════════════════════════════════════════ */
+/* ═══ HUD ═══ */
 #hud {
   position: fixed; inset: 0; pointer-events: none;
   z-index: 100; opacity: 0;
@@ -213,29 +146,20 @@ canvas { display: block; touch-action: none; }
 }
 #hud.show { opacity: 1; }
 
-/* crosshair — tiny, calm dot */
 #crosshair {
   position: absolute; top: 50%; left: 50%;
   width: 4px; height: 4px;
   margin: -2px 0 0 -2px;
   background: rgba(255,255,255,0.7);
   border-radius: 50%;
-  box-shadow: 0 0 8px rgba(255,255,255,0.6), 0 0 2px rgba(0,0,0,0.8);
-  pointer-events: none;
-  transition: transform 0.2s, background 0.2s;
-}
-#crosshair.active {
-  transform: scale(1.6);
-  background: rgba(200, 240, 160, 0.9);
+  box-shadow: 0 0 8px rgba(255,255,255,0.6);
 }
 
-/* top-left status */
 #statusTL {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 18px);
   left: calc(env(safe-area-inset-left, 0px) + 20px);
   display: flex; flex-direction: column; gap: 6px;
-  pointer-events: none;
 }
 .status-item {
   display: flex; align-items: center; gap: 9px;
@@ -255,13 +179,11 @@ canvas { display: block; touch-action: none; }
   transition: width 0.4s ease;
 }
 
-/* top-right clock + weather */
 #topRight {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 18px);
   right: calc(env(safe-area-inset-right, 0px) + 20px);
   text-align: right;
-  pointer-events: none;
 }
 #clockDisplay {
   font-size: 22px; font-weight: 300;
@@ -279,7 +201,6 @@ canvas { display: block; touch-action: none; }
   opacity: 0.75; margin-top: 8px;
 }
 
-/* action prompt (bottom center, appears when looking at interactable) */
 #prompt {
   position: absolute;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 110px);
@@ -292,25 +213,18 @@ canvas { display: block; touch-action: none; }
   font-size: 13px; letter-spacing: 1px;
   opacity: 0; transition: all 0.35s ease;
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   white-space: nowrap;
-  pointer-events: none;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
 }
-#prompt.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
+#prompt.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 #prompt .key {
   display: inline-block;
   background: rgba(200, 220, 180, 0.2);
   border: 1px solid rgba(200, 220, 180, 0.5);
   padding: 1px 8px; border-radius: 5px;
-  font-family: monospace; font-size: 0.9em;
+  font-family: monospace;
   color: #d8f0c0; margin: 0 3px;
 }
 
-/* subtitles / toasts */
 #toast {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 80px);
@@ -322,26 +236,21 @@ canvas { display: block; touch-action: none; }
   border-radius: 24px;
   font-size: 13px; letter-spacing: 1px;
   opacity: 0; transition: all 0.4s ease;
-  white-space: nowrap; pointer-events: none;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  white-space: nowrap;
   max-width: 88vw;
   overflow: hidden; text-overflow: ellipsis;
 }
-#toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* bottom bar (touch controls area — subtle) */
+/* ═══ TOUCH CONTROLS ═══ */
 #touchControls {
-  position: absolute;
-  inset: 0;
+  position: fixed; inset: 0;
   pointer-events: none;
   display: none;
+  z-index: 90;
 }
 #touchControls.show { display: block; }
 
-/* joystick */
 #joystick {
   position: absolute;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
@@ -352,7 +261,6 @@ canvas { display: block; touch-action: none; }
   border: 1.5px solid rgba(200, 220, 180, 0.25);
   pointer-events: auto;
   touch-action: none;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
 }
 #joystick .stick {
   position: absolute;
@@ -362,30 +270,19 @@ canvas { display: block; touch-action: none; }
   background: radial-gradient(circle, rgba(220, 240, 200, 0.7) 0%, rgba(140, 180, 130, 0.5) 100%);
   border: 1.5px solid rgba(255,255,255,0.5);
   transform: translate(-50%, -50%);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
   pointer-events: none;
-  transition: transform 0.05s linear;
-}
-#joystick .label {
-  position: absolute;
-  bottom: -22px; left: 50%;
-  transform: translateX(-50%);
-  font-size: 9px; letter-spacing: 2px;
-  opacity: 0.5; text-transform: uppercase;
-  color: #e0e8d0; white-space: nowrap;
 }
 
-/* look pad (right side touch drag) */
+/* Look pad — right side, but NOT covering action buttons */
 #lookPad {
   position: absolute;
-  top: 15%; bottom: 15%;
-  right: 5%;
-  width: 40%;
+  top: 15%; bottom: 35%;    /* shrunk so it doesn't overlap action buttons */
+  right: 0;
+  width: 45%;
   pointer-events: auto;
   touch-action: none;
 }
 
-/* action buttons */
 #actionButtons {
   position: absolute;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
@@ -395,6 +292,7 @@ canvas { display: block; touch-action: none; }
   gap: 14px;
   align-items: flex-end;
   pointer-events: auto;
+  z-index: 95;
 }
 .action-btn {
   width: 68px; height: 68px;
@@ -406,20 +304,13 @@ canvas { display: block; touch-action: none; }
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
   transition: transform 0.12s ease;
-  font-family: sans-serif;
 }
-.action-btn:active {
-  transform: scale(0.86);
-}
-.action-btn.secondary {
-  width: 52px; height: 52px;
-  font-size: 20px;
-  opacity: 0.85;
-}
+.action-btn:active { transform: scale(0.86); }
+.action-btn.secondary { width: 52px; height: 52px; font-size: 20px; opacity: 0.85; }
 
-/* mini menu buttons (top-right, only on touch) */
+/* Top buttons */
 #topButtons {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + 18px);
@@ -438,34 +329,37 @@ canvas { display: block; touch-action: none; }
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: all 0.15s;
   pointer-events: auto;
+  transition: all 0.15s;
 }
-.top-btn:active { transform: scale(0.9); background: rgba(140, 180, 130, 0.5); }
+.top-btn:active { transform: scale(0.9); }
 
-/* vignette — soft, for mood */
+/* ═══ VIGNETTE ═══ */
 #vignette {
   position: fixed; inset: 0; pointer-events: none; z-index: 55;
   background: radial-gradient(circle at 50% 50%, transparent 45%, rgba(10, 20, 14, 0.28) 100%);
   mix-blend-mode: multiply;
 }
 
-/* fade-flash on critical events */
-#flash {
-  position: fixed; inset: 0; pointer-events: none; z-index: 60;
-  background: radial-gradient(circle, transparent 40%, rgba(255, 200, 120, 0.25) 100%);
-  opacity: 0; transition: opacity 0.5s;
+/* ═══ ROTATE PROMPT ═══ */
+#rotate {
+  position: fixed; inset: 0; z-index: 4000;
+  background: rgba(10, 20, 10, 0.98);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 30px;
+  color: #ebe4d0;
 }
+#rotate.show { display: flex; }
+#rotate .ico { font-size: 78px; margin-bottom: 24px; }
+#rotate p { font-size: 15px; letter-spacing: 2px; opacity: 0.9; max-width: 320px; line-height: 1.7; }
+#rotate strong { color: #c8e0b0; letter-spacing: 3px; }
 
-/* ════════════════════════════════════════════════════════════
-   PAUSE
-   ════════════════════════════════════════════════════════════ */
+/* ═══ PAUSE ═══ */
 #pause {
   position: fixed; inset: 0; z-index: 2800;
   background: rgba(10, 20, 14, 0.85);
   backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   display: none; flex-direction: column;
   align-items: center; justify-content: center;
   padding: 30px;
@@ -477,7 +371,6 @@ canvas { display: block; touch-action: none; }
   letter-spacing: 12px; font-weight: 300;
   color: #c8e0b0;
   margin-bottom: 40px;
-  text-shadow: 0 0 40px rgba(180, 220, 140, 0.4);
 }
 #pause button {
   padding: 14px 48px;
@@ -488,13 +381,7 @@ canvas { display: block; touch-action: none; }
   color: #0a2410;
   border: none; border-radius: 44px;
   cursor: pointer;
-  box-shadow: 0 5px 0 #2a5a3a, 0 10px 28px rgba(0,0,0,0.5);
-  transition: transform 0.15s;
   min-width: 220px;
-}
-#pause button:active {
-  transform: translateY(4px);
-  box-shadow: 0 1px 0 #2a5a3a, 0 4px 12px rgba(0,0,0,0.4);
 }
 #pause .slider-row {
   display: flex; align-items: center; gap: 16px;
@@ -502,32 +389,7 @@ canvas { display: block; touch-action: none; }
   font-size: 12px; letter-spacing: 2px;
   opacity: 0.85;
 }
-#pause input[type=range] {
-  width: 180px;
-  accent-color: #88c078;
-}
-
-/* ════════════════════════════════════════════════════════════
-   MUSIC TOGGLE
-   ════════════════════════════════════════════════════════════ */
-#musicToggle {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 18px);
-  right: 70px;
-  width: 40px; height: 40px;
-  border-radius: 12px;
-  background: rgba(10, 20, 14, 0.72);
-  border: 1px solid rgba(200, 220, 180, 0.25);
-  color: #e8f0d8;
-  font-size: 18px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  pointer-events: auto;
-  transition: all 0.15s;
-}
-#musicToggle:active { transform: scale(0.9); }
+#pause input[type=range] { width: 180px; accent-color: #88c078; }
 
 @media (max-height: 500px) {
   #menu h1 { font-size: clamp(28px, 6vw, 48px); }
@@ -545,7 +407,7 @@ canvas { display: block; touch-action: none; }
 </head>
 <body>
 
-<!-- ═══════ LOADER ═══════ -->
+<!-- LOADER -->
 <div id="loader">
   <div class="leaf">🌿</div>
   <div class="title">VERDANT VALE</div>
@@ -554,13 +416,13 @@ canvas { display: block; touch-action: none; }
   <div class="status" id="loadStatus">planting the first seed…</div>
 </div>
 
-<!-- ═══════ ROTATE PROMPT ═══════ -->
+<!-- ROTATE PROMPT -->
 <div id="rotate">
   <div class="ico">📱</div>
   <p>Please rotate your device to <strong>LANDSCAPE</strong> for the best experience.</p>
 </div>
 
-<!-- ═══════ MAIN MENU ═══════ -->
+<!-- MENU -->
 <div id="menu">
   <div class="sun"></div>
   <h1>VERDANT VALE</h1>
@@ -572,7 +434,7 @@ canvas { display: block; touch-action: none; }
   </div>
 </div>
 
-<!-- ═══════ HUD ═══════ -->
+<!-- HUD -->
 <div id="hud">
   <div id="crosshair"></div>
 
@@ -606,24 +468,23 @@ canvas { display: block; touch-action: none; }
 
   <div id="prompt"></div>
   <div id="toast"></div>
+</div>
 
-  <div id="touchControls">
-    <div id="joystick">
-      <div class="stick"></div>
-      <div class="label">MOVE</div>
-    </div>
-    <div id="lookPad"></div>
-    <div id="actionButtons">
-      <div class="action-btn" id="btnPrimary">✋</div>
-      <div class="action-btn secondary" id="btnJump">⬆</div>
-    </div>
+<!-- TOUCH CONTROLS -->
+<div id="touchControls">
+  <div id="joystick">
+    <div class="stick"></div>
+  </div>
+  <div id="lookPad"></div>
+  <div id="actionButtons">
+    <div class="action-btn" id="btnPrimary">✋</div>
+    <div class="action-btn secondary" id="btnJump">⬆</div>
   </div>
 </div>
 
 <div id="vignette"></div>
-<div id="flash"></div>
 
-<!-- ═══════ PAUSE ═══════ -->
+<!-- PAUSE -->
 <div id="pause">
   <h2>PAUSED</h2>
   <button id="pauseResume">Resume</button>
@@ -639,10 +500,7 @@ canvas { display: block; touch-action: none; }
   </div>
 </div>
 
-<div class="top-btn" id="musicToggle" style="display:none;position:fixed;">🎵</div>
-
 <script>
-  // ── Orientation check + force-start fallback ──
   (function() {
     function checkOrientation() {
       const rotate = document.getElementById('rotate');
@@ -660,7 +518,7 @@ canvas { display: block; touch-action: none; }
       if (loader) loader.classList.add('hide');
       if (menu && menu.style.display !== 'flex') menu.style.display = 'flex';
     };
-    setTimeout(window.forceStart, 10000);
+    setTimeout(window.forceStart, 15000);
     window.addEventListener('error', () => {
       setTimeout(window.forceStart, 500);
     }, { once: true });
