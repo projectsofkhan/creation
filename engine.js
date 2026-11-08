@@ -317,7 +317,7 @@ function lerpAngle(a, b, t) {
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-// FIXED: Wrapped in an object to prevent circular initialization ReferenceError
+// Use an object wrapper to prevent circular initialization errors
 const terrainState = {
   fn: function(x, z) {
     return (
@@ -780,7 +780,8 @@ async function boot() {
   progress(30, 'building world');
   let world;
   try {
-    world = await createWorld(scene, sunLight, hemiLight);
+    // FIXED: Pass setTerrainHeightFn safely
+    world = await createWorld(scene, sunLight, hemiLight, setTerrainHeightFn);
   } catch (e) {
     console.error('[engine] World creation failed:', e);
     const fallbackGeo = new THREE.PlaneGeometry(200, 200, 40, 40);
