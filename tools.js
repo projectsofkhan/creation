@@ -1,14 +1,6 @@
 // ═══════════════════════════════════════════════════════════════
 //  tools.js — v2
-//  Replaces: tools.js (old)
-//
-//  Fixes vs old:
-//  • Forgiving raycast (4.0 range, invisible colliders)
-//  • Tool models attach to new player rig's toolAnchor
-//  • Water stream visual on watering
-//  • Tool swing triggers rig animation
-//  • Floating emoji icons above pickups
-//  • No more "two pairs of arms" — hands are part of rig
+//  Tool models attached to player rig, forgiving interactions.
 // ═══════════════════════════════════════════════════════════════
 
 import * as THREE from 'three';
@@ -17,9 +9,8 @@ import { CROPS } from './plants.js';
 import { terrainHeight } from './terrain.js';
 
 // ═══════════════════════════════════════════════════════════════
-//  TOOL MODELS (small, attached to right hand)
+//  TOOL MODELS
 // ═══════════════════════════════════════════════════════════════
-
 function buildHoe() {
   const g = new THREE.Group();
   const handle = new THREE.Mesh(
@@ -89,10 +80,7 @@ function buildTrowel() {
   handle.position.set(0, -0.02, 0.10);
   g.add(handle);
 
-  const scoop = new THREE.Mesh(
-    new THREE.BoxGeometry(0.05, 0.005, 0.10),
-    MATS.iron
-  );
+  const scoop = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.005, 0.10), MATS.iron);
   scoop.position.set(0, 0, 0.22);
   scoop.rotation.x = 0.2;
   scoop.castShadow = true;
@@ -193,9 +181,8 @@ export class HandManager {
       hay: buildHayHand(),
     };
 
-    // Attach all to the rig's tool anchor, hide all
     if (this.toolAnchor) {
-      for (const [id, model] of Object.entries(this.tools)) {
+      for (const model of Object.values(this.tools)) {
         model.visible = false;
         this.toolAnchor.add(model);
       }
@@ -213,7 +200,7 @@ export class HandManager {
   }
 
   update(_dt, _elapsed, _moving, _running) {
-    // Animation now lives in the rig (player.js) — nothing to do here
+    // Animation lives in the rig now
   }
 
   hide() { if (this.toolAnchor) this.toolAnchor.visible = false; }
@@ -221,7 +208,7 @@ export class HandManager {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  ACTION — E key / touch button
+//  ACTION
 // ═══════════════════════════════════════════════════════════════
 const raycaster = new THREE.Raycaster();
 raycaster.far = 4.0;
@@ -386,9 +373,11 @@ function handleWorldInteraction(target, handManager) {
       window.__HUD?.toast?.('You rest a moment…');
       break;
     case 'sleep':
-      window.__gameState.world.timeOfDay = 0.28;
-      window.__gameState.world.day++;
-      window.__HUD?.toast?.(`🌅 Day ${window.__gameState.world.day}`);
+      if (window.__gameState?.world) {
+        window.__gameState.world.timeOfDay = 0.28;
+        window.__gameState.world.day++;
+        window.__HUD?.toast?.(`🌅 Day ${window.__gameState.world.day}`);
+      }
       break;
     case 'open_seeds':
       window.__HUD?.toast?.('Seed selection — coming soon');
@@ -453,8 +442,6 @@ export function updateDirtParticles(dt) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  WATER STREAM (removed — handled by rig now; keeping stub)
-// ═══════════════════════════════════════════════════════════════
+// Stubs (engine.js imports these names but no longer needs them)
 export function initWaterStream(_scene) {}
 export function updateWaterStream(_dt, _camera, _active) {}
