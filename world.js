@@ -1,15 +1,11 @@
 // ═══════════════════════════════════════════════════════════════
-//  world.js — v2
-//  Replaces: world.js (old), others.js (dead — delete it)
+//  world.js — v2.1 (merge-safe)
+//  Replaces: world.js (all prior versions)
 //
-//  Fixes vs old:
-//  • Merged geometry per chunk (trees/flowers/bushes = 1 mesh each)
-//  • Async chunk queue (no multi-second freeze)
-//  • Real sky: horizon haze + Points starfield (no shimmer)
-//  • Water with normal map + shore foam
-//  • Terrain normals computed from height field (no seam cracks)
-//  • buildCollision() feeds engine's Collision list
-//  • ONE sun passed in (no duplicate light)
+//  Fixes in v2.1:
+//  • toNonIndexed() on all merged geometries (fixes crash)
+//  • Null guards after every mergeGeometries() call
+//  • Safe disposal even when merge fails
 // ═══════════════════════════════════════════════════════════════
 
 import * as THREE from 'three';
@@ -20,12 +16,11 @@ import { terrainHeight, terrainNormal, WATER_LEVEL, CHUNK_SIZE, CHUNK_SEGMENTS }
 //  POSITIONS
 // ═══════════════════════════════════════════════════════════════
 const HOUSE_POS = { x: 0, z: -18 };
-const STABLE_POS = { x: 6, z: -6 };   // moved near spawn so player sees it
-const SHED_POS = { x: -14, z: -8 };   // moved near spawn
-const HORSE_HOME = { x: 6, z: -6 };
+const STABLE_POS = { x: 6, z: -6 };
+const SHED_POS = { x: -14, z: -8 };
 
 // ═══════════════════════════════════════════════════════════════
-//  MATERIALS (shared, not per-chunk)
+//  MATERIALS (local — building-only)
 // ═══════════════════════════════════════════════════════════════
 const MAT = {
   grass: new THREE.MeshStandardMaterial({ color: 0x5a8a4a, roughness: 0.94 }),
@@ -60,7 +55,7 @@ const MAT = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  WATER NORMAL MAP (procedural canvas — no external asset)
+//  WATER NORMAL MAP
 // ═══════════════════════════════════════════════════════════════
 function makeWaterNormalMap() {
   const size = 256;
@@ -87,14 +82,14 @@ function makeWaterNormalMap() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  CHUNK MANAGER — async queue
+//  CHUNK MANAGER — async queue, merge-safe
 // ═══════════════════════════════════════════════════════════════
 class ChunkManager {
   constructor(scene, viewRadius) {
     this.scene = scene;
     this.viewRadius = viewRadius;
-    this.chunks = new Map();   // key -> { terrain, trees, flowers, bushes }
-    this.queue = [];           // pending chunk keys to build
+    this.chunks = new Map();
+    this.queue = [];
     this.center = { x: 999, z: 999 };
     this.maxPerFrame = 2;
     this.waterNormal = makeWaterNormalMap();
@@ -115,7 +110,6 @@ class ChunkManager {
     }
     this.center = { x: cx, z: cz };
 
-    // Unload far chunks
     const keep = new Set();
     for (let dx = -this.viewRadius; dx <= this.viewRadius; dx++) {
       for (let dz = -this.viewRadius; dz <= this.viewRadius; dz++) {
@@ -126,7 +120,6 @@ class ChunkManager {
       if (!keep.has(k)) this.unloadChunk(k);
     }
 
-    // Queue new chunks (nearest first)
     const toBuild = [];
     for (let dx = -this.viewRadius; dx <= this.viewRadius; dx++) {
       for (let dz = -this.viewRadius; dz <= this.viewRadius; dz++) {
@@ -156,7 +149,7 @@ class ChunkManager {
   unloadChunk(k) {
     const c = this.chunks.get(k);
     if (!c) return;
-    for (const [name, mesh] of Object.entries(c)) {
+    for (const mesh of Object.values(c)) {
       if (mesh) {
         this.scene.remove(mesh);
         mesh.geometry?.dispose();
@@ -195,7 +188,6 @@ class ChunkManager {
       const h = terrainHeight(wx, wz);
       pos.setY(i, h);
 
-      // Color by height
       const n = Math.sin(wx * 0.06) * Math.cos(wz * 0.06) * 0.5 + 0.5;
       let r, g, b;
       if (h < WATER_LEVEL) { r = 0.32 + n * 0.1; g = 0.40 + n * 0.1; b = 0.28 + n * 0.08; }
@@ -204,7 +196,6 @@ class ChunkManager {
       else                 { r = 0.52 + n * 0.18; g = 0.54 + n * 0.14; b = 0.50 + n * 0.12; }
       colors[i * 3] = r; colors[i * 3 + 1] = g; colors[i * 3 + 2] = b;
 
-      // Normal from height field — SAME across chunk seams (no cracks)
       const nrm = terrainNormal(wx, wz);
       normals[i * 3] = nrm.x;
       normals[i * 3 + 1] = nrm.y;
@@ -223,7 +214,7 @@ class ChunkManager {
     return mesh;
   }
 
-  // ── Merged trees: one mesh per chunk ────────────────────────
+  // ── Merged trees ────────────────────────────────────────────
   buildTrees(cx, cz) {
     let r = Math.abs((cx * 73856093) ^ (cz * 19349663)) % 100000;
     const nextRand = () => { r = (r * 16807) % 2147483647; return (r - 1) / 2147483646; };
@@ -239,7 +230,6 @@ class ChunkManager {
       const wx = cx * CHUNK_SIZE + lx;
       const wz = cz * CHUNK_SIZE + lz;
 
-      // Keep away from buildings
       if (Math.hypot(wx - HOUSE_POS.x, wz - HOUSE_POS.z) < 14) continue;
       if (Math.hypot(wx - STABLE_POS.x, wz - STABLE_POS.z) < 8) continue;
       if (Math.hypot(wx - SHED_POS.x, wz - SHED_POS.z) < 8) continue;
@@ -250,20 +240,19 @@ class ChunkManager {
       const scale = 0.8 + nextRand() * 0.9;
       const trunkH = 3.5 * scale;
 
-      // Trunk
+      // Trunk — non-indexed for safe merging
       dummy.position.set(wx, h + trunkH / 2, wz);
       dummy.rotation.set(0, nextRand() * Math.PI * 2, 0);
       dummy.scale.set(scale, 1, scale);
       dummy.updateMatrix();
-      const trunkGeo = new THREE.CylinderGeometry(0.22 * scale, 0.36 * scale, trunkH, 7);
+      const trunkGeo = new THREE.CylinderGeometry(0.22 * scale, 0.36 * scale, trunkH, 7).toNonIndexed();
       trunkGeo.applyMatrix4(dummy.matrix);
       trunkGeos.push(trunkGeo);
 
-      // Foliage (3 layers of cones, merged)
-      const layers = 3;
-      for (let j = 0; j < layers; j++) {
+      // Foliage — non-indexed cones
+      for (let j = 0; j < 3; j++) {
         const rad = (1.5 - j * 0.3) * scale;
-        const coneGeo = new THREE.ConeGeometry(rad, rad * 1.4, 7);
+        const coneGeo = new THREE.ConeGeometry(rad, rad * 1.4, 7).toNonIndexed();
         dummy.position.set(wx, h + trunkH * 0.7 + j * 0.85 * scale, wz);
         dummy.rotation.set(0, nextRand() * Math.PI * 2, 0);
         dummy.scale.set(1, 1, 1);
@@ -273,22 +262,27 @@ class ChunkManager {
       }
     }
 
-    if (!trunkGeos.length) return null;
+    if (!trunkGeos.length) {
+      leafGeos.forEach(g => g.dispose());
+      return null;
+    }
 
-    // Merge trunks + leaves into ONE mesh with vertex colors
     const trunkMerged = mergeGeometries(trunkGeos, false);
     const leafMerged = mergeGeometries(leafGeos, false);
     trunkGeos.forEach(g => g.dispose());
     leafGeos.forEach(g => g.dispose());
+    if (!trunkMerged || !leafMerged) {
+      trunkMerged?.dispose();
+      leafMerged?.dispose();
+      return null;
+    }
 
-    // Combine into single buffer with two material groups
-    const trunkMat = MAT.bark;
-    const leafMat = MAT.leaf;
     const combined = mergeGeometries([trunkMerged, leafMerged], true);
     trunkMerged.dispose();
     leafMerged.dispose();
+    if (!combined) return null;
 
-    const mesh = new THREE.Mesh(combined, [trunkMat, leafMat]);
+    const mesh = new THREE.Mesh(combined, [MAT.bark, MAT.leaf]);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     return mesh;
@@ -311,7 +305,7 @@ class ChunkManager {
       if (h < WATER_LEVEL + 0.2 || h > 6) continue;
 
       const scale = 0.6 + nextRand() * 0.4;
-      const geo = new THREE.IcosahedronGeometry(scale, 1);
+      const geo = new THREE.IcosahedronGeometry(scale, 1).toNonIndexed();
       dummy.position.set(wx, h + scale * 0.6, wz);
       dummy.rotation.set(nextRand() * 0.3, nextRand() * Math.PI * 2, nextRand() * 0.3);
       dummy.scale.set(1, 0.8, 1);
@@ -323,12 +317,13 @@ class ChunkManager {
     if (!geos.length) return null;
     const merged = mergeGeometries(geos, false);
     geos.forEach(g => g.dispose());
+    if (!merged) return null;
     const mesh = new THREE.Mesh(merged, MAT.bush);
     mesh.castShadow = true;
     return mesh;
   }
 
-  // ── Merged flowers (flower head + stem in one geometry) ────
+  // ── Merged flowers — FIXED ──────────────────────────────────
   buildFlowers(cx, cz) {
     let r = Math.abs((cx * 49287673) ^ (cz * 83492791)) % 100000;
     const nextRand = () => { r = (r * 16807) % 2147483647; return (r - 1) / 2147483646; };
@@ -348,42 +343,51 @@ class ChunkManager {
       const scale = 0.12 + nextRand() * 0.06;
       const stemH = 0.3;
 
+      // Stem — force non-indexed
       dummy.position.set(wx, h + stemH / 2, wz);
       dummy.rotation.set(0, nextRand() * Math.PI * 2, 0);
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
-      const stemGeo = new THREE.CylinderGeometry(0.015, 0.02, stemH, 4);
+      const stemGeo = new THREE.CylinderGeometry(0.015, 0.02, stemH, 4).toNonIndexed();
       stemGeo.applyMatrix4(dummy.matrix);
       stemGeos.push(stemGeo);
 
+      // Head — non-indexed
       dummy.position.set(wx, h + stemH + scale * 0.5, wz);
       dummy.rotation.set(nextRand() * 0.4, nextRand() * Math.PI * 2, nextRand() * 0.4);
       dummy.updateMatrix();
-      const headGeo = new THREE.IcosahedronGeometry(scale, 0);
+      const headGeo = new THREE.IcosahedronGeometry(scale, 0).toNonIndexed();
       headGeo.applyMatrix4(dummy.matrix);
       headGeos.push(headGeo);
     }
 
-    if (!headGeos.length) return null;
+    if (!headGeos.length) {
+      stemGeos.forEach(g => g.dispose());
+      return null;
+    }
 
     const headMerged = mergeGeometries(headGeos, false);
     const stemMerged = mergeGeometries(stemGeos, false);
     headGeos.forEach(g => g.dispose());
     stemGeos.forEach(g => g.dispose());
+    if (!headMerged || !stemMerged) {
+      headMerged?.dispose();
+      stemMerged?.dispose();
+      return null;
+    }
 
     const combined = mergeGeometries([headMerged, stemMerged], true);
     headMerged.dispose();
     stemMerged.dispose();
+    if (!combined) return null;
 
-    // Two material groups: flower head color (random-ish via vertex colors would be better,
-    // but for simplicity we tint the head material pink)
     const mesh = new THREE.Mesh(combined, [MAT.flowerPink, MAT.leaf]);
     return mesh;
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  HOUSE / STABLE / SHED (same as before but return collision)
+//  BUILDINGS
 // ═══════════════════════════════════════════════════════════════
 function buildHouse() {
   const group = new THREE.Group();
@@ -413,7 +417,6 @@ function buildHouse() {
   rightWall.castShadow = true; rightWall.receiveShadow = true;
   group.add(rightWall);
 
-  // Front wall with door gap
   const doorW = 1.6, doorH = 2.4;
   const flW = (W - doorW) / 2;
   for (const side of [-1, 1]) {
@@ -524,37 +527,26 @@ function buildShed() {
   light.position.set(0, 1.8, 0);
   group.add(light);
 
-  // Seed jars (static, interactable)
+  // Seed jars — non-indexed merge
   const jarGeos = [];
   const dummy = new THREE.Object3D();
-  const seeds = ['tomato', 'carrot', 'potato', 'corn', 'lettuce', 'strawberry'];
-  const seedColors = { tomato: 0xe83a2a, carrot: 0xe87820, potato: 0xa87850, corn: 0xf0c040, lettuce: 0x7aba4a, strawberry: 0xe83a4a };
-
   for (let i = 0; i < 6; i++) {
     const col = i % 3, row = Math.floor(i / 3);
     const x = -1.2 + col * 1.2, y = 0.7 + row * 0.55, z = -D / 2 + 0.4;
-
-    const bodyGeo = new THREE.CylinderGeometry(0.18, 0.16, 0.32, 10);
+    const bodyGeo = new THREE.CylinderGeometry(0.18, 0.16, 0.32, 10).toNonIndexed();
     dummy.position.set(x, y + 0.16, z);
     dummy.rotation.set(0, 0, 0);
     dummy.updateMatrix();
     bodyGeo.applyMatrix4(dummy.matrix);
     jarGeos.push(bodyGeo);
-
-    const seedCol = seedColors[seeds[i]];
-    const seedGeo = new THREE.SphereGeometry(0.035, 5, 4);
-    dummy.position.set(x, y + 0.1, z + 0.05);
-    dummy.updateMatrix();
-    seedGeo.applyMatrix4(dummy.matrix);
-    // (color via material group not needed; keep simple)
   }
-
   const jarMerged = mergeGeometries(jarGeos, false);
   jarGeos.forEach(g => g.dispose());
-  const jarMesh = new THREE.Mesh(jarMerged, MAT.glass);
-  group.add(jarMesh);
+  if (jarMerged) {
+    const jarMesh = new THREE.Mesh(jarMerged, MAT.glass);
+    group.add(jarMesh);
+  }
 
-  // Interactable jar group (single target per jar is overkill — one shed target)
   const jarTarget = new THREE.Mesh(
     new THREE.BoxGeometry(W * 0.8, 0.6, 0.4),
     new THREE.MeshBasicMaterial({ visible: false })
@@ -570,7 +562,7 @@ function buildShed() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  SKY — horizon haze + Points starfield (no shimmer)
+//  SKY
 // ═══════════════════════════════════════════════════════════════
 function buildSky(scene) {
   const skyGeo = new THREE.SphereGeometry(300, 32, 16);
@@ -597,12 +589,9 @@ function buildSky(scene) {
       void main() {
         vec3 dir = normalize(vWorld);
         float h = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
-        // Gradient: horizon band → top
         vec3 col = mix(bottomColor, topColor, pow(max(0.0, h - 0.3) / 0.7, 0.85));
-        // Horizon haze band (bright at horizon, fades up)
         float horizon = smoothstep(0.15, 0.0, abs(dir.y));
         col = mix(col, horizonColor, horizon * 0.5);
-        // Sun glow
         float sd = distance(dir, normalize(sunPos));
         col += sunColor * smoothstep(0.35, 0.0, sd) * 0.8;
         gl_FragColor = vec4(col, 1.0);
@@ -612,13 +601,12 @@ function buildSky(scene) {
   const skyMesh = new THREE.Mesh(skyGeo, skyMat);
   scene.add(skyMesh);
 
-  // Starfield — Points, not shader (no shimmer)
   const starCount = 800;
   const starGeo = new THREE.BufferGeometry();
   const starPos = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount; i++) {
     const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(Math.random() * 0.9); // upper hemisphere bias
+    const phi = Math.acos(Math.random() * 0.9);
     const r = 280;
     starPos[i * 3] = Math.sin(phi) * Math.cos(theta) * r;
     starPos[i * 3 + 1] = Math.cos(phi) * r;
@@ -648,7 +636,7 @@ function buildSky(scene) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  CLOUDS (a few big soft billboards, not sphere puffs)
+//  CLOUDS
 // ═══════════════════════════════════════════════════════════════
 function buildClouds(scene) {
   const group = new THREE.Group();
@@ -661,7 +649,6 @@ function buildClouds(scene) {
 
   const clouds = [];
   for (let i = 0; i < 10; i++) {
-    // Each cloud is a cluster of billboard planes
     const cloud = new THREE.Group();
     const puffs = 3 + Math.floor(Math.random() * 3);
     for (let j = 0; j < puffs; j++) {
@@ -689,7 +676,7 @@ function buildClouds(scene) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  POND with shore foam
+//  POND
 // ═══════════════════════════════════════════════════════════════
 function buildPond(scene, x, z) {
   const group = new THREE.Group();
@@ -703,7 +690,6 @@ function buildPond(scene, x, z) {
   water.position.set(x, y, z);
   group.add(water);
 
-  // Shore foam ring
   const foamGeo = new THREE.RingGeometry(5.3, 5.9, 40);
   foamGeo.rotateX(-Math.PI / 2);
   const foamMat = new THREE.MeshBasicMaterial({
@@ -713,7 +699,6 @@ function buildPond(scene, x, z) {
   foam.position.set(x, y + 0.02, z);
   group.add(foam);
 
-  // Bank
   const bankGeo = new THREE.RingGeometry(5.8, 6.8, 40);
   bankGeo.rotateX(-Math.PI / 2);
   const bank = new THREE.Mesh(bankGeo, MAT.dirt);
@@ -724,7 +709,7 @@ function buildPond(scene, x, z) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  PATHS (flat quads following terrain)
+//  PATHS
 // ═══════════════════════════════════════════════════════════════
 function buildPaths(scene) {
   const group = new THREE.Group();
@@ -777,10 +762,8 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
   const { Q, prog = () => {} } = opts;
   const viewRadius = Q?.view ?? 3;
 
-  // Chunks
   const chunks = new ChunkManager(scene, viewRadius);
 
-  // Buildings (positioned at terrain height)
   prog(38, 'building house');
   const house = buildHouse();
   house.group.position.set(
@@ -802,28 +785,22 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
   );
   scene.add(shed.group);
 
-  // Paths
   prog(54, 'laying paths');
   buildPaths(scene);
 
-  // Sky + clouds
   prog(58, 'painting sky');
   const sky = buildSky(scene);
   const clouds = buildClouds(scene);
 
-  // Pond
   prog(62, 'filling pond');
   const pond = buildPond(scene, -10, 6);
 
-  // Interactables
   const interactables = [];
   stable.group.traverse(o => { if (o.userData.interact) interactables.push(o); });
   shed.group.traverse(o => { if (o.userData.interact) interactables.push(o); });
 
-  // Initial chunk build (only center ring; rest streams)
   prog(66, 'growing world');
   chunks.update(0, 0);
-  // Force-build the 3x3 around spawn synchronously so player doesn't see void
   for (let dx = -1; dx <= 1; dx++) {
     for (let dz = -1; dz <= 1; dz++) {
       const k = chunks.key(dx, dz);
@@ -832,7 +809,6 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
   }
   chunks.center = { x: 0, z: 0 };
 
-  // Collision boxes
   function buildCollision(Collision) {
     Collision.clear();
 
@@ -854,19 +830,14 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
       });
     }
 
-    // Tree colliders — sample a grid around spawn for trees
-    // (cheap: just check a radius; chunks already built)
     for (let x = -40; x <= 40; x += 4) {
       for (let z = -40; z <= 40; z += 4) {
         const h = terrainHeight(x, z);
         if (h < WATER_LEVEL + 0.3 || h > 8) continue;
-        // Simple: treat every 4x4 cell that's likely a tree as a small collider
-        // (real tree positions vary by chunk seed, but this gives solid feel)
         if (Math.hypot(x - HOUSE_POS.x, z - HOUSE_POS.z) < 14) continue;
         if (Math.hypot(x - STABLE_POS.x, z - STABLE_POS.z) < 8) continue;
         if (Math.hypot(x - SHED_POS.x, z - SHED_POS.z) < 8) continue;
-        if (Math.abs(x) < 6 && Math.abs(z) < 10) continue; // spawn area clear
-        // Add sparse tree colliders
+        if (Math.abs(x) < 6 && Math.abs(z) < 10) continue;
         if (Math.random() < 0.15) {
           Collision.add({
             minX: x - 0.4, maxX: x + 0.4,
@@ -877,7 +848,6 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
       }
     }
 
-    // Pond collider (can't walk into water)
     Collision.add({
       minX: pond.x - 5.5, maxX: pond.x + 5.5,
       minZ: pond.z - 5.5, maxZ: pond.z + 5.5,
@@ -885,7 +855,6 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
     });
   }
 
-  // ── Time of day update ─────────────────────────────────────
   let lastSunAngle = 0;
 
   function updateTimeOfDay(tod, sunLightRef, hemiLightRef, camera, sceneRef) {
@@ -940,7 +909,6 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
     sky.skyMat.uniforms.sunColor.value.copy(sunCol);
     sky.skyMat.uniforms.sunPos.value.copy(sky.sun.position).normalize();
 
-    // Fog matches horizon — fixes the seam
     if (sceneRef?.fog) sceneRef.fog.color.copy(horCol);
 
     const dayness = Math.max(0, Math.min(1, 1 - Math.abs(tod - 0.5) * 3));
@@ -961,7 +929,6 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
     }
   }
 
-  // ── Main update ────────────────────────────────────────────
   function update(dt, elapsed, camera) {
     const px = camera.position.x, pz = camera.position.z;
     chunks.update(px, pz);
@@ -971,7 +938,6 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
       if (c.position.x > 150) c.position.x = -150;
     }
 
-    // Pond foam pulse
     pond.foamMat.opacity = 0.25 + Math.sin(elapsed * 1.2) * 0.08;
   }
 
@@ -980,7 +946,6 @@ export async function createWorld(scene, sunLight, hemiLight, opts = {}) {
     updateTimeOfDay,
     getInteractables: () => interactables,
     buildCollision,
-    // Expose for debug
     chunks, house, stable, shed, sky, clouds, pond,
   };
 }
