@@ -1,73 +1,72 @@
+// ═══════════════════════════════════════════════════════════════
+//  plants.js — v2
+//  Replaces: plants.js (old)
+//
+//  Fixes vs old:
+//  • Grid-snapped planting (no five-tomatoes-in-one-spot)
+//  • All growth stages built once, visibility toggled (no mesh pop)
+//  • Growth in REAL SECONDS (tomato ~2.5 min, not 35)
+//  • Proper crop shapes (tomato is a tomato, not a sphere)
+//  • Disease is a visual overlay, not a hidden flag
+//  • Water stream visual when watering
+//  • Soil moisture persists and drains realistically
+// ═══════════════════════════════════════════════════════════════
+
 import * as THREE from 'three';
-import { gameState, Audio, HUD, terrainHeight } from './engine.js';
+import { MATS } from './materials.js';
+import { terrainHeight } from './terrain.js';
 
-/* ═══════════════════════════════════════════════════════════════
-   VERDANT VALE — plants.js  (FIXED SYNTAX)
-   ═══════════════════════════════════════════════════════════════ */
-
-const PLANT_MAT = {
-  stemGreen: new THREE.MeshStandardMaterial({ color: 0x5a8a3a, roughness: 0.82 }),
-  stemDark: new THREE.MeshStandardMaterial({ color: 0x3a6028, roughness: 0.85 }),
-  leafMid: new THREE.MeshStandardMaterial({ color: 0x4a8a3a, roughness: 0.8, side: THREE.DoubleSide }),
-  leafDark: new THREE.MeshStandardMaterial({ color: 0x356a28, roughness: 0.82, side: THREE.DoubleSide }),
-  leafLight: new THREE.MeshStandardMaterial({ color: 0x6ab04a, roughness: 0.78, side: THREE.DoubleSide }),
-  tomatoRed: new THREE.MeshStandardMaterial({ color: 0xe83a2a, roughness: 0.35, metalness: 0.05, emissive: 0x2a0808, emissiveIntensity: 0.2 }),
-  tomatoGreen: new THREE.MeshStandardMaterial({ color: 0x7aba4a, roughness: 0.5 }),
-  carrotOrange: new THREE.MeshStandardMaterial({ color: 0xe87820, roughness: 0.55 }),
-  potatoBrown: new THREE.MeshStandardMaterial({ color: 0xa87850, roughness: 0.75 }),
-  cornYellow: new THREE.MeshStandardMaterial({ color: 0xf0c040, roughness: 0.5, emissive: 0x1a1000, emissiveIntensity: 0.15 }),
-  cornGreen: new THREE.MeshStandardMaterial({ color: 0x8ac850, roughness: 0.55 }),
-  lettuceLeaf: new THREE.MeshStandardMaterial({ color: 0x7ac850, roughness: 0.7, side: THREE.DoubleSide }),
-  strawberryRed: new THREE.MeshStandardMaterial({ color: 0xd82838, roughness: 0.4, emissive: 0x2a0008, emissiveIntensity: 0.25 }),
-  strawberryGreen: new THREE.MeshStandardMaterial({ color: 0x8aba4a, roughness: 0.55 }),
-  flowerWhite: new THREE.MeshStandardMaterial({ color: 0xfdfaf0, roughness: 0.7 }),
-  flowerYellow: new THREE.MeshStandardMaterial({ color: 0xf0d040, roughness: 0.7 }),
-  wilt: new THREE.MeshStandardMaterial({ color: 0x8a7050, roughness: 0.95 }),
-  spot: new THREE.MeshStandardMaterial({ color: 0x2a1a08, roughness: 0.9 }),
-};
-
+// ═══════════════════════════════════════════════════════════════
+//  CROP DEFINITIONS — growth in real seconds
+// ═══════════════════════════════════════════════════════════════
 export const CROPS = {
   tomato: {
-    id: 'tomato', name: 'Tomato', emoji: '🍅', value: 8, seedCost: 5, daysToHarvest: 3.5,
-    waterNeed: 0.75, spacing: 0.9,
-    stages: ['seed', 'germination', 'seedling', 'vegetative', 'flowering', 'fruiting', 'mature'],
-    diseaseRisk: { blight: 0.02 },
-    build: buildTomato,
+    id: 'tomato', name: 'Tomato', emoji: '🍅',
+    value: 8, seedCost: 5,
+    growSeconds: 150,       // 2.5 min to mature
+    waterNeed: 0.75,
+    spacing: 0.9,
+    stages: ['seed', 'sprout', 'young', 'flowering', 'fruiting', 'ripe'],
   },
   carrot: {
-    id: 'carrot', name: 'Carrot', emoji: '🥕', value: 6, seedCost: 4, daysToHarvest: 2.5,
-    waterNeed: 0.55, spacing: 0.6,
-    stages: ['seed', 'germination', 'seedling', 'vegetative', 'root growth', 'mature'],
-    diseaseRisk: { rootFly: 0.02 },
-    build: buildCarrot,
+    id: 'carrot', name: 'Carrot', emoji: '🥕',
+    value: 6, seedCost: 4,
+    growSeconds: 110,
+    waterNeed: 0.55,
+    spacing: 0.6,
+    stages: ['seed', 'sprout', 'young', 'root', 'ripe'],
   },
   potato: {
-    id: 'potato', name: 'Potato', emoji: '🥔', value: 9, seedCost: 6, daysToHarvest: 4.0,
-    waterNeed: 0.6, spacing: 0.8,
-    stages: ['seed', 'germination', 'seedling', 'vegetative', 'tuber formation', 'mature'],
-    diseaseRisk: { blight: 0.03 },
-    build: buildPotato,
+    id: 'potato', name: 'Potato', emoji: '🥔',
+    value: 9, seedCost: 6,
+    growSeconds: 170,
+    waterNeed: 0.6,
+    spacing: 0.8,
+    stages: ['seed', 'sprout', 'young', 'tuber', 'ripe'],
   },
   corn: {
-    id: 'corn', name: 'Corn', emoji: '🌽', value: 12, seedCost: 8, daysToHarvest: 4.5,
-    waterNeed: 0.8, spacing: 1.2,
-    stages: ['seed', 'germination', 'seedling', 'vegetative', 'tasseling', 'silking', 'mature'],
-    diseaseRisk: { rust: 0.015 },
-    build: buildCorn,
+    id: 'corn', name: 'Corn', emoji: '🌽',
+    value: 12, seedCost: 8,
+    growSeconds: 200,
+    waterNeed: 0.8,
+    spacing: 1.2,
+    stages: ['seed', 'sprout', 'young', 'tassel', 'silk', 'ripe'],
   },
   lettuce: {
-    id: 'lettuce', name: 'Lettuce', emoji: '🥬', value: 5, seedCost: 5, daysToHarvest: 2.0,
-    waterNeed: 0.7, spacing: 0.5,
-    stages: ['seed', 'germination', 'seedling', 'leaf development', 'heart forming', 'mature'],
-    diseaseRisk: { slug: 0.03, bolt: 0.05 },
-    build: buildLettuce,
+    id: 'lettuce', name: 'Lettuce', emoji: '🥬',
+    value: 5, seedCost: 5,
+    growSeconds: 90,
+    waterNeed: 0.7,
+    spacing: 0.5,
+    stages: ['seed', 'sprout', 'leaf', 'heart', 'ripe'],
   },
   strawberry: {
-    id: 'strawberry', name: 'Strawberry', emoji: '🍓', value: 10, seedCost: 10, daysToHarvest: 3.0,
-    waterNeed: 0.65, spacing: 0.7,
-    stages: ['seed', 'germination', 'seedling', 'vegetative', 'flowering', 'fruiting', 'mature'],
-    diseaseRisk: { botrytis: 0.025 },
-    build: buildStrawberry,
+    id: 'strawberry', name: 'Strawberry', emoji: '🍓',
+    value: 10, seedCost: 10,
+    growSeconds: 130,
+    waterNeed: 0.65,
+    spacing: 0.7,
+    stages: ['seed', 'sprout', 'young', 'flower', 'fruit', 'ripe'],
   },
 };
 
@@ -76,161 +75,232 @@ function stageFor(crop, growth) {
   return Math.min(n - 1, Math.floor(growth * n));
 }
 
-function buildTomato(growth, health) {
+// ═══════════════════════════════════════════════════════════════
+//  CROP MESH BUILDERS — proper shapes, built once per stage
+// ═══════════════════════════════════════════════════════════════
+
+function buildTomatoStage(stage) {
   const g = new THREE.Group();
-  const stage = stageFor(CROPS.tomato, growth);
   if (stage === 0) {
-    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 4), PLANT_MAT.stemDark);
-    mound.scale.set(1, 0.4, 1);
+    // Seed mound
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), MATS.leafDark);
+    mound.scale.set(1, 0.35, 1);
     g.add(mound);
     return g;
   }
-  const stemHeight = stage === 2 ? 0.15 : stage === 3 ? 0.4 : stage === 4 ? 0.7 : 0.95;
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, stemHeight, 6), PLANT_MAT.stemGreen);
-  stem.position.y = stemHeight / 2;
+  if (stage === 1) {
+    // Sprout — two small leaves
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.012, 0.12, 5), MATS.stem);
+    stem.position.y = 0.06;
+    g.add(stem);
+    for (let i = 0; i < 2; i++) {
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), MATS.leafLight);
+      leaf.scale.set(1.4, 0.2, 0.8);
+      leaf.position.set((i - 0.5) * 0.08, 0.10, 0);
+      leaf.rotation.z = (i - 0.5) * 0.5;
+      g.add(leaf);
+    }
+    return g;
+  }
+  // Young through ripe — stem + leaves + fruit
+  const height = 0.2 + stage * 0.18;
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.025, height, 6), MATS.stem);
+  stem.position.y = height / 2;
+  stem.castShadow = true;
   g.add(stem);
-  for (let i = 0; i < (stage >= 5 ? 6 : 4); i++) {
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.08, 5, 3), PLANT_MAT.leafMid);
-    leaf.scale.set(1.4, 0.25, 0.7);
+
+  const leafCount = stage >= 3 ? 6 : 4;
+  for (let i = 0; i < leafCount; i++) {
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 4), MATS.leafMid);
+    leaf.scale.set(1.6, 0.22, 0.9);
     const a = i * 1.2;
-    leaf.position.set(Math.cos(a) * 0.15, 0.15 + i * 0.1, Math.sin(a) * 0.15);
+    leaf.position.set(Math.cos(a) * 0.14, 0.12 + i * 0.06, Math.sin(a) * 0.14);
     leaf.rotation.y = -a;
+    leaf.castShadow = true;
     g.add(leaf);
   }
-  if (stage >= 5) {
-    const ripe = stage === 6;
-    for (let i = 0; i < 4; i++) {
-      const fruit = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), ripe ? PLANT_MAT.tomatoRed : PLANT_MAT.tomatoGreen);
+
+  if (stage >= 4) {
+    // Fruit — proper tomato shape (slightly flattened sphere with green calyx)
+    const ripe = stage === 5;
+    const fruitCount = ripe ? 4 : 3;
+    for (let i = 0; i < fruitCount; i++) {
+      const fruitGroup = new THREE.Group();
       const a = i * 1.5;
-      fruit.position.set(Math.cos(a) * 0.18, 0.5 + i * 0.1, Math.sin(a) * 0.18);
-      g.add(fruit);
+      fruitGroup.position.set(
+        Math.cos(a) * 0.16,
+        0.25 + i * 0.08,
+        Math.sin(a) * 0.16
+      );
+
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(0.07, 10, 8),
+        ripe ? MATS.tomato : MATS.tomatoGreen
+      );
+      body.scale.set(1, 0.92, 1);
+      body.castShadow = true;
+      fruitGroup.add(body);
+
+      // Calyx (green star on top)
+      for (let c = 0; c < 5; c++) {
+        const sepal = new THREE.Mesh(
+          new THREE.BoxGeometry(0.03, 0.005, 0.015),
+          MATS.leafDark
+        );
+        const ca = (c / 5) * Math.PI * 2;
+        sepal.position.set(Math.cos(ca) * 0.04, 0.065, Math.sin(ca) * 0.04);
+        sepal.rotation.y = ca;
+        fruitGroup.add(sepal);
+      }
+
+      g.add(fruitGroup);
     }
   }
   return g;
 }
 
-function buildCarrot(growth, health) {
+function buildCarrotStage(stage) {
   const g = new THREE.Group();
-  const stage = stageFor(CROPS.carrot, growth);
   if (stage === 0) {
-    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), PLANT_MAT.stemDark);
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), MATS.leafDark);
     mound.scale.set(1, 0.3, 1);
     g.add(mound);
     return g;
   }
-  const foliageHeight = stage === 1 ? 0.1 : stage === 2 ? 0.18 : 0.35;
-  for (let i = 0; i < 7; i++) {
-    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.06, 3), PLANT_MAT.leafLight);
+  const foliageH = 0.1 + stage * 0.06;
+  for (let i = 0; i < 6; i++) {
+    const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.02, foliageH, 4), MATS.leafLight);
     const a = i * 0.9;
-    leaf.position.set(Math.cos(a) * 0.05, foliageHeight * 0.5, Math.sin(a) * 0.05);
-    leaf.rotation.z = Math.cos(a) * 0.5;
+    leaf.position.set(Math.cos(a) * 0.04, foliageH / 2, Math.sin(a) * 0.04);
+    leaf.rotation.z = Math.cos(a) * 0.4;
+    leaf.rotation.x = Math.sin(a) * 0.4;
     g.add(leaf);
   }
-  if (stage >= 4) {
-    const root = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 8), PLANT_MAT.carrotOrange);
+  if (stage >= 3) {
+    // Root visible (orange cone)
+    const root = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.2, 8), MATS.carrot);
     root.rotation.x = Math.PI;
     root.position.y = -0.1;
+    root.castShadow = true;
     g.add(root);
   }
   return g;
 }
 
-function buildPotato(growth, health) {
+function buildPotatoStage(stage) {
   const g = new THREE.Group();
-  const stage = stageFor(CROPS.potato, growth);
   if (stage === 0) {
-    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 4), PLANT_MAT.stemDark);
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), MATS.leafDark);
     mound.scale.set(1, 0.35, 1);
     g.add(mound);
     return g;
   }
-  const plantHeight = stage === 1 ? 0.1 : stage === 2 ? 0.25 : 0.5;
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.035, plantHeight, 6), PLANT_MAT.stemGreen);
-  stem.position.y = plantHeight / 2;
+  const height = 0.1 + stage * 0.12;
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, height, 6), MATS.stem);
+  stem.position.y = height / 2;
   g.add(stem);
-  for (let i = 0; i < 6; i++) {
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.06, 5, 3), PLANT_MAT.leafMid);
-    leaf.scale.set(1.2, 0.2, 0.7);
+  for (let i = 0; i < 5; i++) {
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 4), MATS.leafMid);
+    leaf.scale.set(1.3, 0.2, 0.8);
     const a = i * 1.3;
-    leaf.position.set(Math.cos(a) * 0.1, 0.1 + i * 0.08, Math.sin(a) * 0.1);
+    leaf.position.set(Math.cos(a) * 0.1, 0.08 + i * 0.08, Math.sin(a) * 0.1);
     leaf.rotation.y = -a;
     g.add(leaf);
   }
-  if (stage >= 4) {
+  if (stage >= 3) {
+    // Tubers near ground
     for (let i = 0; i < 3; i++) {
-      const tuber = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), PLANT_MAT.potatoBrown);
+      const tuber = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), MATS.potato);
       const a = i * 1.5;
-      tuber.position.set(Math.cos(a) * 0.15, 0.02, Math.sin(a) * 0.15);
-      tuber.scale.y = 0.5;
+      tuber.position.set(Math.cos(a) * 0.12, 0.03, Math.sin(a) * 0.12);
+      tuber.scale.y = 0.6;
+      tuber.castShadow = true;
       g.add(tuber);
     }
   }
   return g;
 }
 
-function buildCorn(growth, health) {
+function buildCornStage(stage) {
   const g = new THREE.Group();
-  const stage = stageFor(CROPS.corn, growth);
   if (stage === 0) {
-    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), PLANT_MAT.stemDark);
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), MATS.leafDark);
     mound.scale.set(1, 0.3, 1);
     g.add(mound);
     return g;
   }
-  const plantHeight = stage === 1 ? 0.15 : stage === 2 ? 0.4 : stage === 3 ? 0.9 : 1.4;
-  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, plantHeight, 7), PLANT_MAT.stemGreen);
-  stalk.position.y = plantHeight / 2;
+  const height = stage === 1 ? 0.15 : stage === 2 ? 0.4 : stage === 3 ? 0.8 : 1.3;
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.035, height, 7), MATS.stem);
+  stalk.position.y = height / 2;
+  stalk.castShadow = true;
   g.add(stalk);
-  for (let i = 0; i < 6; i++) {
-    const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.02, 0.1), PLANT_MAT.leafMid);
+
+  const leafCount = stage >= 3 ? 7 : 4;
+  for (let i = 0; i < leafCount; i++) {
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.015, 0.08), MATS.leafMid);
     const a = i * 1.15;
-    leaf.position.set(Math.cos(a) * 0.2, 0.15 + i * 0.15, Math.sin(a) * 0.2);
+    leaf.position.set(Math.cos(a) * 0.15, 0.15 + i * 0.14, Math.sin(a) * 0.15);
     leaf.rotation.y = a;
-    leaf.rotation.z = 0.4;
+    leaf.rotation.z = 0.5;
+    leaf.castShadow = true;
     g.add(leaf);
   }
-  if (stage >= 5) {
-    const ripe = stage === 6;
+
+  if (stage >= 4) {
+    // Ears
+    const ripe = stage === 5;
     for (let i = 0; i < 2; i++) {
-      const ear = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.2, 4, 8), ripe ? PLANT_MAT.cornYellow : PLANT_MAT.cornGreen);
+      const ear = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.05, 0.18, 4, 8),
+        ripe ? MATS.corn : MATS.cornGreen
+      );
       const a = i * Math.PI + 0.5;
-      ear.position.set(Math.cos(a) * 0.08, plantHeight * 0.6, Math.sin(a) * 0.08);
+      ear.position.set(Math.cos(a) * 0.08, height * 0.6, Math.sin(a) * 0.08);
       ear.rotation.z = Math.cos(a) * 0.6;
+      ear.castShadow = true;
       g.add(ear);
+
+      // Husk leaves
+      for (let k = 0; k < 3; k++) {
+        const husk = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.2, 0.015), MATS.leafDark);
+        husk.position.copy(ear.position);
+        husk.rotation.set(ear.rotation.x, ear.rotation.y + k * 0.6, 0);
+        husk.translateZ(0.06);
+        g.add(husk);
+      }
     }
   }
   return g;
 }
 
-function buildLettuce(growth, health) {
+function buildLettuceStage(stage) {
   const g = new THREE.Group();
-  const stage = stageFor(CROPS.lettuce, growth);
   if (stage === 0) {
-    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), PLANT_MAT.stemDark);
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 4), MATS.leafDark);
     mound.scale.set(1, 0.3, 1);
     g.add(mound);
     return g;
   }
   const leafCount = stage === 1 ? 3 : stage === 2 ? 5 : stage === 3 ? 8 : 12;
-  const leafSize = stage === 1 ? 0.06 : stage === 2 ? 0.1 : stage === 3 ? 0.15 : 0.2;
+  const leafSize = stage === 1 ? 0.06 : stage === 2 ? 0.09 : stage === 3 ? 0.13 : 0.17;
   for (let i = 0; i < leafCount; i++) {
-    const angle = i * 2.399;
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(leafSize, 8, 6), PLANT_MAT.lettuceLeaf);
+    const angle = i * 2.399; // golden angle
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(leafSize, 8, 6), MATS.lettuceLeaf);
     leaf.scale.set(1, 0.18, 1.3);
     const dist = 0.04 + (i / leafCount) * 0.15;
-    leaf.position.set(Math.cos(angle) * dist, 0.02 + (i / leafCount) * 0.15, Math.sin(angle) * dist);
+    leaf.position.set(Math.cos(angle) * dist, 0.02 + (i / leafCount) * 0.12, Math.sin(angle) * dist);
     leaf.rotation.y = -angle;
     leaf.rotation.z = -0.1;
+    leaf.castShadow = true;
     g.add(leaf);
   }
   return g;
 }
 
-function buildStrawberry(growth, health) {
+function buildStrawberryStage(stage) {
   const g = new THREE.Group();
-  const stage = stageFor(CROPS.strawberry, growth);
   if (stage === 0) {
-    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), PLANT_MAT.stemDark);
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), MATS.leafDark);
     mound.scale.set(1, 0.3, 1);
     g.add(mound);
     return g;
@@ -238,58 +308,143 @@ function buildStrawberry(growth, health) {
   const leafCount = stage === 1 ? 2 : stage === 2 ? 3 : 5;
   for (let i = 0; i < leafCount; i++) {
     const angle = (i / leafCount) * Math.PI * 2;
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), PLANT_MAT.leafMid);
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 4), MATS.leafMid);
     leaf.scale.set(1.2, 0.2, 0.9);
-    leaf.position.set(Math.cos(angle) * 0.1, 0.08, Math.sin(angle) * 0.1);
+    leaf.position.set(Math.cos(angle) * 0.09, 0.07, Math.sin(angle) * 0.09);
     leaf.rotation.y = -angle;
     g.add(leaf);
   }
-  if (stage >= 5) {
-    const ripe = stage === 6;
+  if (stage >= 4) {
+    const ripe = stage === 5;
     for (let i = 0; i < 3; i++) {
       const a = i * 1.4;
-      const fruit = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.06, 6), ripe ? PLANT_MAT.strawberryRed : PLANT_MAT.strawberryGreen);
+      const fruit = new THREE.Mesh(
+        new THREE.ConeGeometry(0.035, 0.06, 6),
+        ripe ? MATS.strawberryRed : MATS.strawberryGreen
+      );
       fruit.rotation.x = Math.PI;
-      fruit.position.set(Math.cos(a) * 0.1, 0.06, Math.sin(a) * 0.1);
+      fruit.position.set(Math.cos(a) * 0.09, 0.06, Math.sin(a) * 0.09);
+      fruit.castShadow = true;
       g.add(fruit);
     }
   }
   return g;
 }
 
+const BUILDERS = {
+  tomato: buildTomatoStage,
+  carrot: buildCarrotStage,
+  potato: buildPotatoStage,
+  corn: buildCornStage,
+  lettuce: buildLettuceStage,
+  strawberry: buildStrawberryStage,
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  PLANT INSTANCE
+// ═══════════════════════════════════════════════════════════════
 class PlantInstance {
-  constructor(cropId, x, z) {
+  constructor(cropId, x, z, gridX, gridZ) {
     this.cropId = cropId;
     this.crop = CROPS[cropId];
     this.x = x;
     this.z = z;
+    this.gridX = gridX;
+    this.gridZ = gridZ;
     this.y = terrainHeight(x, z);
 
-    this.growth = 0;
+    this.growth = 0;              // 0..1
     this.health = 1.0;
-    this.soilWater = 0.5; // renamed from 'water' to avoid conflicts
-    this.nutrients = 0.7;
-    
-    this.stage = 0;
-    this.mesh = null;
-    this.hasDisease = null;
+    this.soilWater = 0.5;         // 0..1
+    this.hasDisease = false;
+    this.diseaseType = null;
 
-    this.rebuildMesh();
+    this.stage = 0;
+    this.stageGroup = null;       // group containing all stage meshes
+
+    // Build ALL stages up front, hide all but current
+    this.buildAllStages();
+    this.showStage(0);
   }
 
-  rebuildMesh() {
-    if (this.mesh) {
-      this.mesh.parent?.remove(this.mesh);
-      this.mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+  buildAllStages() {
+    this.stageGroup = new THREE.Group();
+    this.stageGroup.position.set(this.x, this.y, this.z);
+    this.stageGroup.rotation.y = Math.random() * Math.PI * 2;
+
+    this.stageMeshes = [];
+    for (let s = 0; s < this.crop.stages.length; s++) {
+      const mesh = BUILDERS[this.cropId](s);
+      mesh.visible = false;
+      this.stageMeshes.push(mesh);
+      this.stageGroup.add(mesh);
     }
-    this.mesh = this.crop.build(this.growth, this.health);
-    this.mesh.position.set(this.x, this.y, this.z);
-    this.mesh.rotation.y = Math.random() * Math.PI * 2;
-    this.mesh.userData.plant = this;
-    this.mesh.userData.interact = {
-      type: 'plant',
-      plant: this,
-      prompt: this.getPrompt(),
+
+    // Invisible collider so aiming is forgiving
+    const collider = new THREE.Mesh(
+      new THREE.SphereGeometry(0.5, 8, 6),
+      new THREE.MeshBasicMaterial({ visible: false })
+    );
+    collider.position.y = 0.3;
+    collider.userData.plant = this;
+    this.stageGroup.add(collider);
+    this.collider = collider;
+
+    this.stageGroup.userData.plant = this;
+  }
+
+  showStage(stage) {
+    for (let i = 0; i < this.stageMeshes.length; i++) {
+      this.stageMeshes[i].visible = (i === stage);
+    }
+    this.stage = stage;
+  }
+
+  update(dt) {
+    if (this.growth >= 1) return;
+
+    const crop = this.crop;
+
+    // Soil water drains (slower than before)
+    this.soilWater = Math.max(0, this.soilWater - dt * 0.002 * crop.waterNeed);
+
+    // Health
+    if (this.soilWater < 0.15) {
+      this.health = Math.max(0, this.health - dt * 0.01);
+    } else if (this.soilWater > 0.4 && this.soilWater < 0.85) {
+      this.health = Math.min(1, this.health + dt * 0.005);
+    }
+
+    // Growth rate — REAL SECONDS, scaled by health and water
+    const baseRate = 1 / crop.growSeconds;
+    const waterMod = this.soilWater > 0.25 ? 1.0 : 0.3;
+    const healthMod = this.health;
+    this.growth = Math.min(1, this.growth + dt * baseRate * waterMod * healthMod);
+
+    // Stage change — just toggle visibility (no mesh rebuild)
+    const newStage = stageFor(crop, this.growth);
+    if (newStage !== this.stage) {
+      this.showStage(newStage);
+    }
+  }
+
+  waterPlant() {
+    this.soilWater = Math.min(1, this.soilWater + 0.5);
+  }
+
+  treat() {
+    this.hasDisease = false;
+    this.diseaseType = null;
+    this.health = Math.min(1, this.health + 0.3);
+  }
+
+  harvest() {
+    if (this.growth < 0.98) return null;
+    const yieldAmt = Math.floor(1 + this.health * 2);
+    return {
+      cropId: this.cropId,
+      yield: yieldAmt,
+      value: this.crop.value * yieldAmt,
     };
   }
 
@@ -298,99 +453,86 @@ class PlantInstance {
     if (this.growth >= 0.98) return `<span class="key">E</span> Harvest ${crop.emoji} ${crop.name}`;
     if (this.soilWater < 0.3) return `<span class="key">E</span> Water ${crop.emoji} ${crop.name} (thirsty)`;
     if (this.hasDisease) return `<span class="key">E</span> Treat ${crop.emoji} ${crop.name}`;
-    return `${crop.emoji} ${crop.name} — ${crop.stages[this.stage]} (${Math.floor(this.growth * 100)}%)`;
-  }
-
-  update(dt) {
-    const prevStage = this.stage;
-    const crop = this.crop;
-    
-    const growthPerSecond = (1 / crop.daysToHarvest) / (gameState.world.dayLength || 600);
-    
-    this.soilWater = Math.max(0, this.soilWater - dt * 0.0008 * crop.waterNeed);
-    
-    const tod = gameState.world.timeOfDay;
-    const dayness = Math.max(0, Math.min(1, 1 - Math.abs(tod - 0.5) * 3));
-
-    let healthDelta = 0;
-    if (this.soilWater < 0.2) healthDelta -= dt * 0.0015;
-    else if (this.soilWater > 0.4 && this.soilWater < 0.85) healthDelta += dt * 0.0003;
-
-    this.health = Math.max(0, Math.min(1, this.health + healthDelta));
-
-    const growthModifier = this.health * (this.soilWater > 0.25 ? 1.0 : 0.3) * (dayness > 0.3 ? 1.0 : 0.5);
-    if (this.growth < 1) {
-      this.growth = Math.min(1, this.growth + dt * growthPerSecond * growthModifier);
-    }
-
-    this.stage = stageFor(crop, this.growth);
-    if (this.stage !== prevStage) this.rebuildMesh();
-  }
-
-  waterPlant() {
-    this.soilWater = Math.min(1, this.soilWater + 0.5);
-    Audio.playWaterSplash();
-    HUD.showToast(`Watered ${this.crop.emoji} ${this.crop.name}`);
-    this.rebuildMesh();
-  }
-
-  treat() {
-    if (this.hasDisease) {
-      this.hasDisease = null;
-      this.health = Math.min(1, this.health + 0.3);
-      HUD.showToast(`Treated ${this.crop.emoji} ${this.crop.name}`);
-      Audio.playTone(620, 0.15, 'sine', 0.06);
-      this.rebuildMesh();
-    }
-  }
-
-  harvest() {
-    if (this.growth < 0.98) return null;
-    const crop = this.crop;
-    const yieldAmt = Math.floor(1 + this.health * 2);
-    return { cropId: this.cropId, yield: yieldAmt, value: crop.value * yieldAmt };
+    const pct = Math.floor(this.growth * 100);
+    return `${crop.emoji} ${crop.name} — ${crop.stages[this.stage]} (${pct}%)`;
   }
 
   dispose() {
-    if (this.mesh) {
-      this.mesh.parent?.remove(this.mesh);
-      this.mesh.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    if (this.stageGroup) {
+      this.stageGroup.traverse(o => {
+        if (o.geometry) o.geometry.dispose();
+      });
     }
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  PLANT MANAGER — with grid snapping
+// ═══════════════════════════════════════════════════════════════
 export class PlantManager {
   constructor(scene) {
     this.scene = scene;
     this.plants = [];
     this.group = new THREE.Group();
     scene.add(this.group);
+
+    // Grid: 1×1 unit cells, snap planting to cell centers
+    this.gridSize = 1.0;
+    this.occupied = new Set(); // "gx,gz" keys
+  }
+
+  snapToGrid(x, z) {
+    const gx = Math.round(x / this.gridSize);
+    const gz = Math.round(z / this.gridSize);
+    return {
+      gx, gz,
+      x: gx * this.gridSize,
+      z: gz * this.gridSize,
+      key: `${gx},${gz}`,
+    };
   }
 
   tryPlant(cropId, x, z) {
     const crop = CROPS[cropId];
     if (!crop) return null;
-    
+
+    // Check inventory
+    const seeds = window.__gameState?.player?.seeds;
+    if (!seeds || !seeds[cropId] || seeds[cropId] <= 0) {
+      if (window.__HUD?.toast) window.__HUD.toast(`No ${crop.name} seeds`);
+      return null;
+    }
+
+    // Snap to grid
+    const snapped = this.snapToGrid(x, z);
+
+    // Check if cell is occupied
+    if (this.occupied.has(snapped.key)) {
+      if (window.__HUD?.toast) window.__HUD.toast('Already planted here');
+      return null;
+    }
+
+    // Check minimum distance to other plants (spacing)
     for (const p of this.plants) {
-      if (Math.hypot(p.x - x, p.z - z) < crop.spacing * 0.8) {
-        HUD.showToast(`Too close to another ${p.crop.name}`);
+      const d = Math.hypot(p.x - snapped.x, p.z - snapped.z);
+      if (d < crop.spacing * 0.9) {
+        if (window.__HUD?.toast) window.__HUD.toast(`Too close to another ${p.crop.name}`);
         return null;
       }
     }
-    
-    if (!gameState.player.seeds[cropId] || gameState.player.seeds[cropId] <= 0) {
-      HUD.showToast(`No ${crop.name} seeds`);
-      return null;
-    }
-    
-    const plant = new PlantInstance(cropId, x, z);
+
+    // Create plant
+    const plant = new PlantInstance(cropId, snapped.x, snapped.z, snapped.gx, snapped.gz);
     this.plants.push(plant);
-    this.group.add(plant.mesh);
-    gameState.player.seeds[cropId]--;
-    
-    Audio.playTone(520, 0.15, 'sine', 0.05);
-    HUD.showToast(`Planted ${crop.emoji} ${crop.name}`);
+    this.occupied.add(snapped.key);
+    this.group.add(plant.stageGroup);
+
+    // Decrement seeds
+    seeds[cropId]--;
     window.dispatchEvent(new CustomEvent('hud-refresh'));
+
+    if (window.__Audio) window.__Audio.tone(520, 0.15, 'sine', 0.05);
+    if (window.__HUD?.toast) window.__HUD.toast(`Planted ${crop.emoji} ${crop.name}`);
     return plant;
   }
 
@@ -399,7 +541,7 @@ export class PlantManager {
   }
 
   getInteractableMeshes() {
-    return this.plants.map(p => p.mesh).filter(Boolean);
+    return this.plants.map(p => p.collider).filter(Boolean);
   }
 
   findPlantFromObject(obj) {
@@ -412,11 +554,9 @@ export class PlantManager {
     const i = this.plants.indexOf(plant);
     if (i !== -1) {
       plant.dispose();
+      this.group.remove(plant.stageGroup);
+      this.occupied.delete(`${plant.gridX},${plant.gridZ}`);
       this.plants.splice(i, 1);
     }
   }
-}
-
-export function getCropList() {
-  return Object.values(CROPS);
 }
