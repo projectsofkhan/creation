@@ -1,54 +1,87 @@
 import * as THREE from 'three';
-import { WORLD_SIZE, HALF_WORLD, GRID_SIZE, CELL_SIZE, HALF_GRID, terrainHeight, progress } from './script.js';
 
 // ═══════════════════════════════════════════════════════════════
-//  MATERIALS & TEXTURES
+//  VERDANT VALE — others.js  (PART 1 of 2)
+//  Materials, textures, tools, crops, animals, buildings
 // ═══════════════════════════════════════════════════════════════
 
+// ── Shared seeded RNG so textures look the same each reload ──
+let _seed = 1337;
+function rand() {
+  _seed = (_seed * 16807) % 2147483647;
+  return (_seed - 1) / 2147483646;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TEXTURE GENERATORS
+// ═══════════════════════════════════════════════════════════════
+
+// Soil texture — moisture 0 (dry/grass), 0.15 (tilled), 0.9 (wet)
 export function makeSoilTexture(moisture = 0) {
+  const size = 512;
   const c = document.createElement('canvas');
-  c.width = c.height = 256;
+  c.width = c.height = size;
   const ctx = c.getContext('2d');
-  const base = moisture > 0.5 ? [52, 34, 18] : [88, 60, 34];
+
+  const base = moisture > 0.5 ? [52, 34, 18] : moisture > 0.1 ? [88, 60, 34] : [102, 74, 42];
   ctx.fillStyle = `rgb(${base[0]},${base[1]},${base[2]})`;
-  ctx.fillRect(0, 0, 256, 256);
+  ctx.fillRect(0, 0, size, size);
 
-  // Grain noise
-  for (let i = 0; i < 8000; i++) {
-    const v = Math.random() * 50 - 25;
+  // Base grain
+  for (let i = 0; i < 22000; i++) {
+    const v = (rand() - 0.5) * 55;
     ctx.fillStyle = `rgba(${base[0] + v},${base[1] + v * 0.8},${base[2] + v * 0.5},0.85)`;
-    const s = 1 + Math.random() * 2;
-    ctx.fillRect(Math.random() * 256, Math.random() * 256, s, s);
+    const s = 1 + rand() * 2.5;
+    ctx.fillRect(rand() * size, rand() * size, s, s);
   }
 
-  // Fine speckle
+  // Bright mineral flecks
   for (let i = 0; i < 3000; i++) {
-    const bright = Math.random() > 0.5;
-    ctx.fillStyle = bright ? 'rgba(180,140,90,0.25)' : 'rgba(20,12,6,0.3)';
-    ctx.fillRect(Math.random() * 256, Math.random() * 256, 1, 1);
+    ctx.fillStyle = rand() > 0.5 ? 'rgba(200,160,100,0.22)' : 'rgba(24,14,6,0.32)';
+    ctx.fillRect(rand() * size, rand() * size, 1.2, 1.2);
   }
 
-  // Tilled furrows (only for non-grass)
+  // Furrows (only for tilled/wet)
   if (moisture >= 0.1) {
-    ctx.strokeStyle = moisture > 0.5 ? 'rgba(20,12,6,0.75)' : 'rgba(30,20,12,0.65)';
-    ctx.lineWidth = 4;
+    ctx.strokeStyle = moisture > 0.5 ? 'rgba(18,10,5,0.8)' : 'rgba(28,18,10,0.7)';
+    ctx.lineWidth = 6;
     ctx.lineCap = 'round';
-    for (let y = 12; y < 256; y += 28) {
+    for (let y = 22; y < size; y += 56) {
       ctx.beginPath();
-      for (let x = 0; x < 256; x += 6) {
-        ctx.lineTo(x, y + Math.sin(x * 0.12) * 2.2);
+      for (let x = 0; x < size; x += 8) {
+        ctx.lineTo(x, y + Math.sin(x * 0.06) * 3.5);
       }
       ctx.stroke();
     }
-    // Highlight the ridges
-    ctx.strokeStyle = moisture > 0.5 ? 'rgba(100,70,40,0.4)' : 'rgba(130,90,50,0.55)';
-    ctx.lineWidth = 2;
-    for (let y = 12; y < 256; y += 28) {
+    // Ridge highlights
+    ctx.strokeStyle = moisture > 0.5 ? 'rgba(90,64,36,0.35)' : 'rgba(140,100,58,0.55)';
+    ctx.lineWidth = 3;
+    for (let y = 22; y < size; y += 56) {
       ctx.beginPath();
-      for (let x = 0; x < 256; x += 6) {
-        ctx.lineTo(x, y + Math.sin(x * 0.12) * 2.2 - 3);
+      for (let x = 0; x < size; x += 8) {
+        ctx.lineTo(x, y + Math.sin(x * 0.06) * 3.5 - 5);
       }
       ctx.stroke();
+    }
+    // Clods
+    for (let i = 0; i < 400; i++) {
+      const x = rand() * size, y = rand() * size;
+      const r = 2 + rand() * 5;
+      const light = rand() > 0.5;
+      ctx.fillStyle = light ? `rgba(${base[0] + 30},${base[1] + 22},${base[2] + 12},0.5)` : `rgba(${base[0] - 20},${base[1] - 14},${base[2] - 8},0.6)`;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Wet gleam
+  if (moisture > 0.5) {
+    for (let i = 0; i < 200; i++) {
+      ctx.fillStyle = `rgba(140,180,220,${0.05 + rand() * 0.08})`;
+      ctx.beginPath();
+      ctx.arc(rand() * size, rand() * size, 1 + rand() * 3, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
@@ -60,32 +93,193 @@ export function makeSoilTexture(moisture = 0) {
   return tex;
 }
 
+// Wood plank texture for buildings / crates
+export function makeWoodTexture(tint = 0x8b6f47) {
+  const size = 256;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const r = (tint >> 16) & 255, g = (tint >> 8) & 255, b = tint & 255;
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0, 0, size, size);
+  // Grain
+  for (let i = 0; i < 4000; i++) {
+    const v = (rand() - 0.5) * 40;
+    ctx.fillStyle = `rgba(${r + v},${g + v * 0.8},${b + v * 0.6},0.7)`;
+    const y = rand() * size;
+    const w = 8 + rand() * 40;
+    ctx.fillRect(rand() * size, y, w, 1);
+  }
+  // Planks
+  ctx.strokeStyle = 'rgba(30,20,10,0.55)';
+  ctx.lineWidth = 2;
+  for (let y = 0; y < size; y += 42) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(size, y);
+    ctx.stroke();
+  }
+  // Knots
+  for (let i = 0; i < 6; i++) {
+    const x = rand() * size, y = rand() * size;
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, 8 + rand() * 6);
+    grad.addColorStop(0, 'rgba(40,26,12,0.8)');
+    grad.addColorStop(1, 'rgba(40,26,12,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// Bark texture
+export function makeBarkTexture() {
+  const size = 128;
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#5a3d24';
+  ctx.fillRect(0, 0, size, size);
+  for (let i = 0; i < 400; i++) {
+    const v = (rand() - 0.5) * 60;
+    ctx.fillStyle = `rgba(${90 + v},${61 + v * 0.7},${36 + v * 0.5},0.8)`;
+    ctx.fillRect(rand() * size, rand() * size, 1 + rand() * 2, 6 + rand() * 20);
+  }
+  // Vertical striations
+  ctx.strokeStyle = 'rgba(20,14,8,0.55)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < size; x += 4) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    for (let y = 0; y < size; y += 8) ctx.lineTo(x + Math.sin(y * 0.3) * 2, y);
+    ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 // ═══════════════════════════════════════════════════════════════
-//  TOOLS (held in player's right hand)
+//  MATERIAL FACTORY  — realistic PBR materials
+// ═══════════════════════════════════════════════════════════════
+
+export const MATS = {
+  // Human
+  skin: new THREE.MeshStandardMaterial({ color: 0xe8bfa0, roughness: 0.72, metalness: 0.0 }),
+  shirt: new THREE.MeshStandardMaterial({ color: 0x4a8bc8, roughness: 0.92, metalness: 0.0 }),
+  pants: new THREE.MeshStandardMaterial({ color: 0x3a4a6a, roughness: 0.94, metalness: 0.0 }),
+  hat: new THREE.MeshStandardMaterial({ color: 0xc8a050, roughness: 0.82, metalness: 0.03 }),
+  boot: new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 0.82, metalness: 0.08 }),
+  hair: new THREE.MeshStandardMaterial({ color: 0x6b3a1a, roughness: 0.85 }),
+  belt: new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.8 }),
+
+  // Metal
+  iron: new THREE.MeshStandardMaterial({ color: 0x9a9aac, roughness: 0.42, metalness: 0.85 }),
+  ironRust: new THREE.MeshStandardMaterial({ color: 0x7a5a3a, roughness: 0.7, metalness: 0.4 }),
+  copper: new THREE.MeshStandardMaterial({ color: 0xc88a50, roughness: 0.35, metalness: 0.8 }),
+  gold: new THREE.MeshStandardMaterial({ color: 0xffc850, roughness: 0.25, metalness: 0.95 }),
+  silver: new THREE.MeshStandardMaterial({ color: 0xd8d8e0, roughness: 0.22, metalness: 0.95 }),
+
+  // Wood / leather
+  wood: new THREE.MeshStandardMaterial({ map: makeWoodTexture(0x8b6f47), roughness: 0.92 }),
+  woodDark: new THREE.MeshStandardMaterial({ map: makeWoodTexture(0x6a4a2a), roughness: 0.94 }),
+  leather: new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.82, metalness: 0.05 }),
+  leatherDark: new THREE.MeshStandardMaterial({ color: 0x3a2410, roughness: 0.88 }),
+
+  // Water
+  water: new THREE.MeshStandardMaterial({
+    color: 0x4a90b0, roughness: 0.08, metalness: 0.7,
+    transparent: true, opacity: 0.85,
+  }),
+  waterCan: new THREE.MeshStandardMaterial({ color: 0x5a8a9a, roughness: 0.42, metalness: 0.6 }),
+
+  // Plants
+  stem: new THREE.MeshStandardMaterial({ color: 0x5a9b3a, roughness: 0.82 }),
+  leaf: new THREE.MeshStandardMaterial({ color: 0x5abb4a, roughness: 0.8, side: THREE.DoubleSide }),
+  sprout: new THREE.MeshStandardMaterial({ color: 0x6aab4a, roughness: 0.78 }),
+  leafDark: new THREE.MeshStandardMaterial({ color: 0x3d7a2e, roughness: 0.82 }),
+  leafLight: new THREE.MeshStandardMaterial({ color: 0x6abb4a, roughness: 0.82 }),
+
+  // Fruits
+  tomato: new THREE.MeshStandardMaterial({ color: 0xe83a2a, roughness: 0.32, metalness: 0.05, emissive: 0x220000, emissiveIntensity: 0.22 }),
+  tomatoGreen: new THREE.MeshStandardMaterial({ color: 0x7abc4a, roughness: 0.55 }),
+  corn: new THREE.MeshStandardMaterial({ color: 0xf0c040, roughness: 0.5, emissive: 0x201000, emissiveIntensity: 0.15 }),
+  cornGreen: new THREE.MeshStandardMaterial({ color: 0x8ac850, roughness: 0.55 }),
+  pumpkin: new THREE.MeshStandardMaterial({ color: 0xe87820, roughness: 0.55 }),
+  pumpkinGreen: new THREE.MeshStandardMaterial({ color: 0x8ac850, roughness: 0.6 }),
+
+  // Tree
+  bark: new THREE.MeshStandardMaterial({ map: makeBarkTexture(), roughness: 0.95 }),
+  foliage1: new THREE.MeshStandardMaterial({ color: 0x4a8b3a, roughness: 0.88, flatShading: true }),
+  foliage2: new THREE.MeshStandardMaterial({ color: 0x5fa54a, roughness: 0.88, flatShading: true }),
+  foliage3: new THREE.MeshStandardMaterial({ color: 0x3d7a2e, roughness: 0.88, flatShading: true }),
+
+  // Rock
+  rock: new THREE.MeshStandardMaterial({ color: 0x8a8a80, roughness: 0.92, flatShading: true }),
+  rockDark: new THREE.MeshStandardMaterial({ color: 0x5a5a50, roughness: 0.94, flatShading: true }),
+
+  // Building
+  wallPlaster: new THREE.MeshStandardMaterial({ color: 0xe8d8b8, roughness: 0.9 }),
+  roofTile: new THREE.MeshStandardMaterial({ color: 0xa8503a, roughness: 0.75 }),
+  roofThatch: new THREE.MeshStandardMaterial({ color: 0xc8a850, roughness: 0.92 }),
+  window: new THREE.MeshStandardMaterial({ color: 0x2a4050, roughness: 0.15, metalness: 0.5, emissive: 0x1a2a40, emissiveIntensity: 0.4 }),
+
+  // Animal
+  sheepWool: new THREE.MeshStandardMaterial({ color: 0xf0eee8, roughness: 0.98, flatShading: true }),
+  sheepFace: new THREE.MeshStandardMaterial({ color: 0x2a2020, roughness: 0.85 }),
+  chickenBody: new THREE.MeshStandardMaterial({ color: 0xfaf0e0, roughness: 0.9 }),
+  chickenComb: new THREE.MeshStandardMaterial({ color: 0xe83a3a, roughness: 0.6 }),
+  beak: new THREE.MeshStandardMaterial({ color: 0xf0a030, roughness: 0.6 }),
+  cowBody: new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.85 }),
+  cowSpot: new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.85 }),
+
+  // Misc
+  straw: new THREE.MeshStandardMaterial({ color: 0xd4b060, roughness: 0.95 }),
+  hay: new THREE.MeshStandardMaterial({ color: 0xb89040, roughness: 0.95 }),
+  fabric: new THREE.MeshStandardMaterial({ color: 0xb0a080, roughness: 0.95 }),
+  pumpkinStem: new THREE.MeshStandardMaterial({ color: 0x6a8a3a, roughness: 0.85 }),
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  TOOL DEFINITIONS
 // ═══════════════════════════════════════════════════════════════
 
 export const TOOL_DEFS = [
-  { icon: '⛏️', label: 'Hoe' },
-  { icon: '💧', label: 'Water' },
-  { icon: '🌱', label: 'Seed' },
-  { icon: '🧺', label: 'Pick' },
-  { icon: '🏪', label: 'Shop' },
+  { icon: '⛏️', label: 'Hoe',    id: 'hoe' },
+  { icon: '💧', label: 'Water',  id: 'water' },
+  { icon: '🌱', label: 'Seed',   id: 'seed' },
+  { icon: '🧺', label: 'Pick',   id: 'pick' },
+  { icon: '🐛', label: 'Pest',   id: 'pest' },
+  { icon: '🏪', label: 'Shop',   id: 'shop' },
 ];
 
+// ── Tool models ────────────────────────────────────────────
 export function createHoe() {
   const g = new THREE.Group();
-
-  const handleMat = new THREE.MeshStandardMaterial({ color: 0x8b6f47, roughness: 0.88, metalness: 0.02 });
-  const metalMat = new THREE.MeshStandardMaterial({ color: 0x9a9aac, roughness: 0.4, metalness: 0.82 });
-
-  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 1.25, 8), handleMat);
+  const handle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.035, 0.042, 1.3, 10),
+    MATS.wood
+  );
   handle.position.y = -0.55;
   handle.rotation.x = 0.35;
   handle.castShadow = true;
   g.add(handle);
 
-  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.04, 0.18), metalMat);
-  blade.position.set(0, -1.16, 0.23);
+  const collar = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.045, 0.06, 10),
+    MATS.iron
+  );
+  collar.position.set(0, -1.13, 0.22);
+  collar.rotation.x = 0.35;
+  g.add(collar);
+
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.045, 0.2), MATS.iron);
+  blade.position.set(0, -1.18, 0.24);
   blade.rotation.x = 0.35;
   blade.castShadow = true;
   g.add(blade);
@@ -95,23 +289,47 @@ export function createHoe() {
 
 export function createWateringCan() {
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: 0x5a8a9a, metalness: 0.55, roughness: 0.45 });
-
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.28, 12), mat);
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.15, 0.18, 0.28, 14),
+    MATS.waterCan
+  );
   body.position.y = -0.9;
   body.castShadow = true;
   g.add(body);
 
-  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.018, 8, 16), mat);
-  handle.position.set(0, -0.78, -0.05);
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(0.15, 0.014, 6, 20),
+    MATS.silver
+  );
+  rim.position.y = -0.76;
+  rim.rotation.x = Math.PI / 2;
+  g.add(rim);
+
+  const handle = new THREE.Mesh(
+    new THREE.TorusGeometry(0.12, 0.018, 8, 18, Math.PI),
+    MATS.waterCan
+  );
+  handle.position.set(0, -0.78, -0.06);
   handle.rotation.x = Math.PI / 2;
+  handle.rotation.z = Math.PI;
   g.add(handle);
 
-  const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.055, 0.36, 8), mat);
-  spout.position.set(0.15, -0.85, 0.12);
+  const spout = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.02, 0.055, 0.38, 8),
+    MATS.waterCan
+  );
+  spout.position.set(0.16, -0.85, 0.13);
   spout.rotation.z = -0.55;
   spout.castShadow = true;
   g.add(spout);
+
+  const rose = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.045, 0.04, 12),
+    MATS.silver
+  );
+  rose.position.set(0.24, -0.78, 0.20);
+  rose.rotation.z = -0.55;
+  g.add(rose);
 
   return g;
 }
@@ -119,8 +337,8 @@ export function createWateringCan() {
 export function createSeedPouch() {
   const g = new THREE.Group();
   const pouch = new THREE.Mesh(
-    new THREE.SphereGeometry(0.14, 12, 10),
-    new THREE.MeshStandardMaterial({ color: 0xc8a878, roughness: 0.95 })
+    new THREE.SphereGeometry(0.15, 14, 10),
+    MATS.fabric
   );
   pouch.position.y = -0.9;
   pouch.scale.set(1, 0.85, 1);
@@ -128,12 +346,24 @@ export function createSeedPouch() {
   g.add(pouch);
 
   const tie = new THREE.Mesh(
-    new THREE.TorusGeometry(0.07, 0.015, 6, 12),
-    new THREE.MeshStandardMaterial({ color: 0x6b3a1a, roughness: 0.9 })
+    new THREE.TorusGeometry(0.075, 0.014, 6, 14),
+    MATS.leatherDark
   );
   tie.position.y = -0.78;
   tie.rotation.x = Math.PI / 2;
   g.add(tie);
+
+  // little seeds poking out
+  for (let i = 0; i < 4; i++) {
+    const seed = new THREE.Mesh(
+      new THREE.SphereGeometry(0.022, 6, 4),
+      MATS.tomato
+    );
+    const a = i * 1.6;
+    seed.position.set(Math.cos(a) * 0.06, -0.75 + Math.sin(a) * 0.02, Math.sin(a) * 0.06);
+    seed.scale.set(1, 1.4, 0.8);
+    g.add(seed);
+  }
 
   return g;
 }
@@ -141,89 +371,123 @@ export function createSeedPouch() {
 export function createBasket() {
   const g = new THREE.Group();
   const basket = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.18, 0.13, 0.24, 12, 1, true),
-    new THREE.MeshStandardMaterial({ color: 0xb08a50, side: THREE.DoubleSide, roughness: 0.92 })
+    new THREE.CylinderGeometry(0.19, 0.14, 0.25, 14, 2, true),
+    MATS.wood
   );
   basket.position.y = -0.9;
   basket.castShadow = true;
   g.add(basket);
 
   const rim = new THREE.Mesh(
-    new THREE.TorusGeometry(0.18, 0.02, 8, 20),
-    new THREE.MeshStandardMaterial({ color: 0x8b6f47, roughness: 0.9 })
+    new THREE.TorusGeometry(0.19, 0.02, 8, 22),
+    MATS.woodDark
   );
   rim.position.y = -0.78;
   rim.rotation.x = Math.PI / 2;
   g.add(rim);
 
+  const handle = new THREE.Mesh(
+    new THREE.TorusGeometry(0.13, 0.015, 8, 20, Math.PI),
+    MATS.woodDark
+  );
+  handle.position.y = -0.72;
+  handle.rotation.z = Math.PI;
+  g.add(handle);
+
+  return g;
+}
+
+export function createPestSpray() {
+  const g = new THREE.Group();
+  const bottle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.09, 0.22, 10),
+    MATS.copper
+  );
+  bottle.position.y = -0.88;
+  bottle.castShadow = true;
+  g.add(bottle);
+
+  const nozzle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.015, 0.03, 0.1, 6),
+    MATS.silver
+  );
+  nozzle.position.set(0.06, -0.72, 0.04);
+  nozzle.rotation.z = -0.7;
+  g.add(nozzle);
+
   return g;
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  CROPS (tomato plant growth stages)
+//  CROPS — 3 types (tomato, corn, pumpkin)
 // ═══════════════════════════════════════════════════════════════
 
-const sproutMat = new THREE.MeshStandardMaterial({ color: 0x6aab4a, roughness: 0.75 });
-const stemMat = new THREE.MeshStandardMaterial({ color: 0x5a9b3a, roughness: 0.82 });
-const leafMat = new THREE.MeshStandardMaterial({ color: 0x5abb4a, roughness: 0.8 });
-const fruitRipeMat = new THREE.MeshStandardMaterial({
-  color: 0xe83a2a, roughness: 0.35, metalness: 0.05,
-  emissive: 0x220000, emissiveIntensity: 0.25,
-});
-const fruitGreenMat = new THREE.MeshStandardMaterial({ color: 0x7abc4a, roughness: 0.55 });
+export const CROP_TYPES = {
+  tomato: {
+    name: 'Tomato', emoji: '🍅', value: 12, seedPrice: 5,
+    growRate: 0.006, wetMultiplier: 2.6,
+    ripeColor: 0xe83a2a,
+  },
+  corn: {
+    name: 'Corn', emoji: '🌽', value: 18, seedPrice: 8,
+    growRate: 0.0045, wetMultiplier: 2.4,
+    ripeColor: 0xf0c040,
+  },
+  pumpkin: {
+    name: 'Pumpkin', emoji: '🎃', value: 32, seedPrice: 12,
+    growRate: 0.003, wetMultiplier: 2.2,
+    ripeColor: 0xe87820,
+  },
+};
 
-export const CROP_STAGES = [
-  { name: 'sprout', min: 0.0, max: 0.25 },
-  { name: 'young', min: 0.25, max: 0.6 },
-  { name: 'flowering', min: 0.6, max: 0.9 },
-  { name: 'ripe', min: 0.9, max: 1.01 },
-];
+// Growth stage helper
+export function cropStage(growth) {
+  if (growth < 0.2) return 0;  // sprout
+  if (growth < 0.5) return 1;  // young
+  if (growth < 0.85) return 2; // flowering
+  return 3;                    // ripe
+}
 
-export function createCropMesh(growth) {
+// ── TOMATO ────────────────────────────────────────────────
+export function createTomato(growth) {
   const g = new THREE.Group();
 
-  if (growth < 0.25) {
-    // Sprout: two tiny leaves
-    const sp = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), sproutMat);
-    sp.position.y = 0.1;
+  if (growth < 0.2) {
+    const sp = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), MATS.sprout);
+    sp.position.y = 0.08;
     sp.scale.set(1.3, 0.5, 1.3);
     sp.castShadow = true;
     g.add(sp);
-
     for (let i = 0; i < 2; i++) {
-      const l = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 4), leafMat);
+      const l = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 4), MATS.leafLight);
       const a = i * Math.PI;
-      l.position.set(Math.cos(a) * 0.13, 0.14, Math.sin(a) * 0.13);
-      l.scale.set(1.4, 0.3, 0.8);
+      l.position.set(Math.cos(a) * 0.12, 0.12, Math.sin(a) * 0.12);
+      l.scale.set(1.5, 0.3, 0.7);
       l.rotation.y = a;
       l.castShadow = true;
       g.add(l);
     }
-  } else if (growth < 0.6) {
-    // Young plant: stem + leaves
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 0.9, 6), stemMat);
-    stem.position.y = 0.45;
+  } else if (growth < 0.5) {
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 0.95, 6), MATS.stem);
+    stem.position.y = 0.48;
     stem.castShadow = true;
     g.add(stem);
-
     for (let i = 0; i < 4; i++) {
-      const l = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 4), leafMat);
+      const l = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 4), MATS.leaf);
       l.scale.set(1.5, 0.35, 1);
       const a = i * 1.6;
-      l.position.set(Math.cos(a) * 0.26, 0.4 + i * 0.13, Math.sin(a) * 0.26);
+      l.position.set(Math.cos(a) * 0.26, 0.42 + i * 0.13, Math.sin(a) * 0.26);
       l.rotation.y = a;
       l.castShadow = true;
       g.add(l);
     }
   } else {
-    // Flowering / ripe
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.08, 1.25, 6), stemMat);
-    stem.position.y = 0.62;
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.08, 1.3, 6), MATS.stem);
+    stem.position.y = 0.65;
     stem.castShadow = true;
     g.add(stem);
-
     for (let i = 0; i < 6; i++) {
-      const l = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 4), leafMat);
+      const l = new THREE.Mesh(new THREE.SphereGeometry(0.22, 6, 4), MATS.leaf);
       l.scale.set(1.6, 0.35, 1);
       const a = i * 1.05;
       l.position.set(Math.cos(a) * 0.38, 0.3 + i * 0.15, Math.sin(a) * 0.38);
@@ -231,611 +495,903 @@ export function createCropMesh(growth) {
       l.castShadow = true;
       g.add(l);
     }
-
-    const ripe = growth >= 0.9;
+    const ripe = growth >= 0.85;
+    const mat = ripe ? MATS.tomato : MATS.tomatoGreen;
     const count = ripe ? 4 : 3;
     for (let i = 0; i < count; i++) {
       const f = new THREE.Mesh(
         new THREE.SphereGeometry(ripe ? 0.18 : 0.1, ripe ? 10 : 6, ripe ? 8 : 5),
-        ripe ? fruitRipeMat : fruitGreenMat
+        mat
       );
       const a = i * 1.6;
-      f.position.set(
-        Math.cos(a) * 0.32,
-        (ripe ? 0.75 : 0.8) + Math.sin(a * 1.3) * 0.22,
-        Math.sin(a) * 0.32
-      );
+      f.position.set(Math.cos(a) * 0.32, (ripe ? 0.75 : 0.8) + Math.sin(a * 1.3) * 0.22, Math.sin(a) * 0.32);
       f.scale.set(1, 0.9, 1);
       f.castShadow = true;
       g.add(f);
     }
+  }
+  return g;
+}
+
+// ── CORN ──────────────────────────────────────────────────
+export function createCorn(growth) {
+  const g = new THREE.Group();
+
+  if (growth < 0.2) {
+    const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.3, 5), MATS.sprout);
+    sp.position.y = 0.15;
+    sp.castShadow = true;
+    g.add(sp);
+    for (let i = 0; i < 2; i++) {
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.02, 0.08), MATS.leafLight);
+      const a = i * Math.PI;
+      l.position.set(Math.cos(a) * 0.12, 0.25, Math.sin(a) * 0.12);
+      l.rotation.y = a;
+      l.rotation.z = 0.3;
+      g.add(l);
+    }
+  } else if (growth < 0.5) {
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 1.6, 6), MATS.stem);
+    stem.position.y = 0.8;
+    stem.castShadow = true;
+    g.add(stem);
+    for (let i = 0; i < 5; i++) {
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.02, 0.16), MATS.leaf);
+      l.position.y = 0.4 + i * 0.3;
+      const a = i * 1.4;
+      l.rotation.y = a;
+      l.rotation.z = 0.5;
+      l.position.x = Math.cos(a) * 0.15;
+      l.position.z = Math.sin(a) * 0.15;
+      l.castShadow = true;
+      g.add(l);
+    }
+  } else {
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 2.0, 6), MATS.stem);
+    stem.position.y = 1.0;
+    stem.castShadow = true;
+    g.add(stem);
+    for (let i = 0; i < 7; i++) {
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.025, 0.2), MATS.leaf);
+      l.position.y = 0.4 + i * 0.25;
+      const a = i * 1.2;
+      l.rotation.y = a;
+      l.rotation.z = 0.6;
+      l.position.x = Math.cos(a) * 0.18;
+      l.position.z = Math.sin(a) * 0.18;
+      l.castShadow = true;
+      g.add(l);
+    }
+    const ripe = growth >= 0.85;
+    const mat = ripe ? MATS.corn : MATS.cornGreen;
+    for (let i = 0; i < (ripe ? 2 : 1); i++) {
+      const cob = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.09, 0.32, 4, 8),
+        mat
+      );
+      const a = i * Math.PI + 0.5;
+      cob.position.set(Math.cos(a) * 0.18, 1.0, Math.sin(a) * 0.18);
+      cob.rotation.z = 0.2;
+      cob.rotation.x = Math.PI / 2 + 0.3;
+      cob.rotation.y = a;
+      cob.castShadow = true;
+      g.add(cob);
+      // husk
+      for (let k = 0; k < 3; k++) {
+        const husk = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.3, 0.02), MATS.leaf);
+        husk.position.copy(cob.position);
+        husk.rotation.set(cob.rotation.x, cob.rotation.y + k * 0.5, 0);
+        husk.translateZ(0.08);
+        g.add(husk);
+      }
+    }
+  }
+  return g;
+}
+
+// ── PUMPKIN ───────────────────────────────────────────────
+export function createPumpkin(growth) {
+  const g = new THREE.Group();
+
+  if (growth < 0.2) {
+    const sp = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), MATS.sprout);
+    sp.position.y = 0.08;
+    sp.scale.set(1.4, 0.4, 1.4);
+    sp.castShadow = true;
+    g.add(sp);
+    for (let i = 0; i < 3; i++) {
+      const l = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 4), MATS.leafLight);
+      const a = i * 2.1;
+      l.position.set(Math.cos(a) * 0.16, 0.14, Math.sin(a) * 0.16);
+      l.scale.set(1.5, 0.35, 0.8);
+      l.rotation.y = a;
+      l.castShadow = true;
+      g.add(l);
+    }
+  } else if (growth < 0.5) {
+    for (let i = 0; i < 5; i++) {
+      const l = new THREE.Mesh(new THREE.SphereGeometry(0.24, 6, 4), MATS.leaf);
+      l.scale.set(1.7, 0.3, 1.2);
+      const a = i * 1.3;
+      l.position.set(Math.cos(a) * 0.35, 0.12, Math.sin(a) * 0.35);
+      l.rotation.y = a;
+      l.castShadow = true;
+      g.add(l);
+    }
+    const vine = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.5, 5), MATS.stem);
+    vine.position.y = 0.2;
+    vine.castShadow = true;
+    g.add(vine);
+  } else {
+    for (let i = 0; i < 7; i++) {
+      const l = new THREE.Mesh(new THREE.SphereGeometry(0.28, 6, 4), MATS.leaf);
+      l.scale.set(1.8, 0.3, 1.3);
+      const a = i * 0.95;
+      l.position.set(Math.cos(a) * 0.45, 0.12, Math.sin(a) * 0.45);
+      l.rotation.y = a;
+      l.castShadow = true;
+      g.add(l);
+    }
+    const ripe = growth >= 0.85;
+    const size = ripe ? 1 : 0.6;
+    const mat = ripe ? MATS.pumpkin : MATS.pumpkinGreen;
+    // Pumpkin body — 8 lobes
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const lobe = new THREE.Mesh(
+        new THREE.SphereGeometry(0.22 * size, 10, 8),
+        mat
+      );
+      lobe.position.set(Math.cos(a) * 0.18 * size, 0.3 * size + 0.02, Math.sin(a) * 0.18 * size);
+      lobe.scale.set(1, 1.3, 1);
+      lobe.castShadow = true;
+      g.add(lobe);
+    }
+    const stem = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.06, 0.2, 5),
+      MATS.pumpkinStem
+    );
+    stem.position.y = 0.3 * size + 0.24;
+    stem.castShadow = true;
+    g.add(stem);
+  }
+  return g;
+}
+
+// ── Dispatcher ────────────────────────────────────────────
+export function createCropMesh(type, growth) {
+  switch (type) {
+    case 'corn':    return createCorn(growth);
+    case 'pumpkin': return createPumpkin(growth);
+    case 'tomato':
+    default:        return createTomato(growth);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ANIMALS
+// ═══════════════════════════════════════════════════════════════
+
+export function createSheep() {
+  const g = new THREE.Group();
+
+  // Body — fluffy wool (cluster of icosahedrons)
+  const woolGroup = new THREE.Group();
+  for (let i = 0; i < 12; i++) {
+    const puff = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(0.28, 1),
+      MATS.sheepWool
+    );
+    const a = rand() * Math.PI * 2;
+    const r = rand() * 0.25;
+    puff.position.set(
+      Math.cos(a) * r,
+      0.65 + (rand() - 0.5) * 0.15,
+      (rand() - 0.5) * 0.9
+    );
+    puff.scale.set(1.2, 0.9, 0.9);
+    puff.castShadow = true;
+    woolGroup.add(puff);
+  }
+  g.add(woolGroup);
+
+  // Head
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.18, 10, 8),
+    MATS.sheepFace
+  );
+  head.position.set(0, 0.75, 0.5);
+  head.castShadow = true;
+  g.add(head);
+
+  // Ears
+  for (const side of [-1, 1]) {
+    const ear = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.06, 0.14),
+      MATS.sheepFace
+    );
+    ear.position.set(side * 0.14, 0.78, 0.48);
+    ear.rotation.z = side * 0.4;
+    g.add(ear);
+  }
+
+  // Eyes
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(
+      new THREE.SphereGeometry(0.03, 6, 5),
+      new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.2 })
+    );
+    eye.position.set(side * 0.07, 0.78, 0.63);
+    g.add(eye);
+  }
+
+  // Legs
+  for (const [dx, dz] of [[-0.15, -0.3], [0.15, -0.3], [-0.15, 0.3], [0.15, 0.3]]) {
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.05, 0.5, 6),
+      MATS.sheepFace
+    );
+    leg.position.set(dx, 0.28, dz);
+    leg.castShadow = true;
+    g.add(leg);
+  }
+
+  return g;
+}
+
+export function createChicken() {
+  const g = new THREE.Group();
+
+  // Body
+  const body = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 12, 10),
+    MATS.chickenBody
+  );
+  body.position.y = 0.35;
+  body.scale.set(1, 1.1, 1.2);
+  body.castShadow = true;
+  g.add(body);
+
+  // Head
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12, 10, 8),
+    MATS.chickenBody
+  );
+  head.position.set(0, 0.62, 0.14);
+  head.castShadow = true;
+  g.add(head);
+
+  // Comb
+  const comb = new THREE.Mesh(
+    new THREE.BoxGeometry(0.06, 0.1, 0.05),
+    MATS.chickenComb
+  );
+  comb.position.set(0, 0.72, 0.16);
+  g.add(comb);
+
+  // Beak
+  const beak = new THREE.Mesh(
+    new THREE.ConeGeometry(0.03, 0.08, 5),
+    MATS.beak
+  );
+  beak.position.set(0, 0.6, 0.26);
+  beak.rotation.x = Math.PI / 2;
+  g.add(beak);
+
+  // Eyes
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(
+      new THREE.SphereGeometry(0.018, 6, 5),
+      new THREE.MeshStandardMaterial({ color: 0x000000 })
+    );
+    eye.position.set(side * 0.06, 0.65, 0.22);
+    g.add(eye);
+  }
+
+  // Tail
+  const tail = new THREE.Mesh(
+    new THREE.ConeGeometry(0.1, 0.22, 5),
+    MATS.chickenBody
+  );
+  tail.position.set(0, 0.42, -0.24);
+  tail.rotation.x = -0.5;
+  g.add(tail);
+
+  // Legs
+  for (const side of [-1, 1]) {
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.02, 0.02, 0.18, 5),
+      MATS.beak
+    );
+    leg.position.set(side * 0.08, 0.14, 0);
+    g.add(leg);
+  }
+
+  return g;
+}
+
+export function createCow() {
+  const g = new THREE.Group();
+
+  // Body
+  const body = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.45, 0.9, 6, 12),
+    MATS.cowBody
+  );
+  body.rotation.z = Math.PI / 2;
+  body.position.y = 0.9;
+  body.castShadow = true;
+  g.add(body);
+
+  // Spots
+  for (let i = 0; i < 5; i++) {
+    const spot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15 + rand() * 0.1, 8, 6),
+      MATS.cowSpot
+    );
+    spot.position.set(
+      (rand() - 0.5) * 1.2,
+      0.9 + (rand() - 0.5) * 0.35,
+      (rand() - 0.5) * 0.5
+    );
+    spot.scale.set(1, 0.4, 1);
+    g.add(spot);
+  }
+
+  // Head
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(0.32, 0.32, 0.4),
+    MATS.cowBody
+  );
+  head.position.set(0.65, 0.95, 0);
+  head.castShadow = true;
+  g.add(head);
+
+  // Snout
+  const snout = new THREE.Mesh(
+    new THREE.BoxGeometry(0.22, 0.18, 0.2),
+    MATS.cowSpot
+  );
+  snout.position.set(0.85, 0.85, 0);
+  g.add(snout);
+
+  // Eyes
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Mesh(
+      new THREE.SphereGeometry(0.035, 6, 5),
+      new THREE.MeshStandardMaterial({ color: 0x000000 })
+    );
+    eye.position.set(0.72, 1.02, side * 0.13);
+    g.add(eye);
+  }
+
+  // Ears
+  for (const side of [-1, 1]) {
+    const ear = new THREE.Mesh(
+      new THREE.BoxGeometry(0.08, 0.05, 0.14),
+      MATS.cowBody
+    );
+    ear.position.set(0.6, 1.05, side * 0.2);
+    ear.rotation.x = side * 0.4;
+    g.add(ear);
+  }
+
+  // Horns
+  for (const side of [-1, 1]) {
+    const horn = new THREE.Mesh(
+      new THREE.ConeGeometry(0.03, 0.14, 5),
+      MATS.silver
+    );
+    horn.position.set(0.6, 1.18, side * 0.1);
+    g.add(horn);
+  }
+
+  // Legs
+  for (const [dx, dz] of [[-0.4, -0.22], [0.4, -0.22], [-0.4, 0.22], [0.4, 0.22]]) {
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.09, 0.65, 6),
+      MATS.cowBody
+    );
+    leg.position.set(dx, 0.32, dz);
+    leg.castShadow = true;
+    g.add(leg);
+    // hoof
+    const hoof = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.09, 0.1, 0.1, 6),
+      MATS.leatherDark
+    );
+    hoof.position.set(dx, 0.05, dz);
+    g.add(hoof);
+  }
+
+  // Tail
+  const tail = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.025, 0.04, 0.5, 5),
+    MATS.cowBody
+  );
+  tail.position.set(-0.65, 0.85, 0);
+  tail.rotation.z = 0.4;
+  g.add(tail);
+
+  return g;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PROPS — crates, barrels, signs, scarecrow
+// ═══════════════════════════════════════════════════════════════
+
+export function createCrate() {
+  const g = new THREE.Group();
+  const box = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.7, 0.7),
+    MATS.wood
+  );
+  box.position.y = 0.35;
+  box.castShadow = true;
+  box.receiveShadow = true;
+  g.add(box);
+
+  // Corner frames
+  for (const [x, z] of [[-0.34, -0.34], [0.34, -0.34], [-0.34, 0.34], [0.34, 0.34]]) {
+    const post = new THREE.Mesh(
+      new THREE.BoxGeometry(0.05, 0.72, 0.05),
+      MATS.woodDark
+    );
+    post.position.set(x, 0.36, z);
+    g.add(post);
+  }
+
+  return g;
+}
+
+export function createBarrel() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.3, 0.34, 0.75, 14),
+    MATS.wood
+  );
+  body.position.y = 0.38;
+  body.castShadow = true;
+  g.add(body);
+
+  for (const y of [0.15, 0.6]) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.32, 0.025, 6, 20),
+      MATS.ironRust
+    );
+    ring.position.y = y;
+    ring.rotation.x = Math.PI / 2;
+    g.add(ring);
+  }
+
+  return g;
+}
+
+export function createScarecrow() {
+  const g = new THREE.Group();
+
+  // Post
+  const post = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.08, 2.2, 6),
+    MATS.woodDark
+  );
+  post.position.y = 1.1;
+  post.castShadow = true;
+  g.add(post);
+
+  // Crossbar
+  const bar = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 0.08, 0.08),
+    MATS.woodDark
+  );
+  bar.position.y = 1.6;
+  bar.castShadow = true;
+  g.add(bar);
+
+  // Head (hay sack)
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 10, 8),
+    MATS.hay
+  );
+  head.position.y = 1.95;
+  head.scale.set(1, 1.1, 0.95);
+  head.castShadow = true;
+  g.add(head);
+
+  // Hat
+  const hatBrim = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.32, 0.34, 0.04, 12),
+    MATS.hat
+  );
+  hatBrim.position.y = 2.12;
+  g.add(hatBrim);
+  const hatTop = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.16, 0.2, 0.2, 10),
+    MATS.hat
+  );
+  hatTop.position.y = 2.24;
+  g.add(hatTop);
+
+  // Body (cloth)
+  const body = new THREE.Mesh(
+    new THREE.ConeGeometry(0.4, 0.85, 8),
+    MATS.fabric
+  );
+  body.position.y = 1.15;
+  body.castShadow = true;
+  g.add(body);
+
+  // Arms (straw tufts)
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.08, 0.5, 5),
+      MATS.straw
+    );
+    arm.position.set(side * 0.55, 1.6, 0);
+    arm.rotation.z = side * 0.3;
+    g.add(arm);
   }
 
   return g;
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  WORLD (lights, terrain, sky, vegetation, pond, clouds, atmosphere)
+//  BUILDINGS — barn, house, silo
 // ═══════════════════════════════════════════════════════════════
 
-export async function createWorld(scene, renderer, camera, opts = {}) {
-  const report = opts.progress || (() => {});
+export function createBarn() {
+  const g = new THREE.Group();
 
-  // ── Lights ────────────────────────────────────────────────
-  report(24, 'placing sun');
-  const sunLight = new THREE.DirectionalLight(0xfff2d0, 1.7);
-  sunLight.position.set(20, 40, 15);
-  sunLight.castShadow = true;
-  sunLight.shadow.mapSize.set(2048, 2048);
-  sunLight.shadow.camera.left = -55;
-  sunLight.shadow.camera.right = 55;
-  sunLight.shadow.camera.top = 55;
-  sunLight.shadow.camera.bottom = -55;
-  sunLight.shadow.camera.near = 1;
-  sunLight.shadow.camera.far = 160;
-  sunLight.shadow.bias = -0.0004;
-  sunLight.shadow.normalBias = 0.03;
-  sunLight.shadow.autoUpdate = false;
-  scene.add(sunLight, sunLight.target);
-
-  const hemiLight = new THREE.HemisphereLight(0xa0c8e8, 0x4a6b3a, 1.0);
-  scene.add(hemiLight);
-
-  const ambient = new THREE.AmbientLight(0xfff0d0, 0.22);
-  scene.add(ambient);
-
-  // ── Sky dome ─────────────────────────────────────────────
-  report(30, 'painting sky');
-  const skyGeo = new THREE.SphereGeometry(220, 32, 16);
-  const skyMat = new THREE.ShaderMaterial({
-    side: THREE.BackSide,
-    uniforms: {
-      topColor: { value: new THREE.Color(0x5a9bd8) },
-      bottomColor: { value: new THREE.Color(0xd8e8f0) },
-      sunPos: { value: new THREE.Vector3() },
-      sunColor: { value: new THREE.Color(0xffeecc) },
-      offset: { value: 0.0 },
-    },
-    vertexShader: `
-      varying vec3 vW;
-      void main(){ vW = (modelMatrix * vec4(position,1.)).xyz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }
-    `,
-    fragmentShader: `
-      uniform vec3 topColor; uniform vec3 bottomColor;
-      uniform vec3 sunPos; uniform vec3 sunColor;
-      varying vec3 vW;
-      void main(){
-        vec3 dir = normalize(vW);
-        float h = clamp(dir.y * 0.5 + 0.5, 0., 1.);
-        vec3 col = mix(bottomColor, topColor, pow(h, 0.85));
-        float sd = distance(dir, normalize(sunPos));
-        col += sunColor * smoothstep(0.4, 0., sd) * 0.85;
-        // subtle noise
-        float n = fract(sin(dot(dir.xy, vec2(12.9898,78.233))) * 43758.5453);
-        col += (n - 0.5) * 0.01;
-        gl_FragColor = vec4(col, 1.);
-      }
-    `,
-  });
-  const sky = new THREE.Mesh(skyGeo, skyMat);
-  scene.add(sky);
-
-  // ── Sun disc + stars ─────────────────────────────────────
-  const sunMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(6, 20, 20),
-    new THREE.MeshBasicMaterial({ color: 0xffe8a0 })
+  // Base
+  const base = new THREE.Mesh(
+    new THREE.BoxGeometry(4, 3, 5),
+    MATS.wallPlaster
   );
-  scene.add(sunMesh);
+  base.position.y = 1.5;
+  base.castShadow = true;
+  base.receiveShadow = true;
+  g.add(base);
 
-  const starCount = 1400;
-  const starGeo = new THREE.BufferGeometry();
-  const starPos = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount; i++) {
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(Math.random());
-    const r = 200;
-    starPos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-    starPos[i * 3 + 1] = r * Math.cos(phi) + 30;
-    starPos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-  }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-  const starMat = new THREE.PointsMaterial({
-    color: 0xffffff, size: 0.8, transparent: true, opacity: 0, depthWrite: false,
-  });
-  scene.add(new THREE.Points(starGeo, starMat));
-
-  // ── Clouds ───────────────────────────────────────────────
-  const clouds = [];
-  const cloudMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff, roughness: 1, flatShading: true,
-    transparent: true, opacity: 0.88,
-  });
-  const cloudGeo = new THREE.SphereGeometry(1, 8, 6);
-  for (let i = 0; i < 14; i++) {
-    const g = new THREE.Group();
-    const puffs = 4 + (Math.random() * 4 | 0);
-    for (let j = 0; j < puffs; j++) {
-      const p = new THREE.Mesh(cloudGeo, cloudMat);
-      p.position.set(
-        (Math.random() - 0.5) * 8,
-        (Math.random() - 0.5) * 1.5,
-        (Math.random() - 0.5) * 5
-      );
-      p.scale.setScalar(1.2 + Math.random() * 1.4);
-      g.add(p);
-    }
-    g.position.set(
-      (Math.random() - 0.5) * 160,
-      42 + Math.random() * 14,
-      (Math.random() - 0.5) * 160
+  // Roof (two slanted planes)
+  for (const side of [-1, 1]) {
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(2.2, 0.15, 5.4),
+      MATS.roofTile
     );
-    g.scale.setScalar(2 + Math.random() * 2);
-    g.userData = { speed: 0.3 + Math.random() * 0.4 };
-    scene.add(g);
-    clouds.push(g);
+    roof.position.set(side * 1.0, 3.7, 0);
+    roof.rotation.z = side * 0.6;
+    roof.castShadow = true;
+    roof.receiveShadow = true;
+    g.add(roof);
   }
 
-  // ── Terrain ──────────────────────────────────────────────
-  report(38, 'raising hills');
-  const terrainGeo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 120, 120);
-  terrainGeo.rotateX(-Math.PI / 2);
-  const tPos = terrainGeo.attributes.position;
-  const tColors = new Float32Array(tPos.count * 3);
-  for (let i = 0; i < tPos.count; i++) {
-    const x = tPos.getX(i), z = tPos.getZ(i);
-    tPos.setY(i, terrainHeight(x, z));
-    const n = noise2D(x * 2.1, z * 2.1);
-    const g = 0.35 + (n + 1) * 0.14;
-    tColors[i * 3] = 0.22 + g * 0.28;
-    tColors[i * 3 + 1] = 0.36 + g * 0.58;
-    tColors[i * 3 + 2] = 0.14 + g * 0.18;
-  }
-  terrainGeo.setAttribute('color', new THREE.BufferAttribute(tColors, 3));
-  terrainGeo.computeVertexNormals();
-  const terrain = new THREE.Mesh(
-    terrainGeo,
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96, metalness: 0.0 })
+  // Door
+  const door = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 2.2, 0.1),
+    MATS.woodDark
   );
-  terrain.receiveShadow = true;
-  scene.add(terrain);
+  door.position.set(0, 1.1, 2.51);
+  g.add(door);
 
-  // ── Trees ────────────────────────────────────────────────
-  report(48, 'planting forest');
-  const treeGroup = new THREE.Group();
-  scene.add(treeGroup);
-
-  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5a3d24, roughness: 0.95 });
-  const leafMats = [
-    new THREE.MeshStandardMaterial({ color: 0x4a8b3a, roughness: 0.88, flatShading: true }),
-    new THREE.MeshStandardMaterial({ color: 0x5fa54a, roughness: 0.88, flatShading: true }),
-    new THREE.MeshStandardMaterial({ color: 0x3d7a2e, roughness: 0.88, flatShading: true }),
-  ];
-
-  for (let i = 0; i < 90; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const dist = HALF_GRID + 5 + Math.random() * 30;
-    const x = Math.cos(a) * dist, z = Math.sin(a) * dist;
-    if (Math.abs(x) > HALF_WORLD - 7 || Math.abs(z) > HALF_WORLD - 7) continue;
-
-    const scale = 0.8 + Math.random() * 0.8;
-    const g = new THREE.Group();
-    const h = (3.2 + Math.random() * 2.2) * scale;
-
-    const trunk = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.28 * scale, 0.45 * scale, h, 8),
-      trunkMat
-    );
-    trunk.position.y = h / 2;
-    trunk.castShadow = true;
-    trunk.receiveShadow = true;
-    g.add(trunk);
-
-    const leafMat = leafMats[Math.floor(Math.random() * 3)];
-    const layers = 3 + (Math.random() * 2 | 0);
-    for (let j = 0; j < layers; j++) {
-      const r = (1.5 - j * 0.26) * scale;
-      const leaf = new THREE.Mesh(new THREE.ConeGeometry(r, r * 1.35, 7), leafMat);
-      leaf.position.y = h * 0.75 + j * 0.9 * scale;
-      leaf.castShadow = true;
-      leaf.receiveShadow = true;
-      leaf.rotation.y = Math.random() * Math.PI;
-      g.add(leaf);
-    }
-    g.position.set(x, terrainHeight(x, z), z);
-    g.userData = {
-      sway: Math.random() * Math.PI * 2,
-      swaySpeed: 0.5 + Math.random() * 0.5,
-      baseX: x, baseZ: z,
-    };
-    treeGroup.add(g);
-  }
-
-  // ── Grass ────────────────────────────────────────────────
-  report(58, 'growing grass');
-  const grassCount = 2800;
-  const grassGeo = new THREE.ConeGeometry(0.09, 0.85, 3);
-  grassGeo.translate(0, 0.42, 0);
-  const grassMat = new THREE.MeshStandardMaterial({
-    color: 0x5fa54a, roughness: 1, flatShading: true,
-  });
-  const grassMesh = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
-  const grassData = [];
-  const gDummy = new THREE.Object3D();
-  for (let i = 0; i < grassCount; i++) {
-    let x, z;
-    do {
-      x = (Math.random() - 0.5) * WORLD_SIZE * 0.92;
-      z = (Math.random() - 0.5) * WORLD_SIZE * 0.92;
-    } while (Math.abs(x) < HALF_GRID + 1.5 && Math.abs(z) < HALF_GRID + 1.5);
-    const y = terrainHeight(x, z);
-    gDummy.position.set(x, y, z);
-    gDummy.rotation.y = Math.random() * Math.PI;
-    const s = 0.7 + Math.random() * 0.9;
-    gDummy.scale.set(s, s, s);
-    gDummy.updateMatrix();
-    grassMesh.setMatrixAt(i, gDummy.matrix);
-    grassData.push({
-      x, z, y,
-      baseRot: gDummy.rotation.y,
-      phase: Math.random() * Math.PI * 2,
-      s,
-    });
-  }
-  grassMesh.instanceMatrix.needsUpdate = true;
-  grassMesh.receiveShadow = true;
-  scene.add(grassMesh);
-
-  // ── Flowers ──────────────────────────────────────────────
-  const flowerCount = 180;
-  const flowerGeo = new THREE.IcosahedronGeometry(0.14, 0);
-  const flowerMat = new THREE.MeshStandardMaterial({
-    roughness: 0.7, emissive: 0x220000, emissiveIntensity: 0.15, vertexColors: true,
-  });
-  const flowerMesh = new THREE.InstancedMesh(flowerGeo, flowerMat, flowerCount);
-  const flowerData = [];
-  const fDummy = new THREE.Object3D();
-  const palette = [0xff88aa, 0xffdd66, 0xff9966, 0xdd88ff, 0xffffff, 0xff6688];
-  const colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(flowerCount * 3), 3);
-  for (let i = 0; i < flowerCount; i++) {
-    let x, z;
-    do {
-      x = (Math.random() - 0.5) * WORLD_SIZE * 0.85;
-      z = (Math.random() - 0.5) * WORLD_SIZE * 0.85;
-    } while (Math.abs(x) < HALF_GRID + 2 && Math.abs(z) < HALF_GRID + 2);
-    const y = terrainHeight(x, z) + 0.45;
-    fDummy.position.set(x, y, z);
-    fDummy.rotation.set(Math.random() * 0.3, Math.random() * Math.PI * 2, Math.random() * 0.3);
-    fDummy.scale.setScalar(0.7 + Math.random() * 0.6);
-    fDummy.updateMatrix();
-    flowerMesh.setMatrixAt(i, fDummy.matrix);
-    const c = new THREE.Color(palette[Math.floor(Math.random() * palette.length)]);
-    colorAttr.setXYZ(i, c.r, c.g, c.b);
-    flowerData.push({ x, z, baseY: y, phase: Math.random() * Math.PI * 2 });
-  }
-  flowerGeo.setAttribute('color', colorAttr);
-  flowerMesh.instanceMatrix.needsUpdate = true;
-  scene.add(flowerMesh);
-
-  // ── Bushes + rocks ───────────────────────────────────────
-  const bushMesh = new THREE.InstancedMesh(
-    new THREE.IcosahedronGeometry(0.85, 1),
-    leafMats[0], 30
+  // Window
+  const win = new THREE.Mesh(
+    new THREE.BoxGeometry(0.7, 0.7, 0.05),
+    MATS.window
   );
-  for (let i = 0; i < 30; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const dist = HALF_GRID + 2 + Math.random() * 14;
-    const x = Math.cos(a) * dist, z = Math.sin(a) * dist;
-    gDummy.position.set(x, terrainHeight(x, z) + 0.4, z);
-    gDummy.rotation.set(0, Math.random() * Math.PI * 2, 0);
-    gDummy.scale.setScalar(0.8 + Math.random() * 0.5);
-    gDummy.updateMatrix();
-    bushMesh.setMatrixAt(i, gDummy.matrix);
-  }
-  bushMesh.instanceMatrix.needsUpdate = true;
-  bushMesh.castShadow = true;
-  scene.add(bushMesh);
+  win.position.set(0, 2.0, 2.52);
+  g.add(win);
 
-  const rockMesh = new THREE.InstancedMesh(
-    new THREE.DodecahedronGeometry(0.5, 0),
-    new THREE.MeshStandardMaterial({ color: 0x8a8a80, roughness: 0.92, flatShading: true }),
-    24
-  );
-  for (let i = 0; i < 24; i++) {
-    const x = (Math.random() - 0.5) * WORLD_SIZE * 0.85;
-    const z = (Math.random() - 0.5) * WORLD_SIZE * 0.85;
-    if (Math.abs(x) < HALF_GRID + 2 && Math.abs(z) < HALF_GRID + 2) continue;
-    gDummy.position.set(x, terrainHeight(x, z) + 0.2, z);
-    gDummy.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
-    gDummy.scale.setScalar(0.6 + Math.random() * 0.6);
-    gDummy.updateMatrix();
-    rockMesh.setMatrixAt(i, gDummy.matrix);
-  }
-  rockMesh.instanceMatrix.needsUpdate = true;
-  rockMesh.castShadow = true;
-  scene.add(rockMesh);
-
-  // ── Pond ─────────────────────────────────────────────────
-  report(68, 'filling pond');
-  const pondPos = new THREE.Vector3(HALF_GRID + 10, 0, -HALF_GRID - 8);
-  const pondGeo = new THREE.CircleGeometry(5, 32);
-  pondGeo.rotateX(-Math.PI / 2);
-  const pondMat = new THREE.MeshStandardMaterial({
-    color: 0x4a90b0, roughness: 0.12, metalness: 0.7,
-    transparent: true, opacity: 0.88,
-  });
-  const pondMesh = new THREE.Mesh(pondGeo, pondMat);
-  pondMesh.position.set(pondPos.x, terrainHeight(pondPos.x, pondPos.z) + 0.09, pondPos.z);
-  scene.add(pondMesh);
-
-  // ── Particles (dust pool, exposed globally) ──────────────
-  const particlePool = [];
-  const particleGeo = new THREE.SphereGeometry(0.07, 5, 4);
-  const MAX_PARTICLES = 180;
-  for (let i = 0; i < MAX_PARTICLES; i++) {
-    const p = new THREE.Mesh(
-      particleGeo,
-      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
-    );
-    p.visible = false;
-    p.userData = { active: false, vel: new THREE.Vector3(), life: 0, maxLife: 1, gravity: -4 };
-    scene.add(p);
-    particlePool.push(p);
-  }
-  let pCursor = 0;
-  function spawnParticles(pos, opts = {}) {
-    const n = opts.count || 8;
-    for (let k = 0; k < n; k++) {
-      const p = particlePool[pCursor];
-      pCursor = (pCursor + 1) % MAX_PARTICLES;
-      p.position.copy(pos);
-      p.material.color.setHex(opts.color || 0xffe27a);
-      p.material.opacity = 1;
-      p.visible = true;
-      const d = p.userData;
-      d.active = true;
-      d.life = opts.life || 1.2;
-      d.maxLife = d.life;
-      d.gravity = opts.gravity ?? -4;
-      const sp = opts.spread || 2;
-      d.vel.set(
-        (Math.random() - 0.5) * sp,
-        Math.random() * (opts.up || 2) + 0.3,
-        (Math.random() - 0.5) * sp
-      );
-    }
-  }
-  function updateParticles(dt) {
-    for (let i = 0; i < MAX_PARTICLES; i++) {
-      const p = particlePool[i], d = p.userData;
-      if (!d.active) continue;
-      d.life -= dt;
-      if (d.life <= 0) { d.active = false; p.visible = false; continue; }
-      d.vel.y += d.gravity * dt;
-      p.position.addScaledVector(d.vel, dt);
-      p.material.opacity = d.life / d.maxLife;
-    }
-  }
-
-  // Expose dust spawner globally (used by game.js HUD)
-  window.__spawnDust = (x, z, color, count = 12, up = 1.8) => {
-    const y = terrainHeight(x, z) + 0.5;
-    spawnParticles(new THREE.Vector3(x, y, z), {
-      color, count, spread: 1.6, up: up * 1.5, life: 1.0, gravity: -6,
-    });
-  };
-
-  // ── Pollen + fireflies ───────────────────────────────────
-  const pollenCount = 240;
-  const pollenGeo = new THREE.BufferGeometry();
-  const pollenPos = new Float32Array(pollenCount * 3);
-  const pollenVel = [];
-  for (let i = 0; i < pollenCount; i++) {
-    pollenPos[i * 3] = (Math.random() - 0.5) * 70;
-    pollenPos[i * 3 + 1] = Math.random() * 14 + 1;
-    pollenPos[i * 3 + 2] = (Math.random() - 0.5) * 70;
-    pollenVel.push({
-      x: (Math.random() - 0.5) * 0.3,
-      y: (Math.random() - 0.5) * 0.2,
-      z: (Math.random() - 0.5) * 0.3,
-      phase: Math.random() * Math.PI * 2,
-    });
-  }
-  pollenGeo.setAttribute('position', new THREE.BufferAttribute(pollenPos, 3));
-  const pollen = new THREE.Points(pollenGeo, new THREE.PointsMaterial({
-    color: 0xffffcc, size: 0.14, transparent: true, opacity: 0.7,
-    blending: THREE.AdditiveBlending, depthWrite: false,
-  }));
-  scene.add(pollen);
-
-  const fireflyCount = 80;
-  const fireflyGeo = new THREE.BufferGeometry();
-  const fireflyPos = new Float32Array(fireflyCount * 3);
-  const fireflyData = [];
-  for (let i = 0; i < fireflyCount; i++) {
-    fireflyPos[i * 3] = (Math.random() - 0.5) * 50;
-    fireflyPos[i * 3 + 1] = 0.5 + Math.random() * 3;
-    fireflyPos[i * 3 + 2] = (Math.random() - 0.5) * 50;
-    fireflyData.push({
-      phase: Math.random() * Math.PI * 2,
-      speed: 0.5 + Math.random() * 0.7,
-    });
-  }
-  fireflyGeo.setAttribute('position', new THREE.BufferAttribute(fireflyPos, 3));
-  const fireflyMat = new THREE.PointsMaterial({
-    color: 0xffff88, size: 0.35, transparent: true, opacity: 0,
-    blending: THREE.AdditiveBlending, depthWrite: false,
-  });
-  const fireflies = new THREE.Points(fireflyGeo, fireflyMat);
-  scene.add(fireflies);
-
-  // ── Time of day updater ──────────────────────────────────
-  let lastSunAngle = 0;
-  function updateTime(dt, timeOfDay) {
-    const t = (timeOfDay + dt / 300) % 1;
-    const angle = (t - 0.25) * Math.PI * 2;
-    const sunX = Math.cos(angle) * 80;
-    const sunY = Math.sin(angle) * 60;
-    const sunZ = -Math.cos(angle) * 20;
-    sunMesh.position.set(sunX, sunY, sunZ);
-    sunLight.position.set(sunX * 0.5, Math.max(5, sunY), sunZ * 0.5);
-    sunLight.target.position.set(0, 0, 0);
-    sunLight.target.updateMatrixWorld();
-    skyMat.uniforms.sunPos.value.copy(sunMesh.position).normalize();
-
-    if (Math.abs(angle - lastSunAngle) > 0.035) {
-      sunLight.shadow.needsUpdate = true;
-      lastSunAngle = angle;
-    }
-
-    const night = new THREE.Color(0x0a1530);
-    const dawn = new THREE.Color(0xffb070);
-    const dusk = new THREE.Color(0xff8850);
-    const noon = new THREE.Color(0x5a9bd8);
-    const skyLo = new THREE.Color(0xd8e8f0);
-
-    let skyTop, skyBot, sunCol, sunInt, hemiInt, fogCol;
-    if (t < 0.2) {
-      skyTop = night.clone(); skyBot = new THREE.Color(0x1a2a50);
-      sunCol = new THREE.Color(0x4a6a9a);
-      sunInt = 0.15; hemiInt = 0.28; fogCol = night.clone();
-    } else if (t < 0.28) {
-      const k = (t - 0.2) / 0.08;
-      skyTop = night.clone().lerp(dawn, k);
-      skyBot = new THREE.Color(0x1a2a50).lerp(dawn, k);
-      sunCol = new THREE.Color(0x4a6a9a).lerp(dawn, k);
-      sunInt = 0.15 + k * 1.3; hemiInt = 0.28 + k * 0.75;
-      fogCol = night.clone().lerp(dawn, k);
-    } else if (t < 0.72) {
-      const k = Math.abs(t - 0.5) / 0.22;
-      skyTop = noon.clone().lerp(new THREE.Color(0x4a8bc8), k * 0.3);
-      skyBot = skyLo.clone();
-      sunCol = new THREE.Color(0xfff2d0);
-      sunInt = 1.55 - k * 0.2; hemiInt = 1.05;
-      fogCol = new THREE.Color(0xa8d8e8);
-    } else if (t < 0.82) {
-      const k = (t - 0.72) / 0.10;
-      skyTop = new THREE.Color(0x5a9bd8).lerp(dusk, k);
-      skyBot = new THREE.Color(0xd8e8f0).lerp(dusk, k);
-      sunCol = new THREE.Color(0xfff2d0).lerp(dusk, k);
-      sunInt = 1.35 - k * 0.9; hemiInt = 1.05 - k * 0.55;
-      fogCol = new THREE.Color(0xa8d8e8).lerp(dusk, k);
-    } else {
-      const k = (t - 0.82) / 0.18;
-      skyTop = dusk.clone().lerp(night, k);
-      skyBot = dusk.clone().lerp(new THREE.Color(0x1a2a50), k);
-      sunCol = dusk.clone().lerp(new THREE.Color(0x4a6a9a), k);
-      sunInt = 0.45 - k * 0.3; hemiInt = 0.5 - k * 0.22;
-      fogCol = dusk.clone().lerp(night, k);
-    }
-
-    skyMat.uniforms.topColor.value.copy(skyTop);
-    skyMat.uniforms.bottomColor.value.copy(skyBot);
-    skyMat.uniforms.sunColor.value.copy(sunCol);
-    sunLight.color.copy(sunCol);
-    sunLight.intensity = sunInt;
-    hemiLight.intensity = hemiInt;
-    scene.fog.color.copy(fogCol);
-    scene.background.copy(fogCol);
-    sunMesh.material.color.copy(
-      t < 0.25 || t > 0.75 ? new THREE.Color(0xdde8ff) : new THREE.Color(0xffe8a0)
-    );
-    const dayness = Math.max(0, 1 - Math.abs(t - 0.5) * 3);
-    starMat.opacity = Math.max(0, 1 - dayness * 1.3);
-    fireflyMat.opacity = Math.max(0, 1 - dayness * 1.2) * 0.85;
-  }
-
-  // ── Per-frame world animation ────────────────────────────
-  let elapsedLocal = 0;
-  function update(dt) {
-    elapsedLocal += dt;
-
-    // Trees sway
-    for (const tr of treeGroup.children) {
-      const d = tr.userData;
-      const dx = d.baseX - camera.position.x;
-      const dz = d.baseZ - camera.position.z;
-      if (dx * dx + dz * dz < 2600) {
-        const sway = Math.sin(elapsedLocal * d.swaySpeed + d.sway) * 0.022;
-        tr.rotation.z = sway;
-        tr.rotation.x = sway * 0.55;
-      }
-    }
-
-    // Grass sway (update every 2nd frame to save CPU)
-    if ((elapsedLocal * 60 | 0) % 2 === 0) {
-      for (let i = 0; i < grassData.length; i++) {
-        const d = grassData[i];
-        const sway = Math.sin(elapsedLocal * 1.8 + d.phase + d.x * 0.3) * 0.16;
-        gDummy.position.set(d.x, d.y, d.z);
-        gDummy.rotation.set(sway, d.baseRot, sway * 0.7);
-        gDummy.scale.set(d.s, d.s, d.s);
-        gDummy.updateMatrix();
-        grassMesh.setMatrixAt(i, gDummy.matrix);
-      }
-      grassMesh.instanceMatrix.needsUpdate = true;
-    }
-
-    // Flower sway
-    for (let i = 0; i < flowerData.length; i++) {
-      const d = flowerData[i];
-      const bob = Math.sin(elapsedLocal * 2 + d.phase) * 0.04;
-      fDummy.position.set(d.x, d.baseY + bob, d.z);
-      fDummy.rotation.set(
-        Math.sin(elapsedLocal * 1.4 + d.phase) * 0.2,
-        d.phase,
-        Math.cos(elapsedLocal * 1.2 + d.phase) * 0.15
-      );
-      fDummy.scale.setScalar(0.7 + Math.sin(d.phase) * 0.1);
-      fDummy.updateMatrix();
-      flowerMesh.setMatrixAt(i, fDummy.matrix);
-    }
-    flowerMesh.instanceMatrix.needsUpdate = true;
-
-    // Clouds drift
-    for (const c of clouds) {
-      c.position.x += c.userData.speed * dt;
-      if (c.position.x > 100) c.position.x = -100;
-    }
-
-    // Pond shimmer
-    pondMat.color.setHSL(0.55, 0.4, 0.42 + Math.sin(elapsedLocal) * 0.03);
-
-    // Pollen drift
-    const pp = pollen.geometry.attributes.position;
-    for (let i = 0; i < pollenCount; i++) {
-      const v = pollenVel[i];
-      pp.array[i * 3] += v.x * dt;
-      pp.array[i * 3 + 1] += v.y * dt + Math.cos(elapsedLocal * 0.7 + v.phase) * 0.002;
-      pp.array[i * 3 + 2] += v.z * dt;
-      if (pp.array[i * 3 + 1] > 15) pp.array[i * 3 + 1] = 1;
-      if (pp.array[i * 3 + 1] < 0.5) pp.array[i * 3 + 1] = 1;
-    }
-    pp.needsUpdate = true;
-
-    // Fireflies drift
-    const fp = fireflies.geometry.attributes.position;
-    for (let i = 0; i < fireflyCount; i++) {
-      const d = fireflyData[i];
-      fp.array[i * 3] += Math.sin(elapsedLocal * d.speed + d.phase) * 0.01;
-      fp.array[i * 3 + 1] += Math.cos(elapsedLocal * d.speed * 1.3 + d.phase) * 0.008;
-      fp.array[i * 3 + 2] += Math.cos(elapsedLocal * d.speed * 0.8 + d.phase) * 0.01;
-    }
-    fp.needsUpdate = true;
-
-    // Particles
-    updateParticles(dt);
-  }
-
-  return {
-    scene, sunLight, hemiLight, sunMesh, starMat,
-    skyMat, treeGroup, grassMesh, flowerMesh, pondMat,
-    updateTime, update,
-  };
+  return g;
 }
 
-// ── Internal ─────────────────────────────────────────────────
-function noise2D(x, z) {
-  return Math.sin(x * 0.08) * Math.cos(z * 0.07) * 0.6
-       + Math.sin(x * 0.19 + 1.7) * Math.cos(z * 0.21 + 3.2) * 0.3
-       + Math.sin(x * 0.4 + 5.1) * Math.cos(z * 0.37 + 1.3) * 0.1;
+export function createHouse() {
+  const g = new THREE.Group();
+
+  const base = new THREE.Mesh(
+    new THREE.BoxGeometry(3.5, 2.8, 3.5),
+    MATS.wallPlaster
+  );
+  base.position.y = 1.4;
+  base.castShadow = true;
+  base.receiveShadow = true;
+  g.add(base);
+
+  // Roof — 4 sides pyramid
+  const roofGeo = new THREE.ConeGeometry(2.9, 1.8, 4);
+  roofGeo.rotateY(Math.PI / 4);
+  const roof = new THREE.Mesh(roofGeo, MATS.roofTile);
+  roof.position.y = 3.7;
+  roof.castShadow = true;
+  g.add(roof);
+
+  // Door
+  const door = new THREE.Mesh(
+    new THREE.BoxGeometry(0.9, 1.9, 0.08),
+    MATS.woodDark
+  );
+  door.position.set(0, 0.95, 1.76);
+  g.add(door);
+
+  // Windows
+  for (const side of [-1, 1]) {
+    const win = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 0.6, 0.05),
+      MATS.window
+    );
+    win.position.set(side * 1.0, 1.8, 1.76);
+    g.add(win);
+  }
+
+  // Chimney
+  const chimney = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 1.4, 0.5),
+    MATS.rockDark
+  );
+  chimney.position.set(0.9, 4.0, -0.5);
+  chimney.castShadow = true;
+  g.add(chimney);
+
+  return g;
+}
+
+export function createSilo() {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.2, 1.2, 4.5, 16),
+    MATS.wood
+  );
+  body.position.y = 2.25;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  g.add(body);
+
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(1.2, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2),
+    MATS.iron
+  );
+  dome.position.y = 4.5;
+  dome.castShadow = true;
+  g.add(dome);
+
+  for (let i = 0; i < 4; i++) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(1.21, 0.04, 6, 24),
+      MATS.ironRust
+    );
+    ring.position.y = 0.8 + i * 1.1;
+    ring.rotation.x = Math.PI / 2;
+    g.add(ring);
+  }
+
+  return g;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TRACTOR (decorative, parked in the yard)
+// ═══════════════════════════════════════════════════════════════
+
+export function createTractor() {
+  const g = new THREE.Group();
+
+  // Body
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1.6, 0.9, 2.2),
+    new THREE.MeshStandardMaterial({ color: 0xc84a3a, roughness: 0.55, metalness: 0.3 })
+  );
+  body.position.y = 0.85;
+  body.castShadow = true;
+  g.add(body);
+
+  // Engine hood
+  const hood = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 0.6, 1.0),
+    new THREE.MeshStandardMaterial({ color: 0xc84a3a, roughness: 0.55, metalness: 0.3 })
+  );
+  hood.position.set(0, 1.05, 0.6);
+  hood.castShadow = true;
+  g.add(hood);
+
+  // Grille
+  const grille = new THREE.Mesh(
+    new THREE.BoxGeometry(1.0, 0.4, 0.06),
+    MATS.iron
+  );
+  grille.position.set(0, 0.95, 1.15);
+  g.add(grille);
+
+  // Cabin
+  const cabin = new THREE.Mesh(
+    new THREE.BoxGeometry(1.3, 1.2, 1.2),
+    new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.4, metalness: 0.6, transparent: true, opacity: 0.7 })
+  );
+  cabin.position.set(0, 1.75, -0.4);
+  cabin.castShadow = true;
+  g.add(cabin);
+
+  // Wheels
+  const wheelGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.3, 16);
+  wheelGeo.rotateZ(Math.PI / 2);
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+  const hubMat = MATS.iron;
+  for (const [x, z, scale] of [[-0.85, 0.7, 1], [0.85, 0.7, 1], [-0.85, -0.7, 1.4], [0.85, -0.7, 1.4]]) {
+    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+    wheel.scale.set(scale, scale, scale);
+    wheel.position.set(x, 0.55 * scale, z);
+    wheel.castShadow = true;
+    g.add(wheel);
+    const hub = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.2, 0.2, 0.32, 12),
+      hubMat
+    );
+    hub.rotation.z = Math.PI / 2;
+    hub.position.set(x, 0.55 * scale, z);
+    g.add(hub);
+  }
+
+  // Exhaust
+  const exhaust = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.06, 0.7, 8),
+    MATS.ironRust
+  );
+  exhaust.position.set(0.5, 1.5, 0.9);
+  g.add(exhaust);
+
+  return g;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  WATER SPRINKLER (functional decorative)
+// ═══════════════════════════════════════════════════════════════
+
+export function createSprinkler() {
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.18, 0.15, 10),
+    MATS.ironRust
+  );
+  base.position.y = 0.08;
+  base.castShadow = true;
+  g.add(base);
+
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.04, 0.9, 6),
+    MATS.ironRust
+  );
+  pole.position.y = 0.55;
+  g.add(pole);
+
+  const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.12, 10, 8),
+    MATS.copper
+  );
+  head.position.y = 1.0;
+  g.add(head);
+
+  return g;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FENCE PIECE — reusable
+// ═══════════════════════════════════════════════════════════════
+
+export function createFencePost() {
+  return new THREE.Mesh(
+    new THREE.BoxGeometry(0.18, 1.4, 0.18),
+    MATS.wood
+  );
+}
+export function createFenceRail(length = 2) {
+  return new THREE.Mesh(
+    new THREE.BoxGeometry(length, 0.12, 0.08),
+    MATS.wood
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  WELL (decorative + could be used for water)
+// ═══════════════════════════════════════════════════════════════
+
+export function createWell() {
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.7, 0.15, 8, 22),
+    MATS.rock
+  );
+  ring.position.y = 0.3;
+  ring.rotation.x = Math.PI / 2;
+  g.add(ring);
+
+  // Roof posts
+  for (const [x, z] of [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]]) {
+    const post = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 1.5, 0.1),
+      MATS.woodDark
+    );
+    post.position.set(x, 1.05, z);
+    g.add(post);
+  }
+
+  // Roof
+  const roofGeo = new THREE.ConeGeometry(1.0, 0.6, 4);
+  roofGeo.rotateY(Math.PI / 4);
+  const roof = new THREE.Mesh(roofGeo, MATS.roofThatch);
+  roof.position.y = 2.0;
+  roof.castShadow = true;
+  g.add(roof);
+
+  // Bucket
+  const bucket = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.15, 0.12, 0.25, 10),
+    MATS.wood
+  );
+  bucket.position.y = 1.2;
+  bucket.castShadow = true;
+  g.add(bucket);
+
+  return g;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  YARD LAMP — glows at night
+// ═══════════════════════════════════════════════════════════════
+
+export function createYardLamp() {
+  const g = new THREE.Group();
+  const post = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.08, 2.2, 8),
+    MATS.ironRust
+  );
+  post.position.y = 1.1;
+  post.castShadow = true;
+  g.add(post);
+
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(0.3, 0.4, 0.3),
+    MATS.iron
+  );
+  head.position.y = 2.2;
+  g.add(head);
+
+  const glass = new THREE.Mesh(
+    new THREE.BoxGeometry(0.22, 0.32, 0.22),
+    new THREE.MeshStandardMaterial({
+      color: 0xffe8a0, emissive: 0xffe8a0, emissiveIntensity: 0,
+      transparent: true, opacity: 0.9,
+    })
+  );
+  glass.position.y = 2.2;
+  g.add(glass);
+
+  g.userData.glass = glass;
+  return g;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HAY BALE — for stacking
+// ═══════════════════════════════════════════════════════════════
+
+export function createHayBale() {
+  const g = new THREE.Group();
+  const bale = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.6, 0.6, 1.2, 14),
+    MATS.hay
+  );
+  bale.rotation.z = Math.PI / 2;
+  bale.position.y = 0.6;
+  bale.castShadow = true;
+  bale.receiveShadow = true;
+  g.add(bale);
+
+  // Twine rings
+  for (const x of [-0.3, 0.3]) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.61, 0.012, 4, 20),
+      new THREE.MeshStandardMaterial({ color: 0x8a6a3a, roughness: 0.9 })
+    );
+    ring.rotation.y = Math.PI / 2;
+    ring.position.set(x, 0.6, 0);
+    g.add(ring);
+  }
+
+  return g;
 }
