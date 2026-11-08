@@ -238,14 +238,15 @@ shrine.add(throne);
 shrine.visible = false;
 scene.add(shrine);
 
+/* shrine domain walls — tall glowing pillars around the arena */
 const domainWalls = new THREE.Group();
-for (let i = 0; i < 16; i++) {
-  const a = (i / 16) * PI * 2;
+for (let i = 0; i < 20; i++) {
+  const a = (i / 20) * PI * 2;
   const wall = new THREE.Mesh(
-    new THREE.BoxGeometry(6, 40, 1),
+    new THREE.BoxGeometry(6, 44, 1),
     new THREE.MeshStandardMaterial({ color: 0x1a0202, emissive: 0xcc0018, emissiveIntensity: 1.2, roughness: .6 })
   );
-  wall.position.set(Math.cos(a) * 26, 20, Math.sin(a) * 26);
+  wall.position.set(Math.cos(a) * 26, 22, Math.sin(a) * 26);
   wall.rotation.y = -a + PI / 2;
   domainWalls.add(wall);
 }
@@ -253,12 +254,59 @@ domainWalls.visible = false;
 scene.add(domainWalls);
 
 /* ============================================================
+   UNLIMITED VOID — tunnel of light
+   ============================================================ */
+const voidGroup = new THREE.Group();
+voidGroup.visible = false;
+scene.add(voidGroup);
+
+// tunnel rings receding into infinity
+const voidRings = [];
+for (let i = 0; i < 18; i++) {
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(3 + i * .2, .04, 6, 48),
+    new THREE.MeshBasicMaterial({ color: i % 2 ? 0x88ddff : 0xffffff, transparent: true, opacity: .55, blending: AD, depthWrite: false })
+  );
+  ring.userData = { z: -i * 4, base: i };
+  voidGroup.add(ring);
+  voidRings.push(ring);
+}
+
+// floating shards (info-particles of the void)
+const voidShards = [];
+for (let i = 0; i < 40; i++) {
+  const shard = new THREE.Mesh(
+    new THREE.OctahedronGeometry(rnd(.15, .5), 0),
+    new THREE.MeshBasicMaterial({ color: Math.random() < .5 ? 0x9fd8ff : 0xffffff, transparent: true, opacity: .8, blending: AD, depthWrite: false })
+  );
+  shard.userData = {
+    a: rnd(0, PI * 2), r: rnd(4, 22), y: rnd(-6, 10),
+    sp: rnd(.2, 1.4), rot: rd().multiplyScalar(rnd(.5, 2))
+  };
+  voidGroup.add(shard);
+  voidShards.push(shard);
+}
+
+// bright center light
+const voidCore = new THREE.PointLight(0xaaddff, 0, 200, 2);
+voidGroup.add(voidCore);
+
+// ground disc for void
+const voidFloor = new THREE.Mesh(
+  new THREE.CircleGeometry(60, 48),
+  new THREE.MeshBasicMaterial({ color: 0x0a1830, transparent: true, opacity: .85, side: THREE.DoubleSide })
+);
+voidFloor.rotation.x = -PI / 2;
+voidFloor.position.y = -.02;
+voidGroup.add(voidFloor);
+
+/* ============================================================
    ENVIRONMENTS
    ============================================================ */
 const ENV = {
   city:   { bg: 0x1a1030, fog: 0x302050, density: .008, hemi: 0x8899cc, floor: 0x2a2a38 },
   shrine: { bg: 0x1a0000, fog: 0x400810, density: .06, hemi: 0xcc4444, floor: 0x300606 },
-  void:   { bg: 0x000000, fog: null,    density: 0,     hemi: 0x334488, floor: 0x000000 }
+  void:   { bg: 0x020510, fog: 0x0a2040, density: .045, hemi: 0x88bbff, floor: 0x0a1830 }
 };
 function setEnv(name) {
   const e = ENV[name];
@@ -270,11 +318,12 @@ function setEnv(name) {
   floorMesh.visible = name !== 'void';
   shrine.visible = name === 'shrine';
   domainWalls.visible = name === 'shrine';
+  voidGroup.visible = name === 'void';
+  voidCore.intensity = name === 'void' ? 400 : 0;
   stars.visible = name === 'void';
   moonSprite.visible = name === 'city';
   $('voidUI').style.opacity = name === 'void' ? .9 : 0;
 }
-setEnv('city');
 
 /* ============================================================
    PARTICLES
@@ -634,11 +683,33 @@ infinityGroup.visible = false;
 scene.add(infinityGroup);
 
 /* ============================================================
-   TRACKS
+   TRACKS — restructured for extended domains
    ============================================================ */
+/* Timeline:
+   0-9     intro + clash
+   9-13    cross-slash + black flash
+   13-15   camera breather, Sukuna taunt
+   15-32   MALEVOLENT SHRINE — Sukuna's domain attacks Gojo
+   32-42   UNLIMITED VOID   — Gojo's domain overwhelms Sukuna
+   42-50   aftermath
+   50-60   HOLLOW PURPLE
+   60-64   final
+*/
 const p3 = (t, x, z = 0, y = 0) => [t, x, z, y];
-const gojoTrack = [ p3(0,-12), p3(5,-9), p3(8.4,-7), p3(9,-1.2), p3(10,-3), p3(12,-1.4), p3(14,-6.5), p3(23,-4), p3(28,-6), p3(29,-5.2), p3(35.5,-5.2), p3(36.2,-4,1.2), p3(43.4,-4,1.2), p3(43.6,-6), p3(46,-5), p3(54.5,-5), p3(55.5,-1.2) ];
-const sukunaTrack = [ p3(0,12), p3(5,9), p3(8.4,7), p3(9,1.2), p3(10,3), p3(12,1.6), p3(14.5,8), p3(19,8), p3(22,-2.5), p3(25.2,22,6), p3(27,9), p3(36.2,4,1.2), p3(43.4,4,1.2), p3(43.6,6), p3(47.8,7), p3(48.2,9), p3(49,16,3), p3(54.5,16), p3(55.5,1.2) ];
+const gojoTrack = [
+  p3(0,-12), p3(5,-9), p3(8.4,-7), p3(9,-1.2), p3(10,-3), p3(12,-1.4), p3(14,-6.5),
+  p3(15,-4), p3(17,-5.5), p3(19,-4.5), p3(22,-6), p3(25,-5), p3(28,-6), p3(31,-5),
+  p3(32,-4,1.2), p3(42,-4,1.2),
+  p3(43,-6), p3(46,-5), p3(50,-5),
+  p3(55.5,-1.2)
+];
+const sukunaTrack = [
+  p3(0,12), p3(5,9), p3(8.4,7), p3(9,1.2), p3(10,3), p3(12,1.6), p3(14.5,8),
+  p3(15,4), p3(17,3), p3(19,4), p3(22,3), p3(25,4), p3(28,3), p3(31,4),
+  p3(32,4,1.2), p3(42,4,1.2),
+  p3(43,6), p3(47.8,7), p3(48.2,9), p3(49,16,3), p3(50,16),
+  p3(55.5,1.2)
+];
 
 function track(trackArr, t) {
   if (t <= trackArr[0][0]) return trackArr[0];
@@ -692,21 +763,32 @@ function blackFlash(p) {
 }
 
 /* ============================================================
-   AUDIO (rewritten — resume inside gesture, music AFTER resume)
+   AUDIO — with retry-until-running logic for stubborn browsers
    ============================================================ */
 let AC = null, masterGain = null, noiseBuf = null, musicNode = null;
+let audioRetry = null;
 
 async function initAudio() {
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
-    if (AC.state === 'suspended') await AC.resume();
+    if (AC.state === 'suspended') { try { await AC.resume(); } catch (e) {} }
     masterGain = AC.createGain();
     masterGain.gain.value = .6;
     masterGain.connect(AC.destination);
     noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    console.log('[audio] ready · state:', AC.state, '· sampleRate:', AC.sampleRate);
+    console.log('[audio] created · state:', AC.state, '· sampleRate:', AC.sampleRate);
+
+    // Retry loop — some browsers stay suspended even after resume() until a real gesture fires
+    let attempts = 0;
+    audioRetry = setInterval(() => {
+      if (!AC) { clearInterval(audioRetry); return; }
+      if (AC.state === 'running') { clearInterval(audioRetry); audioRetry = null; console.log('[audio] running'); return; }
+      attempts++;
+      if (attempts > 20) { clearInterval(audioRetry); console.warn('[audio] gave up — state still', AC.state); return; }
+      AC.resume().catch(() => {});
+    }, 500);
   } catch (e) {
     console.warn('[audio] init failed:', e);
     AC = null;
@@ -715,7 +797,7 @@ async function initAudio() {
 
 function startMusic() {
   if (!AC || musicNode) return;
-  if (AC.state === 'suspended') AC.resume();
+  if (AC.state === 'suspended') AC.resume().catch(()=>{});
   const droneOsc  = AC.createOscillator();
   const droneOsc2 = AC.createOscillator();
   const droneGain = AC.createGain();
@@ -735,47 +817,52 @@ function startMusic() {
 }
 
 function noise(type, f0, f1, dur, vol, q = 1) {
-  if (!AC) return;
-  const s = AC.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
-  const f = AC.createBiquadFilter(); f.type = type; f.Q.value = q;
-  const t = AC.currentTime;
-  f.frequency.setValueAtTime(f0, t);
-  f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-  const g = AC.createGain();
-  g.gain.setValueAtTime(.0001, t);
-  g.gain.linearRampToValueAtTime(vol, t + dur * .15);
-  g.gain.exponentialRampToValueAtTime(.001, t + dur);
-  s.connect(f); f.connect(g); g.connect(masterGain);
-  s.start(t); s.stop(t + dur + .05);
+  if (!AC || AC.state !== 'running') return;
+  try {
+    const s = AC.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+    const f = AC.createBiquadFilter(); f.type = type; f.Q.value = q;
+    const t = AC.currentTime;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    const g = AC.createGain();
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + dur * .15);
+    g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    s.connect(f); f.connect(g); g.connect(masterGain);
+    s.start(t); s.stop(t + dur + .05);
+  } catch (e) {}
 }
 
 function tone(type, f0, f1, dur, vol, delay = 0) {
-  if (!AC) return;
-  const o = AC.createOscillator(), g = AC.createGain();
-  const t = AC.currentTime + delay;
-  o.type = type;
-  o.frequency.setValueAtTime(f0, t);
-  o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(.001, t + dur);
-  o.connect(g); g.connect(masterGain);
-  o.start(t); o.stop(t + dur + .05);
+  if (!AC || AC.state !== 'running') return;
+  try {
+    const o = AC.createOscillator(), g = AC.createGain();
+    const t = AC.currentTime + delay;
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(.001, t + dur);
+    o.connect(g); g.connect(masterGain);
+    o.start(t); o.stop(t + dur + .05);
+  } catch (e) {}
 }
 
 function impactAudio(power) {
-  if (!AC) return;
+  if (!AC || AC.state !== 'running') return;
   tone('sine', 90, 30, .3, .35 * power);
   noise('bandpass', 1500, 400, .08, .3 * power, 2);
   tone('triangle', 2400, 1200, .15, .1 * power);
 }
 
 function sfx(n) {
-  if (!AC) return;
+  if (!AC || AC.state !== 'running') return;
   try {
     switch (n) {
       case 'gojoDomain':   tone('sine',180,120,.8,.25); tone('sine',270,180,.8,.18,.15); tone('sine',400,260,1,.15,.3); noise('lowpass',400,80,2.4,.35); break;
       case 'sukunaDomain': noise('lowpass',150,40,2.5,.7); tone('sawtooth',55,110,2.4,.2); tone('sine',40,60,2.6,.5); break;
       case 'malevolentShrine': noise('lowpass',1200,30,2.5,.9); tone('sine',90,20,2.2,1); tone('triangle',55,22,2.4,.7); break;
+      case 'voidHum':      tone('sine', 60, 90, 6, .25); tone('sine', 90, 135, 6, .15); noise('lowpass', 200, 80, 6, .2); break;
       case 'hollowPurple': tone('sine',80,220,1.2,.35); tone('sawtooth',60,180,1.2,.15); noise('bandpass',800,3000,1.2,.25,2); break;
       case 'purpleLaunch': noise('bandpass',400,4000,1.4,.55,1.5); tone('sawtooth',60,900,1.4,.3); break;
       case 'sukunaLaugh':  for (let i=0;i<3;i++){ tone('sawtooth',280-i*20,220-i*20,.12,.35,i*.18); noise('bandpass',800+i*100,1200,.1,.25,3);} tone('sine',100,60,.6,.4); break;
@@ -789,7 +876,7 @@ function sfx(n) {
       case 'charge':       tone('sawtooth',70,520,1,.1); noise('highpass',500,4000,1,.15); break;
       case 'beat':         tone('sine',60,30,.25,.9); tone('sine',60,30,.25,.9,.35); break;
     }
-  } catch (e) { console.warn('[sfx]', n, e); }
+  } catch (e) {}
 }
 
 /* ============================================================
@@ -799,6 +886,7 @@ const EVENTS = [];
 const at = (t, fn) => EVENTS.push([t, fn]);
 const midPoint = () => new V((gojo.p.x + sukuna.p.x) / 2, 1.4, 0);
 
+/* --- INTRO & CLASH --- */
 at(0, () => {
   showBanner('JUJUTSU KAISEN', 'GOJO  vs  SUKUNA', 4.4);
   flashScreen('#000', 1, 1.6);
@@ -831,39 +919,100 @@ at(12.38, () => {
 });
 at(13.2, () => { puff(new V(sukuna.p.x, .3, 0), 40, 12, 3.5, 2.2); shake = 2.5; sfx('boom'); });
 
-at(27.2, () => { sfx('sukunaDomain'); setPose(sukuna, 'open', true); say('SUKUNA', '"Domain Expansion..."', 2.5); });
-at(35.0, () => {
-  sfx('malevolentShrine'); say('SUKUNA', '"Malevolent Shrine."', 2);
+/* --- BREATHER + SUKUNA TAUNT (13-15) --- */
+at(13.6, () => { setPose(gojo, 'idle'); setPose(sukuna, 'idle'); });
+at(13.9, () => say('SUKUNA', '"Good. Show me more."', 2));
+at(14.5, () => { setPose(sukuna, 'open', true); sfx('sukunaDomain'); });
+
+/* --- MALEVOLENT SHRINE (15-32) --- */
+at(15.0, () => {
+  say('SUKUNA', '"Domain Expansion — Malevolent Shrine."', 2.6);
   setEnv('shrine'); shrine.scale.y = .01; shrine.visible = true; throne.visible = true;
-  flashScreen('#f00', .9, .9); sfx('heavyBoom'); shake = 5; showBanner('MALEVOLENT SHRINE', '', 2.5);
+  flashScreen('#f00', .9, 1.2); sfx('malevolentShrine'); sfx('heavyBoom');
+  shake = 6; showBanner('MALEVOLENT SHRINE', '', 3);
 });
-at(36.0, () => { sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); shake = 3; });
-at(39, () => setPose(gojo, 'kneel', true));
+at(16.0, () => { sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); shake = 3; });
+at(16.5, () => { setPose(gojo, 'kneel', true); say('GOJO', '"...tch."', 1.2); });
 
-at(42.4, () => { sfx('gojoDomain'); setPose(sukuna, 'idle'); setPose(gojo, 'sign', true); say('GOJO', '"Domain Expansion — Unlimited Void."', 2.2); sfx('beat'); });
-at(43.1, () => {
-  setEnv('void'); shrine.visible = false; throne.visible = false;
-  sukuna.g.position.set(4, 0, 0); setPose(sukuna, 'hit', true);
-  flashScreen('#fff', 1, .8); sfx('heavyBoom'); showBanner('UNLIMITED VOID', '', 2.5); shake = 3;
+/* --- SLASH BARRAGE — Gojo takes many hits --- */
+for (let i = 0; i < 14; i++) {
+  at(17.0 + i * 0.85, () => {
+    setPose(gojo, 'hit', true);
+    gojo.ret = .55;
+    const p = worldOf(gojo, 'chest');
+    // slash effect: thin red lines, cross
+    for (let s = 0; s < 2; s++) {
+      const ang = rnd(0, PI);
+      const a = p.clone().add(new V(Math.cos(ang), 0, Math.sin(ang)).multiplyScalar(2.2));
+      const b = p.clone().add(new V(-Math.cos(ang), 0, -Math.sin(ang)).multiplyScalar(2.2));
+      const line = new THREE.Mesh(new THREE.BoxGeometry(.06, .06, a.distanceTo(b)), BM(0xff2030));
+      line.position.copy(a).add(b).multiplyScalar(.5);
+      line.lookAt(b);
+      scene.add(line);
+      let lt = 0;
+      fxList.push(dt => { lt += dt; line.material.opacity = 1 - lt / .25; if (lt > .25) { scene.remove(line); line.material.dispose(); return false; } return true; });
+    }
+    spark(p, 12, 8, .3, .5, [1.4, .3, .3], 3);
+    impactAudio(.5);
+    shake = Math.max(shake, .8);
+    if (caPass) caPass.uniforms.amount.value = Math.max(caPass.uniforms.amount.value, .015);
+  });
+}
+at(29.5, () => { say('GOJO', '"...that all?"', 1.5); setPose(gojo, 'idle'); });
+at(30.5, () => { setPose(gojo, 'sign', true); say('GOJO', '"My turn."', 1.4); sfx('beat'); });
+
+/* --- UNLIMITED VOID (32-42) --- */
+at(32.0, () => {
+  sfx('gojoDomain'); sfx('voidHum');
+  setPose(sukuna, 'idle'); setPose(gojo, 'sign', true);
+  say('GOJO', '"Domain Expansion — Unlimited Void."', 2.6);
 });
-at(50.3, () => { flashScreen('#fff', 1, 1); sfx('heavyBoom'); });
-at(50.5, () => { setEnv('city'); setPose(sukuna, 'kneel', true); setPose(gojo, 'idle'); sukuna.g.position.set(25, 0, 8); });
+at(33.0, () => {
+  setEnv('void');
+  shrine.visible = false; throne.visible = false;
+  // place Sukuna staggering in void
+  sukuna.g.position.set(4, 0, 0);
+  setPose(sukuna, 'hit', true);
+  flashScreen('#fff', 1, 1.4); sfx('heavyBoom');
+  showBanner('UNLIMITED VOID', '', 3);
+  shake = 4;
+});
+// Sukuna is overwhelmed — many small frozen-stagger hits
+for (let i = 0; i < 8; i++) {
+  at(33.5 + i * 0.9, () => {
+    setPose(sukuna, 'hit', true);
+    sukuna.ret = .5;
+    const p = worldOf(sukuna, 'head');
+    sphereFX(p, 0xaaddff, 1.5, .35);
+    spark(p, 20, 6, .35, .6, [.6, 1.2, 2.0], 2);
+    if (caPass) caPass.uniforms.amount.value = Math.max(caPass.uniforms.amount.value, .02);
+    shake = Math.max(shake, 1.2);
+    impactAudio(.4);
+  });
+}
+at(41.5, () => { say('GOJO', '"You feel it yet? Infinite information."', 2); });
 
-at(51.5, () => { sfx('sukunaLaugh'); setPose(gojo, 'cast', true); say('GOJO', '"Blue... and Red."', 1.5); sfx('charge'); });
-at(52.5, () => { orbBlue.visible = true; orbBlue.position.set(gojo.p.x + 1.2, 1.5, 1.2); orbBlue.scale.setScalar(.2); });
-at(53.3, () => { orbRed.visible = true; orbRed.position.set(gojo.p.x + 1.2, 1.5, -1.2); orbRed.scale.setScalar(.2); });
-at(54.0, () => {
+/* --- AFTERMATH (42-50) --- */
+at(42.5, () => { setEnv('city'); setPose(sukuna, 'kneel', true); setPose(gojo, 'idle'); sukuna.g.position.set(25, 0, 8); });
+
+at(43.5, () => say('SUKUNA', '"...impressive, Gojo Satoru."', 1.8));
+at(44.5, () => { setPose(gojo, 'cast', true); say('GOJO', '"Blue... and Red."', 1.6); sfx('charge'); });
+at(45.5, () => { orbBlue.visible = true; orbBlue.position.set(gojo.p.x + 1.2, 1.5, 1.2); orbBlue.scale.setScalar(.2); });
+at(46.3, () => { orbRed.visible = true; orbRed.position.set(gojo.p.x + 1.2, 1.5, -1.2); orbRed.scale.setScalar(.2); });
+at(47.0, () => {
   const mid = new V(gojo.p.x + 1.5, 1.5, 0);
   orbBlue.position.copy(mid); orbRed.position.copy(mid);
   sphereFX(mid, 0xffffff, 3, .5); ringFX(mid, 0x9a40ff, 6, .5); sfx('charge');
 });
-at(54.5, () => {
+at(47.5, () => {
   orbBlue.visible = false; orbRed.visible = false;
   orbPurple.visible = true; orbPurple.position.set(gojo.p.x + 1.5, 1.5, 0); orbPurple.scale.setScalar(.8);
   ringFX(orbPurple.position, 0x9a40ff, 12, 1); sphereFX(orbPurple.position, 0xb070ff, 4, .5);
   sfx('hollowPurple'); say('GOJO', '"Hollow Purple."', 1.5);
 });
-at(55.0, () => {
+
+/* --- HOLLOW PURPLE (50-60) --- */
+at(49.5, () => {
   const t0 = T;
   const grow = () => {
     if (!orbPurple.visible) return;
@@ -873,8 +1022,8 @@ at(55.0, () => {
   };
   grow();
 });
-at(56.5, () => { setPose(gojo, 'point', true); sfx('purpleLaunch'); flashScreen('#a4f', .6, .6); shake = 3; });
-at(56.6, () => {
+at(50.5, () => { setPose(gojo, 'point', true); sfx('purpleLaunch'); flashScreen('#a4f', .6, .6); shake = 3; });
+at(50.6, () => {
   const startX = orbPurple.position.x, endX = sukuna.p.x;
   const startZ = orbPurple.position.z, endZ = sukuna.p.z;
   const startY = orbPurple.position.y, endY = 1.5;
@@ -934,15 +1083,16 @@ at(56.6, () => {
     return true;
   });
 });
-at(58.5, () => { setPose(gojo, 'idle'); puff(new V(10, .3, 0), 40, 10, 4, 3); });
+at(53.5, () => { setPose(gojo, 'idle'); puff(new V(10, .3, 0), 40, 10, 4, 3); });
 
-at(61.5, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); sfx('whoosh'); sfx('riser'); });
-at(62.5, () => { setPose(gojo, 'punchR'); setPose(sukuna, 'punchR'); impact(new V(0, 1.4, 0), 4); ringFX(new V(0, .1, 0), 0xffffff, 30, 1); sfx('explode'); });
-at(63,   () => { flashScreen('#fff', 1, .5); shake = 6; sfx('heavyBoom'); });
-at(63.6, () => { const en = $('en'); en.style.display = 'flex'; requestAnimationFrame(() => en.style.opacity = 1); });
+/* --- FINAL CLASH --- */
+at(59.0, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); sfx('whoosh'); sfx('riser'); });
+at(60.0, () => { setPose(gojo, 'punchR'); setPose(sukuna, 'punchR'); impact(new V(0, 1.4, 0), 4); ringFX(new V(0, .1, 0), 0xffffff, 30, 1); sfx('explode'); });
+at(60.5, () => { flashScreen('#fff', 1, .5); shake = 6; sfx('heavyBoom'); });
+at(61.2, () => { const en = $('en'); en.style.display = 'flex'; requestAnimationFrame(() => en.style.opacity = 1); });
 
 /* ============================================================
-   CAMERA
+   CAMERA — one continuous shot everywhere, no gaps
    ============================================================ */
 const CAMERA_SHOTS = [];
 const addShot = (a, b, fn) => CAMERA_SHOTS.push([a, b, fn]);
@@ -953,9 +1103,12 @@ function setCam(px, py, pz, lx, ly, lz, fov = 50) {
   if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
 }
 
+/* INTRO */
 addShot(0, 5, k => setCam(0, lerp(10, 2.4, es(k)), lerp(30, 12, es(k)), 0, 1.4, 0, 48));
 addShot(5, 8.5, k => setCam(gojo.p.x + 2, 1.7, gojo.p.z - 3, gojo.p.x, 1.6, 0, 42));
 addShot(8.5, 9, k => setCam(0, 2.4, 8, 0, 1.4, 0, 52));
+
+/* CLASH SPIN */
 addShot(9, 12.2, k => {
   const a = lerp(.15, 2.5, k);
   const mid = midPoint(); const h = 2.8 + Math.sin(k * PI) * 1.6;
@@ -963,33 +1116,76 @@ addShot(9, 12.2, k => {
 });
 addShot(12.2, 13, k => setCam(sukuna.p.x + 2, 1.7, 3, sukuna.p.x, 1.5, 0, 38));
 
-addShot(28.4, 32.3, k => {
-  const r = lerp(24, 12, es(k));
-  const a = lerp(-.6, .5, k);
-  setCam(Math.sin(a) * r, lerp(1.2, 8, es(k)), Math.cos(a) * r, 0, lerp(6, 10, k), -3, lerp(55, 42, k));
+/* BREATHER + SUKUNA TAUNT (13-15) */
+addShot(13, 15, k => {
+  const a = lerp(2.2, 3.0, k);
+  const r = lerp(9, 7, k);
+  setCam(Math.sin(a) * r, 2.0, Math.cos(a) * r, sukuna.p.x, 1.6, sukuna.p.z, 46);
 });
-addShot(32.3, 35.4, k => setCam(0, 4.5, 6, 0, 4.5, -3, 45));
 
+/* MALEVOLENT SHRINE (15-32) — varied dramatic shots */
+addShot(15, 18, k => {
+  // shrine rising — low, looking up
+  const r = lerp(20, 14, es(k));
+  const a = lerp(-.4, .3, k);
+  setCam(Math.sin(a) * r, lerp(1, 4, es(k)), Math.cos(a) * r + 3, 0, lerp(6, 12, k), -3, lerp(55, 45, k));
+});
+addShot(18, 24, k => {
+  // slash barrage — moving with Gojo
+  const a = lerp(.4, 2.8, k);
+  const r = 8;
+  setCam(gojo.p.x + Math.sin(a) * r, 1.8 + Math.sin(k * PI * 3) * .8, gojo.p.z + Math.cos(a) * r, gojo.p.x, 1.4, 0, 52);
+});
+addShot(24, 28, k => {
+  // upward toward throne
+  const r = lerp(15, 10, es(k));
+  const a = lerp(1.4, .2, k);
+  setCam(Math.sin(a) * r, lerp(2, 8, es(k)), Math.cos(a) * r, 0, lerp(5, 7, k), -3, 48);
+});
+addShot(28, 32, k => {
+  // circling Gojo as he says "My turn"
+  const a = lerp(.3, 2.2, k);
+  setCam(gojo.p.x + Math.sin(a) * 6, 2.0, gojo.p.z + Math.cos(a) * 6, gojo.p.x, 1.4, 0, 40);
+});
+
+/* UNLIMITED VOID (32-42) — tumble, disorienting, cinematic */
 let camRoll = 0;
-addShot(36.1, 43.5, k => {
-  const a = k * PI * 2.2;
-  camRoll = Math.sin(k * PI * 2) * .35;
-  cam.position.set(Math.sin(a) * 8, 3 + Math.sin(k * PI * 2) * 1.5, Math.cos(a) * 8);
+addShot(32, 33, k => {
+  // close on Gojo as he casts
+  setCam(gojo.p.x + 2.5, 1.8, gojo.p.z + 2.5, gojo.p.x, 1.6, 0, 38);
+});
+addShot(33, 42, k => {
+  const a = k * PI * 2.4;
+  camRoll = Math.sin(k * PI * 1.5) * .5;
+  cam.position.set(Math.sin(a) * 9, 3 + Math.sin(k * PI * 2) * 2, Math.cos(a) * 9);
   cam.up.set(Math.sin(camRoll), Math.cos(camRoll), 0);
   cam.lookAt(0, 2.5, 0);
-  const fov = lerp(55, 75, k);
+  const fov = lerp(55, 78, k);
   if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
 });
-addShot(43.5, 43.6, () => { cam.up.set(0, 1, 0); camRoll = 0; });
+addShot(42, 42.5, () => { cam.up.set(0, 1, 0); camRoll = 0; });
 
-addShot(51.5, 54.5, k => setCam(gojo.p.x + 3, 1.8, 3, gojo.p.x + 1.5, 1.5, 0, 40));
-addShot(54.5, 56.5, k => setCam(gojo.p.x + 4, 2.1, 4, gojo.p.x + 1.5, 1.5, 0, 42));
-addShot(56.5, 58, k => {
+/* AFTERMATH + HOLLOW PURPLE SETUP (42-50) */
+addShot(42.5, 45.5, k => {
+  // aftermath — pull back from kneel
+  const r = lerp(10, 16, es(k));
+  setCam(gojo.p.x + 2, 2.0, 3, 20, 1.4, 0, 46);
+});
+addShot(45.5, 47.5, k => setCam(gojo.p.x + 3, 1.8, 3, gojo.p.x + 1.5, 1.5, 0, 40));
+addShot(47.5, 49.5, k => setCam(gojo.p.x + 4, 2.1, 4, gojo.p.x + 1.5, 1.5, 0, 42));
+
+/* HOLLOW PURPLE FLIGHT (49.5-53) */
+addShot(49.5, 50.5, k => setCam(gojo.p.x + 3.5, 2.2, 4, gojo.p.x + 1.5, 1.5, 0, 40));
+addShot(50.5, 52, k => {
   const op = orbPurple.position;
   setCam(op.x - 5, op.y + 3, op.z + 7, op.x + 5, op.y - 1, op.z, 60);
 });
-addShot(58, 61, k => setCam(lerp(25, 30, k), 10, 35, 20, 2, 0, 58));
-addShot(61, 63.2, k => setCam(lerp(0, 1.3, k), lerp(1.5, 2.8, k), 6, 0, 1.5, 0, 48));
+addShot(52, 55, k => setCam(lerp(25, 30, k), 10, 35, 20, 2, 0, 58));
+
+/* FINAL CLASH (55-61) */
+addShot(55, 59, k => setCam(lerp(20, 6, es(k)), lerp(6, 2, k), lerp(20, 8, k), 0, 1.4, 0, 50));
+addShot(59, 61, k => setCam(lerp(0, 1.3, k), lerp(1.5, 2.8, k), 6, 0, 1.5, 0, 48));
+addShot(61, 999, k => setCam(0, 1.6, 6, 0, 1.4, 0, 40));
 
 /* ============================================================
    MAIN LOOP
@@ -1020,7 +1216,7 @@ function frame(now) {
     updateFighter(sukuna, sukunaTrack, gojo, dt, T);
   }
 
-  const showInf = (T > 14 && T < 19.6) || (T > 36.6 && T < 43.2);
+  const showInf = (T > 17 && T < 20) || (T > 32.5 && T < 42);
   infinityGroup.visible = showInf;
   if (showInf) {
     infinityGroup.position.set(gojo.p.x, 1.2 + gojo.p.y, 0);
@@ -1028,14 +1224,34 @@ function frame(now) {
     swirlRing.rotation.z += rawDt * 3;
   }
 
+  /* void animation */
+  if (voidGroup.visible) {
+    for (let i = 0; i < voidRings.length; i++) {
+      const r = voidRings[i];
+      r.userData.z += rawDt * 8;
+      if (r.userData.z > 20) r.userData.z = -70;
+      r.position.set(0, 2.5, r.userData.z);
+      const scale = 1 + Math.max(0, (r.userData.z + 70) / 90);
+      r.scale.setScalar(scale);
+      r.material.opacity = .55 * (1 - Math.abs(r.userData.z + 25) / 55);
+    }
+    for (const s of voidShards) {
+      s.userData.a += rawDt * s.userData.sp;
+      s.position.set(Math.cos(s.userData.a) * s.userData.r, s.userData.y + Math.sin(T * .5 + s.userData.r) * .5, Math.sin(s.userData.a) * s.userData.r);
+      s.rotation.x += s.userData.rot.x * rawDt;
+      s.rotation.y += s.userData.rot.y * rawDt;
+      s.rotation.z += s.userData.rot.z * rawDt;
+    }
+  }
+
   if (dt > 0) {
-    if (T >= 45 && T < 47) {
-      const k = cl((T - 45) / 1, 0, 1);
+    if (T >= 47 && T < 49) {
+      const k = cl((T - 47) / 1, 0, 1);
       if (orbBlue.visible) orbBlue.scale.setScalar(.3 + 1.5 * k);
       if (orbRed.visible) orbRed.scale.setScalar(.3 + 1.5 * k);
     }
 
-    if (T >= 36.6 && T < 43.2) {
+    if (T >= 16 && T < 32) {
       shrine.scale.y = Math.min(1, shrine.scale.y + dt * 1.2);
       acc += dt;
       while (acc > .06) {
@@ -1049,15 +1265,15 @@ function frame(now) {
         let lt = 0;
         fxList.push(dt2 => { lt += dt2; line.material.opacity = 1 - lt / .14; if (lt > .14) { scene.remove(line); line.material.dispose(); return false; } return true; });
       }
-      shake = Math.max(shake, .45);
+      shake = Math.max(shake, .35);
     }
 
-    if (T >= 43.2 && T < 50.4) {
+    if (T >= 33 && T < 42) {
       stars.rotation.y += dt * .15;
       vacc += dt;
-      if (vacc > .5) {
+      if (vacc > .4) {
         vacc = 0;
-        ringFX(new V(0, 1.5, 0), Math.random() < .5 ? 0xffffff : 0x66b8ff, 30, 1.6, true);
+        ringFX(new V(rnd(-6, 6), rnd(.5, 5), rnd(-6, 6)), Math.random() < .5 ? 0xffffff : 0x66b8ff, rnd(15, 30), 1.6, true);
       }
     }
 
@@ -1085,7 +1301,7 @@ function frame(now) {
         break;
       }
     }
-    if (!camUpdated && T >= 63.2 && T < 63.25) setCam(0, 1.6, 6, 0, 1.4, 0, 40);
+    if (!camUpdated) setCam(0, 1.6, 6, 0, 1.4, 0, 40);
 
     if (shake > .01) {
       const q = cam.quaternion.clone();
@@ -1114,6 +1330,8 @@ function frame(now) {
 /* ============================================================
    START / REPLAY
    ============================================================ */
+setEnv('city');
+
 $('go').addEventListener('click', async () => {
   $('st').style.display = 'none';
 
@@ -1148,7 +1366,7 @@ $('go').addEventListener('click', async () => {
 });
 
 document.addEventListener('pointerdown', () => {
-  if (AC && AC.state === 'suspended') AC.resume();
+  if (AC && AC.state === 'suspended') AC.resume().catch(()=>{});
 }, { passive: true });
 
 $('re').addEventListener('click', () => location.reload());
