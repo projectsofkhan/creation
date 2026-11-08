@@ -4,312 +4,101 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
 <title>Feris & Joie — Prologue</title>
-
 <style>
-/* ════════════════════════════════════════════════════════════
-   BASE
-   ════════════════════════════════════════════════════════════ */
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
-html, body {
-  width: 100%; height: 100%; overflow: hidden;
-  background: #000;
-  font-family: 'Georgia', 'Times New Roman', serif;
-  color: #ebe4d0;
-  cursor: pointer;
-}
-#stage { position: fixed; inset: 0; overflow: hidden; }
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; cursor: pointer; }
+canvas { display: block; width: 100%; height: 100%; }
 
-/* ════════════════════════════════════════════════════════════
-   SCENES — each one is an absolutely positioned layer
-   ════════════════════════════════════════════════════════════ */
-.scene {
-  position: absolute; inset: 0;
-  opacity: 0;
-  transition: opacity 2s ease;
-  pointer-events: none;
-}
-.scene.active { opacity: 1; }
-
-/* ════════════════════════════════════════════════════════════
-   SCENE 1 — THE BURNING VILLAGE (silhouette)
-   ════════════════════════════════════════════════════════════ */
-#s1 {
-  background: radial-gradient(ellipse at 50% 80%, #3a1208 0%, #1a0806 40%, #0a0403 100%);
-}
-#s1 .fire-glow {
-  position: absolute; bottom: 0; left: 0; right: 0; height: 60%;
-  background: radial-gradient(ellipse at 50% 100%, rgba(255,120,40,0.35) 0%, rgba(180,60,20,0.15) 40%, transparent 70%);
-  animation: fireFlicker 1.8s ease-in-out infinite;
-}
-@keyframes fireFlicker {
-  0%,100% { opacity: 0.85; transform: scaleY(1); }
-  50%     { opacity: 1;    transform: scaleY(1.04); }
-}
-#s1 .silhouette-houses {
-  position: absolute; bottom: 18%; left: 0; right: 0; height: 45%;
-  display: flex; justify-content: center; align-items: flex-end; gap: 3%;
-  padding: 0 8%;
-}
-#s1 .house {
-  background: #050201;
-  flex: 0 0 auto;
-  position: relative;
-  clip-path: polygon(0% 30%, 50% 0%, 100% 30%, 100% 100%, 0% 100%);
-  animation: houseBurn 3s ease-in-out infinite;
-}
-#s1 .house:nth-child(1) { width: 90px; height: 70px; }
-#s1 .house:nth-child(2) { width: 120px; height: 90px; animation-delay: -0.5s; }
-#s1 .house:nth-child(3) { width: 100px; height: 75px; animation-delay: -1s; }
-#s1 .house:nth-child(4) { width: 80px; height: 60px; animation-delay: -1.5s; }
-#s1 .house:nth-child(5) { width: 110px; height: 85px; animation-delay: -0.8s; }
-@keyframes houseBurn {
-  0%,100% { opacity: 0.85; }
-  50%     { opacity: 1; }
-}
-#s1 .embers {
-  position: absolute; inset: 0; pointer-events: none;
-}
-.ember {
-  position: absolute;
-  width: 2px; height: 2px;
-  background: #ffaa44;
-  border-radius: 50%;
-  box-shadow: 0 0 6px #ff6622, 0 0 2px #ffcc66;
-  animation: emberRise linear infinite;
-}
-@keyframes emberRise {
-  0%   { transform: translateY(0) translateX(0); opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 0.6; }
-  100% { transform: translateY(-90vh) translateX(30px); opacity: 0; }
+#vignette {
+  position: fixed; inset: 0; pointer-events: none; z-index: 5;
+  background: radial-gradient(circle at 50% 50%, transparent 30%, rgba(0,0,0,0.75) 100%);
 }
 
-/* ════════════════════════════════════════════════════════════
-   SCENE 2 — THE MORNING AFTER (grey, empty)
-   ════════════════════════════════════════════════════════════ */
-#s2 {
-  background: linear-gradient(to bottom, #6a6a6a 0%, #4a4a4a 40%, #2a2826 100%);
-}
-#s2 .fog-layer {
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 60%, rgba(200,200,200,0.15) 0%, transparent 60%);
-  animation: fogDrift 12s ease-in-out infinite alternate;
-}
-@keyframes fogDrift {
-  from { transform: translateX(-20px); opacity: 0.6; }
-  to   { transform: translateX(20px);  opacity: 0.9; }
-}
-#s2 .ruin {
-  position: absolute; bottom: 25%; left: 0; right: 0; height: 40%;
-  display: flex; justify-content: center; align-items: flex-end; gap: 4%;
-  padding: 0 10%;
-}
-#s2 .ruin-house {
-  background: #1a1614;
-  flex: 0 0 auto;
-  clip-path: polygon(0% 30%, 50% 0%, 100% 30%, 100% 100%, 0% 100%);
-  opacity: 0.6;
-}
-#s2 .ruin-house:nth-child(1) { width: 60px; height: 40px; }
-#s2 .ruin-house:nth-child(2) { width: 90px; height: 55px; }
-#s2 .ruin-house:nth-child(3) { width: 70px; height: 45px; }
-#s2 .ruin-house:nth-child(4) { width: 50px; height: 35px; }
-
-/* ════════════════════════════════════════════════════════════
-   SCENE 3 — THE PARENTS (two figures, one above the other)
-   ════════════════════════════════════════════════════════════ */
-#s3 {
-  background: radial-gradient(ellipse at 50% 50%, #1a0a08 0%, #0a0403 60%, #000 100%);
-}
-#s3 .figure {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80px; height: 160px;
-  background: #050201;
-  clip-path: polygon(35% 0%, 65% 0%, 75% 20%, 90% 40%, 95% 60%, 85% 65%, 80% 100%, 20% 100%, 15% 65%, 5% 60%, 10% 40%, 25% 20%);
-  animation: figureBreathe 4s ease-in-out infinite;
-}
-#s3 .figure.f1 {
-  left: 42%; transform: translate(-50%, -50%) rotate(-15deg);
-  animation-delay: -2s;
-}
-#s3 .figure.f2 {
-  left: 58%; transform: translate(-50%, -50%) rotate(15deg);
-  animation-delay: -4s;
-  opacity: 0.85;
-}
-@keyframes figureBreathe {
-  0%,100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
-  50%     { opacity: 1;   transform: translate(-50%, -50%) scale(1.02); }
-}
-
-/* ════════════════════════════════════════════════════════════
-   SCENE 4 — THE KNIFE (one sharp object, one held hand)
-   ════════════════════════════════════════════════════════════ */
-#s4 {
-  background: radial-gradient(ellipse at 50% 50%, #2a1810 0%, #0a0403 60%, #000 100%);
-}
-#s4 .knife {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%) rotate(-25deg);
-  width: 3px; height: 120px;
-  background: linear-gradient(to bottom, #c0c0c0 0%, #808080 60%, #3a2a10 61%, #2a1a08 100%);
-  box-shadow: 0 0 20px rgba(200,200,200,0.4);
-  animation: knifeGleam 3s ease-in-out infinite;
-}
-#s4 .knife::before {
-  content: '';
-  position: absolute;
-  top: -8px; left: -4px;
-  width: 11px; height: 12px;
-  background: #8a6a40;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  filter: brightness(0.6);
-}
-@keyframes knifeGleam {
-  0%,100% { box-shadow: 0 0 20px rgba(200,200,200,0.3); }
-  50%     { box-shadow: 0 0 40px rgba(255,255,255,0.7); }
-}
-#s4 .hand {
-  position: absolute;
-  bottom: 12%; left: 50%;
-  transform: translateX(-50%);
-  width: 200px; height: 60px;
-  background: radial-gradient(ellipse at 50% 100%, #1a0a04 0%, #050201 70%, transparent 100%);
-  border-radius: 50% 50% 0 0;
-  opacity: 0.7;
-}
-
-/* ════════════════════════════════════════════════════════════
-   SCENE 5 — THE FOREST (dark, deep, one path forward)
-   ════════════════════════════════════════════════════════════ */
-#s5 {
-  background: linear-gradient(to bottom, #050a06 0%, #0a1408 40%, #000 100%);
-}
-#s5 .tree {
-  position: absolute;
-  bottom: 0;
-  width: 40px;
-  background: linear-gradient(to top, #020401 0%, #05100a 100%);
-  clip-path: polygon(50% 0%, 65% 30%, 55% 30%, 70% 60%, 60% 60%, 85% 100%, 15% 100%, 40% 60%, 30% 60%, 45% 30%, 35% 30%);
-  opacity: 0.9;
-}
-#s5 .tree:nth-child(1) { left: 5%;  height: 80%; }
-#s5 .tree:nth-child(2) { left: 15%; height: 70%; width: 30px; }
-#s5 .tree:nth-child(3) { left: 28%; height: 90%; width: 50px; }
-#s5 .tree:nth-child(4) { right: 28%; height: 88%; width: 48px; }
-#s5 .tree:nth-child(5) { right: 15%; height: 72%; width: 32px; }
-#s5 .tree:nth-child(6) { right: 5%;  height: 82%; width: 42px; }
-#s5 .path {
-  position: absolute;
-  bottom: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 0; height: 0;
-  border-left: 120px solid transparent;
-  border-right: 120px solid transparent;
-  border-bottom: 300px solid rgba(20, 30, 15, 0.4);
-}
-#s5 .moonlight {
-  position: absolute;
-  top: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 60%; height: 40%;
-  background: radial-gradient(ellipse at 50% 0%, rgba(180,200,220,0.15) 0%, transparent 70%);
-}
-#s5 .fog-forest {
-  position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(10,20,15,0.4) 0%, transparent 30%);
-}
-
-/* ════════════════════════════════════════════════════════════
-   TEXT LAYER — narration, subtitles, chapter cards
-   ════════════════════════════════════════════════════════════ */
-.narration {
-  position: absolute;
-  bottom: 12%;
+#text {
+  position: fixed;
+  bottom: 11%;
   left: 50%;
   transform: translateX(-50%);
-  max-width: 720px;
-  width: 88%;
+  width: 86%;
+  max-width: 780px;
   text-align: center;
-  font-family: 'Georgia', serif;
-  font-size: clamp(15px, 2.2vw, 20px);
-  line-height: 1.7;
-  letter-spacing: 0.5px;
-  color: #d8d0c0;
-  text-shadow: 0 2px 20px rgba(0,0,0,0.95), 0 0 40px rgba(0,0,0,0.8);
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: clamp(15px, 2.2vw, 21px);
+  line-height: 1.72;
+  letter-spacing: 0.4px;
+  color: #e0d8c8;
+  text-shadow: 0 2px 18px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9);
   opacity: 0;
-  transition: opacity 1.5s ease;
+  transition: opacity 0.9s ease;
   pointer-events: none;
+  z-index: 10;
+  font-style: italic;
 }
-.narration.show { opacity: 1; }
+#text.show { opacity: 1; }
+#text em { font-style: normal; color: #f0e6d0; font-weight: 500; }
+#text .whisper { color: #a09684; font-size: 0.92em; }
 
-.narration em { font-style: italic; color: #e8dcc0; }
-.narration .whisper { color: #9a9088; font-size: 0.9em; font-style: italic; }
-
-.chapter-card {
-  position: absolute;
+#chapter {
+  position: fixed;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
   opacity: 0;
-  transition: opacity 2s ease;
+  transition: opacity 1.6s ease;
   pointer-events: none;
+  z-index: 10;
 }
-.chapter-card.show { opacity: 1; }
-.chapter-card .label {
-  font-size: 11px;
-  letter-spacing: 8px;
+#chapter.show { opacity: 1; }
+#chapter .label {
+  font-family: 'Georgia', serif;
+  font-size: 12px;
+  letter-spacing: 10px;
   text-transform: uppercase;
   color: #8a8070;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
-.chapter-card .title {
-  font-size: clamp(28px, 5vw, 56px);
+#chapter .title {
+  font-family: 'Georgia', serif;
+  font-size: clamp(30px, 6vw, 64px);
   font-weight: 300;
-  letter-spacing: 10px;
+  letter-spacing: 12px;
   color: #ebe4d0;
   text-transform: uppercase;
-  text-shadow: 0 0 40px rgba(0,0,0,1);
+  text-shadow: 0 0 50px rgba(0,0,0,1);
 }
-.chapter-card .subtitle {
-  font-size: clamp(11px, 1.6vw, 14px);
-  letter-spacing: 6px;
+#chapter .subtitle {
+  font-family: 'Georgia', serif;
+  font-size: clamp(12px, 1.7vw, 15px);
+  letter-spacing: 7px;
   color: #8a8070;
-  margin-top: 18px;
+  margin-top: 20px;
   font-style: italic;
 }
 
-/* ════════════════════════════════════════════════════════════
-   CONTROLS — tap to skip
-   ════════════════════════════════════════════════════════════ */
 #skip {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 22px;
+  right: 22px;
   z-index: 100;
   padding: 10px 22px;
+  font-family: 'Georgia', serif;
   font-size: 11px;
   letter-spacing: 4px;
   text-transform: uppercase;
   color: #8a8070;
   border: 1px solid rgba(138,128,112,0.3);
   border-radius: 40px;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.5);
   cursor: pointer;
-  transition: all 0.3s ease;
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   opacity: 0;
   pointer-events: none;
+  transition: opacity 0.6s ease, color 0.3s ease;
 }
 #skip.show { opacity: 1; pointer-events: auto; }
-#skip:hover { color: #ebe4d0; border-color: rgba(235,228,208,0.4); }
+#skip:hover { color: #ebe4d0; }
 
-/* ════════════════════════════════════════════════════════════
-   END CARD
-   ════════════════════════════════════════════════════════════ */
 #end {
   position: fixed; inset: 0;
   background: #000;
@@ -318,29 +107,33 @@ html, body {
   z-index: 200;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 3s ease, visibility 3s;
+  transition: opacity 2.4s ease, visibility 2.4s;
   padding: 30px;
   text-align: center;
+  cursor: pointer;
 }
 #end.show { opacity: 1; visibility: visible; }
 #end .title {
-  font-size: clamp(36px, 7vw, 72px);
-  letter-spacing: 18px;
+  font-family: 'Georgia', serif;
+  font-size: clamp(38px, 8vw, 84px);
+  letter-spacing: 20px;
   font-weight: 300;
   color: #ebe4d0;
-  margin-bottom: 20px;
-  text-shadow: 0 0 60px rgba(200, 180, 140, 0.2);
+  margin-bottom: 22px;
+  text-shadow: 0 0 70px rgba(200, 180, 140, 0.2);
 }
 #end .tagline {
+  font-family: 'Georgia', serif;
   font-size: clamp(12px, 1.8vw, 15px);
-  letter-spacing: 6px;
+  letter-spacing: 7px;
   color: #8a8070;
   font-style: italic;
-  margin-bottom: 60px;
+  margin-bottom: 70px;
 }
 #end .hint {
+  font-family: 'Georgia', serif;
   font-size: 11px;
-  letter-spacing: 4px;
+  letter-spacing: 5px;
   color: #5a5048;
   text-transform: uppercase;
   animation: pulse 2.5s ease-in-out infinite;
@@ -350,309 +143,962 @@ html, body {
   50%     { opacity: 0.9; }
 }
 
-/* ════════════════════════════════════════════════════════════
-   VIGNETTE
-   ════════════════════════════════════════════════════════════ */
-#vignette {
+#start {
   position: fixed; inset: 0;
-  pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, transparent 35%, rgba(0,0,0,0.55) 100%);
-  z-index: 10;
+  z-index: 150;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: #000;
+  text-align: center;
+  transition: opacity 1.2s ease;
 }
-
-/* ════════════════════════════════════════════════════════════
-   MOBILE
-   ════════════════════════════════════════════════════════════ */
-@media (max-height: 500px) {
-  .narration { bottom: 8%; font-size: 14px; }
-  #skip { bottom: 12px; right: 12px; padding: 8px 16px; font-size: 10px; }
+#start.hide { opacity: 0; pointer-events: none; }
+#start .s1 {
+  font-family: 'Georgia', serif;
+  font-size: 12px;
+  letter-spacing: 10px;
+  color: #6a6058;
+  text-transform: uppercase;
+  margin-bottom: 26px;
+}
+#start .s2 {
+  font-family: 'Georgia', serif;
+  font-size: clamp(15px, 2vw, 18px);
+  letter-spacing: 4px;
+  color: #d8d0c0;
+  font-style: italic;
+  animation: pulse 3s ease-in-out infinite;
 }
 </style>
 </head>
 <body>
 
-<div id="stage">
+<canvas id="c"></canvas>
+<div id="vignette"></div>
+<div id="text"></div>
+<div id="chapter">
+  <div class="label">Prologue</div>
+  <div class="title">Feris &amp; Joie</div>
+  <div class="subtitle">before the forest</div>
+</div>
+<button id="skip">Skip</button>
 
-  <!-- ═══════════════════════════════════════════════════════
-       SCENE 1 — THE BURNING VILLAGE
-       ═══════════════════════════════════════════════════════ -->
-  <div class="scene" id="s1">
-    <div class="fire-glow"></div>
-    <div class="silhouette-houses">
-      <div class="house"></div>
-      <div class="house"></div>
-      <div class="house"></div>
-      <div class="house"></div>
-      <div class="house"></div>
-    </div>
-    <div class="embers" id="embers1"></div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════
-       SCENE 2 — THE MORNING AFTER
-       ═══════════════════════════════════════════════════════ -->
-  <div class="scene" id="s2">
-    <div class="fog-layer"></div>
-    <div class="ruin">
-      <div class="ruin-house"></div>
-      <div class="ruin-house"></div>
-      <div class="ruin-house"></div>
-      <div class="ruin-house"></div>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════
-       SCENE 3 — THE PARENTS
-       ═══════════════════════════════════════════════════════ -->
-  <div class="scene" id="s3">
-    <div class="figure f1"></div>
-    <div class="figure f2"></div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════
-       SCENE 4 — THE KNIFE
-       ═══════════════════════════════════════════════════════ -->
-  <div class="scene" id="s4">
-    <div class="hand"></div>
-    <div class="knife"></div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════
-       SCENE 5 — THE FOREST
-       ═══════════════════════════════════════════════════════ -->
-  <div class="scene" id="s5">
-    <div class="moonlight"></div>
-    <div class="tree"></div>
-    <div class="tree"></div>
-    <div class="tree"></div>
-    <div class="tree"></div>
-    <div class="tree"></div>
-    <div class="tree"></div>
-    <div class="path"></div>
-    <div class="fog-forest"></div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════════
-       NARRATION LAYER
-       ═══════════════════════════════════════════════════════ -->
-  <div class="narration" id="narration"></div>
-
-  <!-- ═══════════════════════════════════════════════════════
-       CHAPTER CARD
-       ═══════════════════════════════════════════════════════ -->
-  <div class="chapter-card" id="chapter">
-    <div class="label">Prologue</div>
-    <div class="title">Feris & Joie</div>
-    <div class="subtitle">before the forest</div>
-  </div>
-
+<div id="start">
+  <div class="s1">A story in the dark</div>
+  <div class="s2">tap to begin</div>
 </div>
 
-<div id="vignette"></div>
-
-<button id="skip">Skip Prologue</button>
-
-<!-- ═══════════════════════════════════════════════════════════
-     END CARD
-     ═══════════════════════════════════════════════════════════ -->
 <div id="end">
-  <div class="title">FERIS & JOIE</div>
+  <div class="title">FERIS &amp; JOIE</div>
   <div class="tagline">their story begins in the dark</div>
   <div class="hint">tap to begin chapter one</div>
 </div>
+
 <script>
-/* ════════════════════════════════════════════════════════════
-   PROLOGUE — a 3-minute animated short.
-   Pure HTML/CSS/JS. No libraries. Runs anywhere.
-   ════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════
+   FERIS & JOIE — PROLOGUE
+   A real-time animated short. Canvas, 60fps, hand-coded.
+   ~3 minutes. Pure motion. No slideshows.
+   ════════════════════════════════════════════════════════════════ */
 
-const scenes = document.querySelectorAll('.scene');
-const narration = document.getElementById('narration');
-const chapter = document.getElementById('chapter');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const txt = document.getElementById('text');
+const chapterEl = document.getElementById('chapter');
 const skipBtn = document.getElementById('skip');
-const endCard = document.getElementById('end');
-const stage = document.getElementById('stage');
+const startEl = document.getElementById('start');
+const endEl = document.getElementById('end');
 
-let currentScene = -1;
-let cancelled = false;
-let timerId = null;
-let hasStarted = false;
+let W = 0, H = 0, DPR = 1;
 
-function sleep(ms) {
-  return new Promise((resolve) => {
-    timerId = setTimeout(() => {
-      if (!cancelled) resolve();
-    }, ms);
-  });
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
+window.addEventListener('resize', resize);
+resize();
 
-function showScene(n) {
-  scenes.forEach((s, i) => {
-    s.classList.toggle('active', i === n);
-  });
-  currentScene = n;
-}
+// ════════════════════════════════════════════════════════════════
+//  TIMELINE ENGINE
+// ════════════════════════════════════════════════════════════════
+const timeline = {
+  t: 0,           // total elapsed seconds
+  running: false,
+  scenes: [],     // array of scene objects
+  current: 0,
+  paused: false,
+};
 
-function narrate(html, holdMs = 3200) {
-  return new Promise((resolve) => {
-    if (cancelled) return resolve();
-    narration.innerHTML = html;
-    narration.classList.add('show');
-    timerId = setTimeout(() => {
-      if (cancelled) return resolve();
-      narration.classList.remove('show');
-      timerId = setTimeout(() => {
-        if (!cancelled) resolve();
-      }, 900);
-    }, holdMs);
-  });
-}
+// Easing
+const ease = {
+  inOut: (t) => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2,
+  out:   (t) => 1 - Math.pow(1-t, 3),
+  in:    (t) => t*t*t,
+  smooth: (t) => t*t*(3-2*t),
+};
 
-function showChapter(ms = 3200) {
-  return new Promise((resolve) => {
-    if (cancelled) return resolve();
-    chapter.classList.add('show');
-    timerId = setTimeout(() => {
-      if (cancelled) return resolve();
-      chapter.classList.remove('show');
-      timerId = setTimeout(() => {
-        if (!cancelled) resolve();
-      }, 1200);
-    }, ms);
-  });
-}
+// Utility: clamp + lerp + mix
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+const lerp = (a,b,t) => a + (b-a)*t;
+const mix = (c1, c2, t) => [
+  Math.round(lerp(c1[0], c2[0], t)),
+  Math.round(lerp(c1[1], c2[1], t)),
+  Math.round(lerp(c1[2], c2[2], t)),
+];
+const rgb = (c, a=1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 
-function fadeStage(opacity, ms = 1200) {
-  return new Promise((resolve) => {
-    stage.style.transition = `opacity ${ms}ms ease`;
-    stage.style.opacity = opacity;
-    timerId = setTimeout(() => {
-      if (!cancelled) resolve();
-    }, ms);
-  });
-}
-
-async function playPrologue() {
-  stage.style.opacity = '0';
-  await sleep(100);
-  await fadeStage(1, 2000);
-
-  await showChapter(3200);
-
-  showScene(0);
-  spawnEmbers();
-
-  await narrate(`One night, the Northern Kingdom's army burned an entire village to the ground.`, 3800);
-  await narrate(`<span class="whisper">They say it is only a rumor.</span>`, 2400);
-  await narrate(`But the people whisper that the leader of the Northern Kingdom was not always a tyrant.`, 4200);
-  await narrate(`Long ago, before the war, he was a wealthy merchant. He had a wife, a daughter, and a home by the river.`, 4800);
-  await narrate(`But one night, his rivals burned his estate to the ground.`, 3400);
-  await narrate(`His family died in the fire.`, 2800);
-
-  showScene(1);
-  await sleep(600);
-
-  await narrate(`The man who survived that night was not the same man who had built the estate.`, 4200);
-  await narrate(`Something inside him broke.`, 2600);
-  await narrate(`He stopped believing in peace. He stopped believing in mercy.`, 3800);
-  await narrate(`He only believed in <em>fire</em> — because fire was the only thing that had ever been honest with him.`, 5000);
-  await narrate(`And now, he wants to burn everything else, <em>just like they did to him.</em>`, 4400);
-
-  showScene(2);
-  await sleep(800);
-
-  await narrate(`And on this night, that monstrous army reached the children's village.`, 4400);
-  await narrate(`Two children — <em>Feris and Joie</em> — were not in the village that night.`, 4400);
-  await narrate(`They had been sent to their uncle's house, a short walk away.`, 3600);
-  await narrate(`Feris was fifteen. Joie was ten.`, 3000);
-  await narrate(`When they returned the next morning, there was nothing left of their home.`, 4200);
-
-  showScene(3);
-  await sleep(800);
-
-  await narrate(`They searched through the ruins of their own house until they found their mother — burned beyond saving.`, 5000);
-  await narrate(`Beside her lay their father. He was dead, but his hand was still clenched around a small knife.`, 5000);
-  await narrate(`Feris pulled the knife gently from his father's grip.`, 3400);
-  await narrate(`There was nothing else to take.`, 2800);
-
-  showScene(4);
-  await sleep(1000);
-
-  await narrate(`Terrified and alone, they ran back to their uncle's house.`, 3400);
-  await narrate(`But the war had already reached it.`, 2600);
-  await narrate(`Their uncle tried to protect them. He pressed a few tools into Feris's hands — matches, a flint, a small pouch of dried food — pointed toward the deep forest, and told them to run.`, 6000);
-  await narrate(`<em>And not to look back.</em>`, 3200);
-  await narrate(`Behind them, they heard shouting. Their uncle's family was captured. Enslaved.`, 4400);
-
-  await narrate(`Two children. One knife. A world at war.`, 4000);
-  await narrate(`And in the depths of the forest… <em>their real story begins.</em>`, 5000);
-
-  await fadeStage(0, 2500);
-
-  endCard.classList.add('show');
-  skipBtn.classList.remove('show');
-}
-
-function spawnEmbers() {
-  const container = document.getElementById('embers1');
-  if (!container) return;
-  container.innerHTML = '';
-  const count = 40;
-  for (let i = 0; i < count; i++) {
-    const ember = document.createElement('div');
-    ember.className = 'ember';
-    ember.style.left = Math.random() * 100 + '%';
-    ember.style.bottom = Math.random() * 30 + '%';
-    ember.style.animationDuration = (3 + Math.random() * 4) + 's';
-    ember.style.animationDelay = (Math.random() * 3) + 's';
-    const size = 1 + Math.random() * 2.5;
-    ember.style.width = size + 'px';
-    ember.style.height = size + 'px';
-    container.appendChild(ember);
+// ════════════════════════════════════════════════════════════════
+//  PARTICLE SYSTEMS
+// ════════════════════════════════════════════════════════════════
+class Ember {
+  constructor(x, y) { this.reset(x, y); }
+  reset(x, y) {
+    this.x = x;
+    this.y = y;
+    this.vx = (Math.random() - 0.5) * 40;
+    this.vy = -20 - Math.random() * 60;
+    this.life = 0.5 + Math.random() * 2.5;
+    this.maxLife = this.life;
+    this.size = 1 + Math.random() * 2.5;
+    this.hue = 20 + Math.random() * 25;
+  }
+  update(dt, wind) {
+    this.life -= dt;
+    if (this.life <= 0) return false;
+    this.vx += wind * dt * 10;
+    this.vy -= 8 * dt;
+    this.vx *= 0.99;
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    return true;
+  }
+  draw(ctx) {
+    const a = clamp(this.life / this.maxLife, 0, 1);
+    const grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 4);
+    grd.addColorStop(0, `hsla(${this.hue}, 100%, 70%, ${a})`);
+    grd.addColorStop(0.5, `hsla(${this.hue}, 100%, 50%, ${a * 0.5})`);
+    grd.addColorStop(1, `hsla(${this.hue}, 100%, 40%, 0)`);
+    ctx.fillStyle = grd;
+    ctx.fillRect(this.x - this.size*4, this.y - this.size*4, this.size*8, this.size*8);
   }
 }
 
-skipBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  cancelled = true;
-  clearTimeout(timerId);
-  narration.classList.remove('show');
-  chapter.classList.remove('show');
-  fadeStage(0, 800).then(() => {
-    endCard.classList.add('show');
-    skipBtn.classList.remove('show');
-  });
-});
+class RainDrop {
+  constructor(x, y) {
+    this.x = x; this.y = y;
+    this.len = 8 + Math.random() * 14;
+    this.speed = 400 + Math.random() * 300;
+    this.alpha = 0.15 + Math.random() * 0.35;
+  }
+  update(dt, wind) {
+    this.y += this.speed * dt;
+    this.x += wind * 50 * dt;
+    return this.y < H + 20;
+  }
+  draw(ctx) {
+    ctx.strokeStyle = `rgba(200,210,220,${this.alpha})`;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y);
+    ctx.lineTo(this.x - 1, this.y + this.len);
+    ctx.stroke();
+  }
+}
 
-endCard.addEventListener('click', () => {
-  endCard.classList.remove('show');
-  setTimeout(() => {
-    resetAndPlay();
-  }, 1200);
-});
+class AshParticle {
+  constructor(x, y) {
+    this.x = x; this.y = y;
+    this.vx = (Math.random() - 0.5) * 15;
+    this.vy = 5 + Math.random() * 15;
+    this.life = 3 + Math.random() * 5;
+    this.maxLife = this.life;
+    this.size = 0.8 + Math.random() * 1.6;
+    this.sway = Math.random() * Math.PI * 2;
+  }
+  update(dt, wind) {
+    this.life -= dt;
+    if (this.life <= 0) return false;
+    this.sway += dt * 2;
+    this.x += this.vx * dt + Math.sin(this.sway) * 8 * dt + wind * 10 * dt;
+    this.y += this.vy * dt;
+    return true;
+  }
+  draw(ctx) {
+    const a = clamp(this.life / this.maxLife, 0, 1) * 0.6;
+    ctx.fillStyle = `rgba(120, 110, 100, ${a})`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+class SnowFlake {
+  constructor(x, y) {
+    this.x = x; this.y = y;
+    this.vx = (Math.random() - 0.5) * 20;
+    this.vy = 20 + Math.random() * 40;
+    this.size = 1 + Math.random() * 2;
+    this.sway = Math.random() * Math.PI * 2;
+    this.alpha = 0.4 + Math.random() * 0.5;
+  }
+  update(dt, wind) {
+    this.sway += dt * 1.5;
+    this.x += this.vx * dt + Math.sin(this.sway) * 15 * dt + wind * 15 * dt;
+    this.y += this.vy * dt;
+    return this.y < H + 10;
+  }
+  draw(ctx) {
+    ctx.fillStyle = `rgba(230, 235, 245, ${this.alpha})`;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  WORLD STATE
+// ════════════════════════════════════════════════════════════════
+const world = {
+  wind: 0,
+  windTarget: 0,
+  time: 0,
+
+  embers: [],
+  rain: [],
+  ash: [],
+  snow: [],
+
+  // Cinematic camera
+  cam: {
+    x: 0, y: 0, zoom: 1,
+    shakeX: 0, shakeY: 0,
+    targetX: 0, targetY: 0, targetZoom: 1,
+  },
+
+  // Scene-specific
+  fireIntensity: 0,
+  fireTarget: 0,
+  fog: 0,
+  fogTarget: 0,
+  knifeGlow: 0,
+  knifeGlowTarget: 0,
+  forestDarkness: 0,
+  forestTarget: 0,
+};
+
+// ════════════════════════════════════════════════════════════════
+//  RENDER PRIMITIVES
+// ════════════════════════════════════════════════════════════════
+
+// Draw a silhouette house with flickering fire glow
+function drawHouse(x, y, w, h, fireIntensity, tint) {
+  const flicker = 1 + Math.sin(world.time * 8 + x * 0.1) * 0.08 * fireIntensity
+                    + Math.sin(world.time * 13 + x) * 0.05 * fireIntensity;
+  const baseY = y;
+  const peakX = x + w/2;
+  const peakY = y - h - w*0.25;
+
+  // Roof
+  ctx.fillStyle = tint;
+  ctx.beginPath();
+  ctx.moveTo(x, y - h);
+  ctx.lineTo(peakX, peakY);
+  ctx.lineTo(x + w, y - h);
+  ctx.closePath();
+  ctx.fill();
+
+  // Body
+  ctx.fillRect(x, y - h, w, h);
+
+  // Windows (glowing when fire is on)
+  if (fireIntensity > 0.1) {
+    const glow = fireIntensity * flicker;
+    for (let i = 0; i < 2; i++) {
+      const wx = x + w*0.2 + i * w*0.5;
+      const wy = y - h*0.6;
+      const ww = w*0.18;
+      const wh = h*0.28;
+      const grd = ctx.createRadialGradient(wx+ww/2, wy+wh/2, 0, wx+ww/2, wy+wh/2, ww*2.5);
+      grd.addColorStop(0, `rgba(255, 200, 100, ${0.9*glow})`);
+      grd.addColorStop(0.4, `rgba(255, 120, 30, ${0.5*glow})`);
+      grd.addColorStop(1, `rgba(255, 60, 10, 0)`);
+      ctx.fillStyle = grd;
+      ctx.fillRect(wx-ww*1.5, wy-wh*1.5, ww*4, wh*4);
+
+      ctx.fillStyle = `rgba(255, 220, 140, ${glow})`;
+      ctx.fillRect(wx, wy, ww, wh);
+    }
+  }
+}
+
+// Draw a silhouette tree
+function drawTree(x, y, h, w, tint) {
+  ctx.fillStyle = tint;
+  // Trunk
+  ctx.fillRect(x - w*0.08, y - h*0.3, w*0.16, h*0.3);
+  // Foliage layers (pine)
+  for (let i = 0; i < 3; i++) {
+    const yOff = y - h*0.3 - i * h*0.22;
+    const wScale = 1 - i * 0.2;
+    ctx.beginPath();
+    ctx.moveTo(x - w*0.5*wScale, yOff);
+    ctx.lineTo(x, yOff - h*0.35);
+    ctx.lineTo(x + w*0.5*wScale, yOff);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+// Draw a figure (person silhouette)
+function drawFigure(x, y, h, breath, tint) {
+  const bw = h * 0.18;
+  const bh = h * 0.55;
+  const hw = h * 0.13;
+  const hh = h * 0.15;
+
+  const breathe = Math.sin(world.time * 1.4 + breath) * 0.02;
+
+  ctx.fillStyle = tint;
+  // Body
+  ctx.beginPath();
+  ctx.ellipse(x, y - bh*0.5, bw*(1+breathe), bh*0.5, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Head
+  ctx.beginPath();
+  ctx.arc(x, y - bh - hh*0.5, hw, 0, Math.PI*2);
+  ctx.fill();
+}
+
+// Draw a knife
+function drawKnife(cx, cy, scale, angle, glow) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.scale(scale, scale);
+
+  // Glow
+  if (glow > 0.01) {
+    const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 80);
+    grd.addColorStop(0, `rgba(220, 230, 255, ${0.4*glow})`);
+    grd.addColorStop(1, 'rgba(180, 200, 255, 0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(-80, -80, 160, 160);
+  }
+
+  // Handle
+  ctx.fillStyle = '#3a2818';
+  ctx.fillRect(-2, 8, 4, 30);
+
+  // Guard
+  ctx.fillStyle = '#5a4a30';
+  ctx.fillRect(-6, 5, 12, 4);
+
+  // Blade
+  const bladeGrd = ctx.createLinearGradient(-3, 0, 3, 0);
+  bladeGrd.addColorStop(0, '#606060');
+  bladeGrd.addColorStop(0.4, '#e0e0e8');
+  bladeGrd.addColorStop(0.5, '#ffffff');
+  bladeGrd.addColorStop(0.6, '#c0c0d0');
+  bladeGrd.addColorStop(1, '#404040');
+  ctx.fillStyle = bladeGrd;
+  ctx.beginPath();
+  ctx.moveTo(-3, 5);
+  ctx.lineTo(3, 5);
+  ctx.lineTo(3, -55);
+  ctx.lineTo(0, -65);
+  ctx.lineTo(-3, -55);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SCENE 1 — THE BURNING VILLAGE
+// ════════════════════════════════════════════════════════════════
+function sceneBurningVillage(localT, localDt) {
+  world.fireTarget = 1;
+  world.fogTarget = 0;
+
+  // Camera slow push-in
+  world.cam.targetZoom = 1 + localT * 0.03;
+  world.cam.targetY = -localT * 5;
+
+  // Sky — dark red fire
+  const skyGrd = ctx.createLinearGradient(0, 0, 0, H);
+  skyGrd.addColorStop(0, rgb(mix([20,8,6], [60,20,10], Math.min(1, localT/2))));
+  skyGrd.addColorStop(0.5, rgb([30,12,8]));
+  skyGrd.addColorStop(1, rgb([15,5,3]));
+  ctx.fillStyle = skyGrd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Fire glow at horizon
+  const glowGrd = ctx.createRadialGradient(W/2, H*0.75, 0, W/2, H*0.75, W*0.7);
+  glowGrd.addColorStop(0, `rgba(255, 100, 30, ${0.4 * world.fireIntensity})`);
+  glowGrd.addColorStop(0.5, `rgba(180, 50, 15, ${0.15 * world.fireIntensity})`);
+  glowGrd.addColorStop(1, 'rgba(100, 20, 10, 0)');
+  ctx.fillStyle = glowGrd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Smoke columns
+  for (let i = 0; i < 6; i++) {
+    const sx = W * (0.15 + i * 0.15);
+    const sway = Math.sin(world.time * 0.5 + i) * 30;
+    const grd = ctx.createRadialGradient(sx + sway, H*0.3, 0, sx + sway, H*0.3, 200);
+    grd.addColorStop(0, `rgba(40, 20, 15, ${0.5 * Math.min(1, localT/1.5)})`);
+    grd.addColorStop(1, 'rgba(20, 10, 8, 0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(sx - 200 + sway, 0, 400, H);
+  }
+
+  // Ground
+  ctx.fillStyle = '#0a0503';
+  ctx.fillRect(0, H*0.72, W, H*0.28);
+
+  // Houses burning (in a row)
+  const baseY = H * 0.72 + 40;
+  const houseW = W * 0.14;
+  for (let i = 0; i < 5; i++) {
+    const hx = W * 0.08 + i * (houseW + W * 0.02);
+    const hh = H * (0.15 + Math.sin(i * 1.7) * 0.04);
+    drawHouse(hx, baseY, houseW, hh, world.fireIntensity, '#0a0403');
+  }
+
+  // Embers — heavy at first, thinning
+  const emberRate = 40 * Math.max(0, 1 - localT/3);
+  if (Math.random() < emberRate * localDt) {
+    for (let i = 0; i < 3; i++) {
+      world.embers.push(new Ember(
+        W * (0.1 + Math.random() * 0.8),
+        H * (0.65 + Math.random() * 0.1)
+      ));
+    }
+  }
+
+  // Ash drifting
+  if (Math.random() < 30 * localDt) {
+    world.ash.push(new AshParticle(
+      W * (0.1 + Math.random() * 0.8),
+      -10
+    ));
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SCENE 2 — THE MORNING AFTER (grey, ash falling)
+// ════════════════════════════════════════════════════════════════
+function sceneMorningAfter(localT, localDt) {
+  world.fireTarget = 0;
+  world.fogTarget = 1;
+
+  // Camera drifts slowly
+  world.cam.targetZoom = 1 + localT * 0.02;
+  world.cam.targetY = -localT * 3;
+
+  // Grey sky
+  const skyGrd = ctx.createLinearGradient(0, 0, 0, H);
+  skyGrd.addColorStop(0, rgb([70,70,68]));
+  skyGrd.addColorStop(0.6, rgb([50,48,45]));
+  skyGrd.addColorStop(1, rgb([30,28,26]));
+  ctx.fillStyle = skyGrd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Mist
+  const mistGrd = ctx.createRadialGradient(W/2, H*0.6, 0, W/2, H*0.6, W*0.7);
+  mistGrd.addColorStop(0, `rgba(160, 160, 155, ${0.15 * world.fog})`);
+  mistGrd.addColorStop(1, 'rgba(160, 160, 155, 0)');
+  ctx.fillStyle = mistGrd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Ground
+  ctx.fillStyle = '#181614';
+  ctx.fillRect(0, H*0.72, W, H*0.28);
+
+  // Ruined houses (broken silhouettes)
+  const baseY = H * 0.72 + 40;
+  const houseW = W * 0.14;
+  for (let i = 0; i < 5; i++) {
+    const hx = W * 0.08 + i * (houseW + W * 0.02);
+    const hh = H * (0.09 + Math.sin(i * 2.3) * 0.05);
+    const broken = Math.sin(i * 3.7) > 0 ? 0.7 : 0.4;
+    ctx.fillStyle = '#0e0c0a';
+    ctx.beginPath();
+    ctx.moveTo(hx, baseY);
+    ctx.lineTo(hx, baseY - hh * broken);
+    ctx.lineTo(hx + houseW * 0.5, baseY - hh * broken * 1.15);
+    ctx.lineTo(hx + houseW * 0.7, baseY - hh * broken * 0.6);
+    ctx.lineTo(hx + houseW, baseY - hh * broken * 0.8);
+    ctx.lineTo(hx + houseW, baseY);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Ash falling slowly
+  if (Math.random() < 50 * localDt) {
+    world.ash.push(new AshParticle(
+      W * Math.random(),
+      -10
+    ));
+  }
+
+  // A few leftover embers from ruins
+  if (Math.random() < 8 * localDt) {
+    world.embers.push(new Ember(
+      W * (0.2 + Math.random() * 0.6),
+      H * 0.72
+    ));
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SCENE 3 — THE PARENTS (two figures, backlit)
+// ════════════════════════════════════════════════════════════════
+function sceneParents(localT, localDt) {
+  world.fireTarget = 0;
+  world.fogTarget = 0.3;
+
+  // Camera slow drift
+  world.cam.targetZoom = 1 + localT * 0.015;
+  world.cam.targetY = 0;
+
+  // Dark warm background
+  const skyGrd = ctx.createRadialGradient(W*0.5, H*0.4, 0, W*0.5, H*0.4, W*0.9);
+  skyGrd.addColorStop(0, rgb([35,18,10]));
+  skyGrd.addColorStop(0.6, rgb([20,10,6]));
+  skyGrd.addColorStop(1, rgb([5,2,1]));
+  ctx.fillStyle = skyGrd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Ground
+  ctx.fillStyle = '#080403';
+  ctx.fillRect(0, H*0.72, W, H*0.28);
+
+  // Two figures — one fallen, one kneeling
+  const cx = W * 0.5;
+  const cy = H * 0.72;
+  const baseH = H * 0.4;
+
+  // Fallen figure (lying down, left)
+  ctx.save();
+  ctx.translate(cx - W*0.15, cy - 30);
+  ctx.rotate(-Math.PI/2 + 0.3);
+  drawFigure(0, 0, baseH * 0.85, 0, '#050201');
+  ctx.restore();
+
+  // Kneeling figure (right)
+  ctx.save();
+  ctx.translate(cx + W*0.1, cy - 20);
+  ctx.rotate(0.15);
+  ctx.scale(1, 0.85);
+  drawFigure(0, 0, baseH, 1.5, '#050201');
+  ctx.restore();
+
+  // Faint red glow behind them (fire reflection)
+  const glowGrd = ctx.createRadialGradient(cx, cy - baseH*0.3, 0, cx, cy - baseH*0.3, W*0.6);
+  glowGrd.addColorStop(0, 'rgba(120, 40, 15, 0.15)');
+  glowGrd.addColorStop(1, 'rgba(60, 20, 8, 0)');
+  ctx.fillStyle = glowGrd;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCENE 4 — THE KNIFE
+// ═══════════════════════════════════════════════════════════════
+function sceneKnife(localT, localDt) {
+  world.knifeGlowTarget = 0.4 + Math.sin(localT * 2) * 0.4;
+
+  // Camera very slow
+  world.cam.targetZoom = 1.1 + localT * 0.02;
+  world.cam.targetY = 0;
+
+  // Dark brown background
+  const bgGrd = ctx.createRadialGradient(W*0.5, H*0.5, 0, W*0.5, H*0.5, W*0.7);
+  bgGrd.addColorStop(0, rgb([30, 18, 12]));
+  bgGrd.addColorStop(1, rgb([8, 4, 2]));
+  ctx.fillStyle = bgGrd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Hand silhouette at bottom
+  ctx.fillStyle = '#060201';
+  ctx.beginPath();
+  ctx.ellipse(W*0.5, H*1.02, W*0.35, H*0.25, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  // Knife — held vertically, catches light
+  const angle = -0.15 + Math.sin(localT * 0.8) * 0.03;
+  const scale = Math.min(W, H) / 900 * 1.5;
+  drawKnife(W*0.5, H*0.55, scale, angle, world.knifeGlow);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCENE 5 — THE FOREST (deep, dark, path ahead)
+// ═══════════════════════════════════════════════════════════════
+function sceneForest(localT, localDt) {
+  world.forestTarget = 1;
+  world.fogTarget = 0.5;
+
+  // Camera pushes forward (as if walking INTO the forest)
+  world.cam.targetZoom = 1 + localT * 0.05;
+  world.cam.targetY = -localT * 8;
+
+  // Dark forest sky
+  const skyGrd = ctx.createLinearGradient(0, 0, 0, H);
+  skyGrd.addColorStop(0, rgb([10, 15, 25]));
+  skyGrd.addColorStop(0.4, rgb([5, 10, 18]));
+  skyGrd.addColorStop(1, rgb([2, 4, 3]));
+  ctx.fillStyle = skyGrd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Moonlight beam
+  const moonGrd = ctx.createRadialGradient(W*0.5, 0, 0, W*0.5, H*0.5, W*0.7);
+  moonGrd.addColorStop(0, 'rgba(180, 200, 230, 0.12)');
+  moonGrd.addColorStop(1, 'rgba(180, 200, 230, 0)');
+  ctx.fillStyle = moonGrd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Parallax trees — back layer (darker, smaller)
+  for (let i = 0; i < 8; i++) {
+    const tx = W * (0.05 + i * 0.13) + Math.sin(i * 3.1) * 30;
+    const th = H * (0.4 + Math.sin(i * 2.3) * 0.1);
+    const tw = W * 0.06;
+    drawTree(tx, H*0.78, th, tw, '#0a1018');
+  }
+
+  // Middle layer trees (bigger)
+  for (let i = 0; i < 6; i++) {
+    const tx = W * (0.1 + i * 0.16) + Math.sin(i * 4.7) * 20;
+    const th = H * (0.6 + Math.sin(i * 1.9) * 0.1);
+    const tw = W * 0.10;
+    drawTree(tx, H*0.85, th, tw, '#040608');
+  }
+
+  // Front layer (very dark, framing)
+  drawTree(W*0.02, H*1.05, H*0.9, W*0.16, '#020304');
+  drawTree(W*0.98, H*1.05, H*0.9, W*0.16, '#020304');
+
+  // Ground
+  ctx.fillStyle = '#030403';
+  ctx.fillRect(0, H*0.82, W, H*0.18);
+
+  // Path (light wedge leading in)
+  ctx.fillStyle = 'rgba(40, 50, 40, 0.15)';
+  ctx.beginPath();
+  ctx.moveTo(W*0.5, H*0.78);
+  ctx.lineTo(W*0.4, H);
+  ctx.lineTo(W*0.6, H);
+  ctx.closePath();
+  ctx.fill();
+
+  // Fog rolling in
+  const fogGrd = ctx.createLinearGradient(0, H*0.5, 0, H);
+  fogGrd.addColorStop(0, 'rgba(60, 70, 80, 0)');
+  fogGrd.addColorStop(0.5, `rgba(60, 70, 80, ${0.15 * world.fog})`);
+  fogGrd.addColorStop(1, `rgba(60, 70, 80, ${0.4 * world.fog})`);
+  ctx.fillStyle = fogGrd;
+  ctx.fillRect(0, 0, W, H);
+
+  // Two small figures walking into the forest (distant)
+  const figY = H*0.82;
+  const walkOffset = localT * 8;
+  const fScale = 0.5 + localT * 0.02;
+  const f1x = W*0.47 - walkOffset * 0.3;
+  const f2x = W*0.53 - walkOffset * 0.3;
+  drawFigure(f1x, figY, H*0.15 * fScale, 0, '#010202');
+  drawFigure(f2x, figY + 8, H*0.1 * fScale, 1.2, '#010202');
+
+  // Occasional snow/leaves
+  if (Math.random() < 6 * localDt) {
+    world.snow.push(new SnowFlake(
+      W * Math.random(),
+      -10
+    ));
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SCENE DEFINITIONS — with timings
+// ════════════════════════════════════════════════════════════════
+const SCENES = [
+  { name: 'chapter',   duration: 4.0,  render: null },
+  { name: 'burning',   duration: 22.0, render: sceneBurningVillage },
+  { name: 'morning',   duration: 20.0, render: sceneMorningAfter },
+  { name: 'parents',   duration: 18.0, render: sceneParents },
+  { name: 'knife',     duration: 16.0, render: sceneKnife },
+  { name: 'forest',    duration: 30.0, render: sceneForest },
+  { name: 'outro',     duration: 3.0,  render: null },
+];
+
+// ════════════════════════════════════════════════════════════════
+//  NARRATION SCRIPT — synced to scene time
+// ════════════════════════════════════════════════════════════════
+const LINES = [
+  // Chapter card (0-4s) — no narration
+  // Burning village (4-26s)
+  { scene: 'burning', at: 0.5,  dur: 4.2, text: `One night, the Northern Kingdom's army burned an entire village to the ground.` },
+  { scene: 'burning', at: 5.5,  dur: 2.6, text: `<span class="whisper">They say it is only a rumor.</span>` },
+  { scene: 'burning', at: 9.0,  dur: 4.5, text: `But the people whisper that the leader of the Northern Kingdom was not always a tyrant.` },
+  { scene: 'burning', at: 14.5, dur: 4.8, text: `Long ago, before the war, he was a wealthy merchant. He had a wife, a daughter, and a home by the river.` },
+  { scene: 'burning', at: 20.0, dur: 3.0, text: `But one night, his rivals burned his estate to the ground.` },
+
+  // Morning after (26-46s)
+  { scene: 'morning', at: 0.5,  dur: 3.4, text: `His family died in the fire.` },
+  { scene: 'morning', at: 4.5,  dur: 4.4, text: `The man who survived that night was not the same man who had built the estate.` },
+  { scene: 'morning', at: 9.5,  dur: 2.8, text: `Something inside him broke.` },
+  { scene: 'morning', at: 13.0, dur: 4.0, text: `He stopped believing in peace. He stopped believing in mercy.` },
+  { scene: 'morning', at: 17.5, dur: 5.2, text: `He only believed in <em>fire</em> — because fire was the only thing that had ever been honest with him.` },
+
+  // Parents (46-64s)
+  { scene: 'parents', at: 0.5,  dur: 4.4, text: `And on this night, that monstrous army reached the children's village.` },
+  { scene: 'parents', at: 5.5,  dur: 4.4, text: `Two children — <em>Feris and Joie</em> — were not in the village that night.` },
+  { scene: 'parents', at: 10.5, dur: 3.6, text: `They had been sent to their uncle's house, a short walk away.` },
+  { scene: 'parents', at: 14.5, dur: 3.0, text: `Feris was fifteen. Joie was ten.` },
+
+  // Knife (64-80s)
+  { scene: 'knife',   at: 0.5,  dur: 4.4, text: `When they returned the next morning, there was nothing left of their home.` },
+  { scene: 'knife',   at: 5.5,  dur: 4.8, text: `They searched through the ruins until they found their mother — burned beyond saving.` },
+  { scene: 'knife',   at: 11.0, dur: 4.8, text: `Beside her lay their father. His hand was still clenched around a small knife.` },
+
+  // Forest (80-110s)
+  { scene: 'forest',  at: 0.5,  dur: 3.6, text: `Feris pulled the knife gently from his father's grip.` },
+  { scene: 'forest',  at: 4.5,  dur: 3.0, text: `There was nothing else to take.` },
+  { scene: 'forest',  at: 8.0,  dur: 3.4, text: `Terrified and alone, they ran back to their uncle's house.` },
+  { scene: 'forest',  at: 12.0, dur: 2.6, text: `But the war had already reached it.` },
+  { scene: 'forest',  at: 15.0, dur: 5.5, text: `Their uncle pressed tools into Feris's hands — matches, flint, dried food — pointed toward the deep forest, and told them to run.` },
+  { scene: 'forest',  at: 21.0, dur: 3.2, text: `<em>And not to look back.</em>` },
+  { scene: 'forest',  at: 24.5, dur: 4.0, text: `Behind them, their uncle's family was captured. Enslaved.` },
+  // Outro handled by end card
+];
+
+// ════════════════════════════════════════════════════════════════
+//  MAIN LOOP
+// ════════════════════════════════════════════════════════════════
+let lastFrame = performance.now();
+let sceneStartTime = 0;
+let sceneIdx = 0;
+let running = false;
+let linesShown = new Set();
+let allDone = false;
+
+function getSceneLocalTime() {
+  return timeline.t - sceneStartTime;
+}
+
+function nextScene() {
+  sceneIdx++;
+  if (sceneIdx >= SCENES.length) {
+    finishPrologue();
+    return;
+  }
+  sceneStartTime = timeline.t;
+  linesShown.clear();
+  if (SCENES[sceneIdx].name === 'chapter') {
+    chapterEl.classList.add('show');
+  } else {
+    chapterEl.classList.remove('show');
+  }
+}
+
+function finishPrologue() {
+  running = false;
+  allDone = true;
+  txt.classList.remove('show');
+  chapterEl.classList.remove('show');
+  skipBtn.classList.remove('show');
+  endEl.classList.add('show');
+}
+
+function showLine(line) {
+  txt.innerHTML = line.text;
+  txt.classList.add('show');
+}
+
+function hideLine() {
+  txt.classList.remove('show');
+}
+
+function checkNarration(localT) {
+  const scene = SCENES[sceneIdx];
+  if (!scene || !scene.name) return;
+
+  // Find current line (last line whose at <= localT, whose at+dur > localT)
+  let active = null;
+  let upcoming = Infinity;
+  for (let i = 0; i < LINES.length; i++) {
+    const line = LINES[i];
+    if (line.scene !== scene.name) continue;
+    if (localT >= line.at && localT < line.at + line.dur) {
+      active = line;
+      break;
+    }
+    if (localT < line.at && line.at < upcoming) {
+      upcoming = line.at;
+    }
+  }
+
+  const key = active ? `${scene.name}-${active.at}` : null;
+  if (active && !linesShown.has(key)) {
+    linesShown.add(key);
+    showLine(active);
+  } else if (!active && txt.classList.contains('show')) {
+    hideLine();
+  }
+}
+
+function update(dt) {
+  if (!running || allDone) return;
+
+  timeline.t += dt;
+  const scene = SCENES[sceneIdx];
+  if (!scene) return;
+  const localT = getSceneLocalTime();
+  const localDt = Math.min(dt, 1/30);
+
+  // Advance scene if done
+  if (localT >= scene.duration) {
+    hideLine();
+    nextScene();
+    if (!running) return;
+  }
+
+  // Update world
+  world.time += dt;
+  world.wind = lerp(world.wind, world.windTarget, dt * 0.5);
+  world.fireIntensity = lerp(world.fireIntensity, world.fireTarget, dt * 2);
+  world.fog = lerp(world.fog, world.fogTarget, dt * 0.8);
+  world.knifeGlow = lerp(world.knifeGlow, world.knifeGlowTarget, dt * 3);
+  world.forestDarkness = lerp(world.forestDarkness, world.forestTarget, dt * 1.5);
+
+  // Camera smooth
+  world.cam.x = lerp(world.cam.x, world.cam.targetX, dt * 0.5);
+  world.cam.y = lerp(world.cam.y, world.cam.targetY, dt * 0.5);
+  world.cam.zoom = lerp(world.cam.zoom, world.cam.targetZoom, dt * 0.5);
+  world.cam.shakeX *= 0.95;
+  world.cam.shakeY *= 0.95;
+
+  // Update particles
+  world.embers = world.embers.filter(e => e.update(dt, world.wind));
+  world.rain = world.rain.filter(r => r.update(dt, world.wind));
+  world.ash = world.ash.filter(a => a.update(dt, world.wind));
+  world.snow = world.snow.filter(s => s.update(dt, world.wind));
+
+  // Cap particle counts
+  if (world.embers.length > 400) world.embers.splice(0, world.embers.length - 400);
+  if (world.ash.length > 300) world.ash.splice(0, world.ash.length - 300);
+  if (world.snow.length > 200) world.snow.splice(0, world.snow.length - 200);
+
+  // Narration
+  checkNarration(localT);
+
+  // Scene ambient wind
+  if (scene.name === 'forest') world.windTarget = 0.3;
+  else if (scene.name === 'burning') world.windTarget = 0.15;
+  else world.windTarget = 0.05;
+}
+
+function render() {
+  // Apply camera
+  ctx.save();
+  ctx.translate(W/2 + world.cam.shakeX, H/2 + world.cam.shakeY);
+  ctx.scale(world.cam.zoom, world.cam.zoom);
+  ctx.translate(-W/2, -H/2 + world.cam.y);
+
+  // Render current scene
+  const scene = SCENES[sceneIdx];
+  if (scene && scene.render) {
+    const localT = getSceneLocalTime();
+    scene.render(localT, 1/60);
+  } else if (scene && scene.name === 'chapter') {
+    // Dark background for chapter card
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
+  } else if (scene && scene.name === 'outro') {
+    // Fade out
+    const fade = clamp(getSceneLocalTime() / scene.duration, 0, 1);
+    ctx.fillStyle = `rgba(0,0,0,${fade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  ctx.restore();
+
+  // Draw particles ON TOP (screen space, not camera-transformed)
+  for (const e of world.embers) e.draw(ctx);
+  for (const a of world.ash) a.draw(ctx);
+  for (const s of world.snow) s.draw(ctx);
+  for (const r of world.rain) r.draw(ctx);
+}
+
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min((now - lastFrame) / 1000, 0.05);
+  lastFrame = now;
+
+  update(dt);
+  render();
+}
+
+// ════════════════════════════════════════════════════════════════
+//  START / SKIP / END
+// ════════════════════════════════════════════════════════════════
+function startPrologue() {
+  startEl.classList.add('hide');
+  skipBtn.classList.add('show');
+
+  timeline.t = 0;
+  sceneStartTime = 0;
+  sceneIdx = 0;
+  linesShown.clear();
+  running = true;
+  allDone = false;
+
+  // Clear particles
+  world.embers = [];
+  world.rain = [];
+  world.ash = [];
+  world.snow = [];
+
+  // Reset world
+  world.fireIntensity = 0;
+  world.fog = 0;
+  world.knifeGlow = 0;
+  world.forestDarkness = 0;
+  world.cam.zoom = 1;
+  world.cam.y = 0;
+
+  // Show chapter card
+  if (SCENES[0].name === 'chapter') {
+    chapterEl.classList.add('show');
+  }
+}
+
+function skipPrologue() {
+  running = false;
+  allDone = true;
+  finishPrologue();
+}
 
 function resetAndPlay() {
-  cancelled = false;
-  currentScene = -1;
-  scenes.forEach(s => s.classList.remove('active'));
-  narration.classList.remove('show');
-  chapter.classList.remove('show');
-  endCard.classList.remove('show');
-  stage.style.opacity = '1';
-  skipBtn.classList.add('show');
-  playPrologue();
+  endEl.classList.remove('show');
+  startPrologue();
 }
 
-// ── Start on first click/tap anywhere ────────────────────
-function startPrologue() {
-  if (hasStarted) return;
-  hasStarted = true;
-  skipBtn.classList.add('show');
-  playPrologue();
-}
+startEl.addEventListener('click', startPrologue);
+skipBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  skipPrologue();
+});
+endEl.addEventListener('click', resetAndPlay);
 
-stage.addEventListener('click', startPrologue);
+// Hide chapter card when scene transitions away from 'chapter'
+// (handled in nextScene via class toggle)
+
+// Begin render loop
+requestAnimationFrame(loop);
 </script>
-
 </body>
 </html>
