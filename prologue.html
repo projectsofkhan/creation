@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
+<title>Feris & Joie — Prologue</title>
+
+<style>
+/* ════════════════════════════════════════════════════════════
+   BASE
+   ════════════════════════════════════════════════════════════ */
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #000;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  color: #ebe4d0;
+  cursor: pointer;
+}
+#stage { position: fixed; inset: 0; overflow: hidden; }
+
+/* ════════════════════════════════════════════════════════════
+   SCENES — each one is an absolutely positioned layer
+   ════════════════════════════════════════════════════════════ */
+.scene {
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity 2s ease;
+  pointer-events: none;
+}
+.scene.active { opacity: 1; }
+
+/* ════════════════════════════════════════════════════════════
+   SCENE 1 — THE BURNING VILLAGE (silhouette)
+   ════════════════════════════════════════════════════════════ */
+#s1 {
+  background: radial-gradient(ellipse at 50% 80%, #3a1208 0%, #1a0806 40%, #0a0403 100%);
+}
+#s1 .fire-glow {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 60%;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255,120,40,0.35) 0%, rgba(180,60,20,0.15) 40%, transparent 70%);
+  animation: fireFlicker 1.8s ease-in-out infinite;
+}
+@keyframes fireFlicker {
+  0%,100% { opacity: 0.85; transform: scaleY(1); }
+  50%     { opacity: 1;    transform: scaleY(1.04); }
+}
+#s1 .silhouette-houses {
+  position: absolute; bottom: 18%; left: 0; right: 0; height: 45%;
+  display: flex; justify-content: center; align-items: flex-end; gap: 3%;
+  padding: 0 8%;
+}
+#s1 .house {
+  background: #050201;
+  flex: 0 0 auto;
+  position: relative;
+  clip-path: polygon(0% 30%, 50% 0%, 100% 30%, 100% 100%, 0% 100%);
+  animation: houseBurn 3s ease-in-out infinite;
+}
+#s1 .house:nth-child(1) { width: 90px; height: 70px; }
+#s1 .house:nth-child(2) { width: 120px; height: 90px; animation-delay: -0.5s; }
+#s1 .house:nth-child(3) { width: 100px; height: 75px; animation-delay: -1s; }
+#s1 .house:nth-child(4) { width: 80px; height: 60px; animation-delay: -1.5s; }
+#s1 .house:nth-child(5) { width: 110px; height: 85px; animation-delay: -0.8s; }
+@keyframes houseBurn {
+  0%,100% { opacity: 0.85; }
+  50%     { opacity: 1; }
+}
+#s1 .embers {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.ember {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: #ffaa44;
+  border-radius: 50%;
+  box-shadow: 0 0 6px #ff6622, 0 0 2px #ffcc66;
+  animation: emberRise linear infinite;
+}
+@keyframes emberRise {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.6; }
+  100% { transform: translateY(-90vh) translateX(30px); opacity: 0; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   SCENE 2 — THE MORNING AFTER (grey, empty)
+   ════════════════════════════════════════════════════════════ */
+#s2 {
+  background: linear-gradient(to bottom, #6a6a6a 0%, #4a4a4a 40%, #2a2826 100%);
+}
+#s2 .fog-layer {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 60%, rgba(200,200,200,0.15) 0%, transparent 60%);
+  animation: fogDrift 12s ease-in-out infinite alternate;
+}
+@keyframes fogDrift {
+  from { transform: translateX(-20px); opacity: 0.6; }
+  to   { transform: translateX(20px);  opacity: 0.9; }
+}
+#s2 .ruin {
+  position: absolute; bottom: 25%; left: 0; right: 0; height: 40%;
+  display: flex; justify-content: center; align-items: flex-end; gap: 4%;
+  padding: 0 10%;
+}
+#s2 .ruin-house {
+  background: #1a1614;
+  flex: 0 0 auto;
+  clip-path: polygon(0% 30%, 50% 0%, 100% 30%, 100% 100%, 0% 100%);
+  opacity: 0.6;
+}
+#s2 .ruin-house:nth-child(1) { width: 60px; height: 40px; }
+#s2 .ruin-house:nth-child(2) { width: 90px; height: 55px; }
+#s2 .ruin-house:nth-child(3) { width: 70px; height: 45px; }
+#s2 .ruin-house:nth-child(4) { width: 50px; height: 35px; }
+
+/* ════════════════════════════════════════════════════════════
+   SCENE 3 — THE PARENTS (two figures, one above the other)
+   ════════════════════════════════════════════════════════════ */
+#s3 {
+  background: radial-gradient(ellipse at 50% 50%, #1a0a08 0%, #0a0403 60%, #000 100%);
+}
+#s3 .figure {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80px; height: 160px;
+  background: #050201;
+  clip-path: polygon(35% 0%, 65% 0%, 75% 20%, 90% 40%, 95% 60%, 85% 65%, 80% 100%, 20% 100%, 15% 65%, 5% 60%, 10% 40%, 25% 20%);
+  animation: figureBreathe 4s ease-in-out infinite;
+}
+#s3 .figure.f1 {
+  left: 42%; transform: translate(-50%, -50%) rotate(-15deg);
+  animation-delay: -2s;
+}
+#s3 .figure.f2 {
+  left: 58%; transform: translate(-50%, -50%) rotate(15deg);
+  animation-delay: -4s;
+  opacity: 0.85;
+}
+@keyframes figureBreathe {
+  0%,100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1); }
+  50%     { opacity: 1;   transform: translate(-50%, -50%) scale(1.02); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   SCENE 4 — THE KNIFE (one sharp object, one held hand)
+   ════════════════════════════════════════════════════════════ */
+#s4 {
+  background: radial-gradient(ellipse at 50% 50%, #2a1810 0%, #0a0403 60%, #000 100%);
+}
+#s4 .knife {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-25deg);
+  width: 3px; height: 120px;
+  background: linear-gradient(to bottom, #c0c0c0 0%, #808080 60%, #3a2a10 61%, #2a1a08 100%);
+  box-shadow: 0 0 20px rgba(200,200,200,0.4);
+  animation: knifeGleam 3s ease-in-out infinite;
+}
+#s4 .knife::before {
+  content: '';
+  position: absolute;
+  top: -8px; left: -4px;
+  width: 11px; height: 12px;
+  background: #8a6a40;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  filter: brightness(0.6);
+}
+@keyframes knifeGleam {
+  0%,100% { box-shadow: 0 0 20px rgba(200,200,200,0.3); }
+  50%     { box-shadow: 0 0 40px rgba(255,255,255,0.7); }
+}
+#s4 .hand {
+  position: absolute;
+  bottom: 12%; left: 50%;
+  transform: translateX(-50%);
+  width: 200px; height: 60px;
+  background: radial-gradient(ellipse at 50% 100%, #1a0a04 0%, #050201 70%, transparent 100%);
+  border-radius: 50% 50% 0 0;
+  opacity: 0.7;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SCENE 5 — THE FOREST (dark, deep, one path forward)
+   ════════════════════════════════════════════════════════════ */
+#s5 {
+  background: linear-gradient(to bottom, #050a06 0%, #0a1408 40%, #000 100%);
+}
+#s5 .tree {
+  position: absolute;
+  bottom: 0;
+  width: 40px;
+  background: linear-gradient(to top, #020401 0%, #05100a 100%);
+  clip-path: polygon(50% 0%, 65% 30%, 55% 30%, 70% 60%, 60% 60%, 85% 100%, 15% 100%, 40% 60%, 30% 60%, 45% 30%, 35% 30%);
+  opacity: 0.9;
+}
+#s5 .tree:nth-child(1) { left: 5%;  height: 80%; }
+#s5 .tree:nth-child(2) { left: 15%; height: 70%; width: 30px; }
+#s5 .tree:nth-child(3) { left: 28%; height: 90%; width: 50px; }
+#s5 .tree:nth-child(4) { right: 28%; height: 88%; width: 48px; }
+#s5 .tree:nth-child(5) { right: 15%; height: 72%; width: 32px; }
+#s5 .tree:nth-child(6) { right: 5%;  height: 82%; width: 42px; }
+#s5 .path {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 120px solid transparent;
+  border-right: 120px solid transparent;
+  border-bottom: 300px solid rgba(20, 30, 15, 0.4);
+}
+#s5 .moonlight {
+  position: absolute;
+  top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 60%; height: 40%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(180,200,220,0.15) 0%, transparent 70%);
+}
+#s5 .fog-forest {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(10,20,15,0.4) 0%, transparent 30%);
+}
+
+/* ════════════════════════════════════════════════════════════
+   TEXT LAYER — narration, subtitles, chapter cards
+   ════════════════════════════════════════════════════════════ */
+.narration {
+  position: absolute;
+  bottom: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 720px;
+  width: 88%;
+  text-align: center;
+  font-family: 'Georgia', serif;
+  font-size: clamp(15px, 2.2vw, 20px);
+  line-height: 1.7;
+  letter-spacing: 0.5px;
+  color: #d8d0c0;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.95), 0 0 40px rgba(0,0,0,0.8);
+  opacity: 0;
+  transition: opacity 1.5s ease;
+  pointer-events: none;
+}
+.narration.show { opacity: 1; }
+
+.narration em { font-style: italic; color: #e8dcc0; }
+.narration .whisper { color: #9a9088; font-size: 0.9em; font-style: italic; }
+
+.chapter-card {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 2s ease;
+  pointer-events: none;
+}
+.chapter-card.show { opacity: 1; }
+.chapter-card .label {
+  font-size: 11px;
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  color: #8a8070;
+  margin-bottom: 24px;
+}
+.chapter-card .title {
+  font-size: clamp(28px, 5vw, 56px);
+  font-weight: 300;
+  letter-spacing: 10px;
+  color: #ebe4d0;
+  text-transform: uppercase;
+  text-shadow: 0 0 40px rgba(0,0,0,1);
+}
+.chapter-card .subtitle {
+  font-size: clamp(11px, 1.6vw, 14px);
+  letter-spacing: 6px;
+  color: #8a8070;
+  margin-top: 18px;
+  font-style: italic;
+}
+
+/* ════════════════════════════════════════════════════════════
+   CONTROLS — tap to skip
+   ════════════════════════════════════════════════════════════ */
+#skip {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  padding: 10px 22px;
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #8a8070;
+  border: 1px solid rgba(138,128,112,0.3);
+  border-radius: 40px;
+  background: rgba(0,0,0,0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+}
+#skip.show { opacity: 1; pointer-events: auto; }
+#skip:hover { color: #ebe4d0; border-color: rgba(235,228,208,0.4); }
+
+/* ════════════════════════════════════════════════════════════
+   END CARD
+   ════════════════════════════════════════════════════════════ */
+#end {
+  position: fixed; inset: 0;
+  background: #000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 200;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 3s ease, visibility 3s;
+  padding: 30px;
+  text-align: center;
+}
+#end.show { opacity: 1; visibility: visible; }
+#end .title {
+  font-size: clamp(36px, 7vw, 72px);
+  letter-spacing: 18px;
+  font-weight: 300;
+  color: #ebe4d0;
+  margin-bottom: 20px;
+  text-shadow: 0 0 60px rgba(200, 180, 140, 0.2);
+}
+#end .tagline {
+  font-size: clamp(12px, 1.8vw, 15px);
+  letter-spacing: 6px;
+  color: #8a8070;
+  font-style: italic;
+  margin-bottom: 60px;
+}
+#end .hint {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: #5a5048;
+  text-transform: uppercase;
+  animation: pulse 2.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 0.4; }
+  50%     { opacity: 0.9; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   VIGNETTE
+   ════════════════════════════════════════════════════════════ */
+#vignette {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, transparent 35%, rgba(0,0,0,0.55) 100%);
+  z-index: 10;
+}
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE
+   ════════════════════════════════════════════════════════════ */
+@media (max-height: 500px) {
+  .narration { bottom: 8%; font-size: 14px; }
+  #skip { bottom: 12px; right: 12px; padding: 8px 16px; font-size: 10px; }
+}
+</style>
+</head>
+<body>
+
+<div id="stage">
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCENE 1 — THE BURNING VILLAGE
+       ═══════════════════════════════════════════════════════ -->
+  <div class="scene" id="s1">
+    <div class="fire-glow"></div>
+    <div class="silhouette-houses">
+      <div class="house"></div>
+      <div class="house"></div>
+      <div class="house"></div>
+      <div class="house"></div>
+      <div class="house"></div>
+    </div>
+    <div class="embers" id="embers1"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCENE 2 — THE MORNING AFTER
+       ═══════════════════════════════════════════════════════ -->
+  <div class="scene" id="s2">
+    <div class="fog-layer"></div>
+    <div class="ruin">
+      <div class="ruin-house"></div>
+      <div class="ruin-house"></div>
+      <div class="ruin-house"></div>
+      <div class="ruin-house"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCENE 3 — THE PARENTS
+       ═══════════════════════════════════════════════════════ -->
+  <div class="scene" id="s3">
+    <div class="figure f1"></div>
+    <div class="figure f2"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCENE 4 — THE KNIFE
+       ═══════════════════════════════════════════════════════ -->
+  <div class="scene" id="s4">
+    <div class="hand"></div>
+    <div class="knife"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       SCENE 5 — THE FOREST
+       ═══════════════════════════════════════════════════════ -->
+  <div class="scene" id="s5">
+    <div class="moonlight"></div>
+    <div class="tree"></div>
+    <div class="tree"></div>
+    <div class="tree"></div>
+    <div class="tree"></div>
+    <div class="tree"></div>
+    <div class="tree"></div>
+    <div class="path"></div>
+    <div class="fog-forest"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       NARRATION LAYER
+       ═══════════════════════════════════════════════════════ -->
+  <div class="narration" id="narration"></div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       CHAPTER CARD
+       ═══════════════════════════════════════════════════════ -->
+  <div class="chapter-card" id="chapter">
+    <div class="label">Prologue</div>
+    <div class="title">Feris & Joie</div>
+    <div class="subtitle">before the forest</div>
+  </div>
+
+</div>
+
+<div id="vignette"></div>
+
+<button id="skip">Skip Prologue</button>
+
+<!-- ═══════════════════════════════════════════════════════════
+     END CARD
+     ═══════════════════════════════════════════════════════════ -->
+<div id="end">
+  <div class="title">FERIS & JOIE</div>
+  <div class="tagline">their story begins in the dark</div>
+  <div class="hint">tap to begin chapter one</div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   PROLOGUE — a 3-minute animated short.
+   Pure HTML/CSS. No libraries. Runs anywhere.
+   ════════════════════════════════════════════════════════════ */
+
+// ── Element refs ──────────────────────────────────────────
+const scenes = document.querySelectorAll('.scene');
+const narration = document.getElementById('narration');
+const chapter = document.getElementById('chapter');
+const skipBtn = document.getElementById('skip');
+const endCard = document.getElementById('end');
+const stage = document.getElementById('stage');
+
+// ── State ─────────────────────────────────────────────────
+let currentScene = -1;
+let cancelled = false;
+let timerId = null;
+
+// ── Utility: sleep that respects cancellation ─────────────
+function sleep(ms) {
+  return new Promise((resolve) => {
+    timerId = setTimeout(() => {
+      if (!cancelled) resolve();
+    }, ms);
+  });
+}
+
+// ── Utility: show a scene ─────────────────────────────────
+function showScene(n) {
+  scenes.forEach((s, i) => {
+    s.classList.toggle('active', i === n);
+  });
+  currentScene = n;
+}
+
+// ── Utility: narrate a line ───────────────────────────────
+function narrate(html, holdMs = 3200) {
+  return new Promise((resolve) => {
+    if (cancelled) return resolve();
+    narration.innerHTML = html;
+    narration.classList.add('show');
+    timerId = setTimeout(() => {
+      if (cancelled) return resolve();
+      narration.classList.remove('show');
+      timerId = setTimeout(() => {
+        if (!cancelled) resolve();
+      }, 900);
+    }, holdMs);
+  });
+}
+
+// ── Utility: chapter card ────────────────────────────────
+function showChapter(ms = 3200) {
+  return new Promise((resolve) => {
+    if (cancelled) return resolve();
+    chapter.classList.add('show');
+    timerId = setTimeout(() => {
+      if (cancelled) return resolve();
+      chapter.classList.remove('show');
+      timerId = setTimeout(() => {
+        if (!cancelled) resolve();
+      }, 1200);
+    }, ms);
+  });
+}
+
+// ── Utility: fade the whole stage ────────────────────────
+function fadeStage(opacity, ms = 1200) {
+  return new Promise((resolve) => {
+    stage.style.transition = `opacity ${ms}ms ease`;
+    stage.style.opacity = opacity;
+    timerId = setTimeout(() => {
+      if (!cancelled) resolve();
+    }, ms);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  THE PROLOGUE SCRIPT
+// ════════════════════════════════════════════════════════════
+async function playPrologue() {
+  // Fade in from black
+  stage.style.opacity = '0';
+  await sleep(100);
+  await fadeStage(1, 2000);
+
+  // ── Chapter card ──────────────────────────────────────
+  await showChapter(3200);
+
+  // ── Scene 1 — the burning village ─────────────────────
+  showScene(0);
+  spawnEmbers();
+
+  await narrate(
+    `One night, the Northern Kingdom's army burned an entire village to the ground.`,
+    3800
+  );
+  await narrate(
+    `<span class="whisper">They say it is only a rumor.</span>`,
+    2400
+  );
+  await narrate(
+    `But the people whisper that the leader of the Northern Kingdom was not always a tyrant.`,
+    4200
+  );
+  await narrate(
+    `Long ago, before the war, he was a wealthy merchant. He had a wife, a daughter, and a home by the river.`,
+    4800
+  );
+  await narrate(
+    `But one night, his rivals burned his estate to the ground.`,
+    3400
+  );
+  await narrate(
+    `His family died in the fire.`,
+    2800
+  );
+
+  // ── Scene 2 — the morning after ───────────────────────
+  showScene(1);
+  await sleep(600);
+
+  await narrate(
+    `The man who survived that night was not the same man who had built the estate.`,
+    4200
+  );
+  await narrate(
+    `Something inside him broke.`,
+    2600
+  );
+  await narrate(
+    `He stopped believing in peace. He stopped believing in mercy.`,
+    3800
+  );
+  await narrate(
+    `He only believed in <em>fire</em> — because fire was the only thing that had ever been honest with him.`,
+    5000
+  );
+  await narrate(
+    `And now, he wants to burn everything else, <em>just like they did to him.</em>`,
+    4400
+  );
+
+  // ── Scene 3 — the parents ─────────────────────────────
+  showScene(2);
+  await sleep(800);
+
+  await narrate(
+    `And on this night, that monstrous army reached the children's village.`,
+    4400
+  );
+  await narrate(
+    `Two children — <em>Feris and Joie</em> — were not in the village that night.`,
+    4400
+  );
+  await narrate(
+    `They had been sent to their uncle's house, a short walk away.`,
+    3600
+  );
+  await narrate(
+    `Feris was fifteen. Joie was ten.`,
+    3000
+  );
+  await narrate(
+    `When they returned the next morning, there was nothing left of their home.`,
+    4200
+  );
+
+  // ── Scene 4 — the knife ───────────────────────────────
+  showScene(3);
+  await sleep(800);
+
+  await narrate(
+    `They searched through the ruins of their own house until they found their mother — burned beyond saving.`,
+    5000
+  );
+  await narrate(
+    `Beside her lay their father. He was dead, but his hand was still clenched around a small knife.`,
+    5000
+  );
+  await narrate(
+    `Feris pulled the knife gently from his father's grip.`,
+    3400
+  );
+  await narrate(
+    `There was nothing else to take.`,
+    2800
+  );
+
+  // ── Scene 5 — the forest ──────────────────────────────
+  showScene(4);
+  await sleep(1000);
+
+  await narrate(
+    `Terrified and alone, they ran back to their uncle's house.`,
+    3400
+  );
+  await narrate(
+    `But the war had already reached it.`,
+    2600
+  );
+  await narrate(
+    `Their uncle tried to protect them. He pressed a few tools into Feris's hands — matches, a flint, a small pouch of dried food — pointed toward the deep forest, and told them to run.`,
+    6000
+  );
+  await narrate(
+    `<em>And not to look back.</em>`,
+    3200
+  );
+  await narrate(
+    `Behind them, they heard shouting. Their uncle's family was captured. Enslaved.`,
+    4400
+  );
+
+  // ── Final fade ────────────────────────────────────────
+  await narrate(
+    `Two children. One knife. A world at war.`,
+    4000
+  );
+  await narrate(
+    `And in the depths of the forest… <em>their real story begins.</em>`,
+    5000
+  );
+
+  // ── Fade to black ─────────────────────────────────────
+  await fadeStage(0, 2500);
+
+  // ── End card ──────────────────────────────────────────
+  endCard.classList.add('show');
+  skipBtn.classList.remove('show');
+}
+
+// ════════════════════════════════════════════════════════════
+//  EMBERS — floating particles over scene 1
+// ════════════════════════════════════════════════════════════
+function spawnEmbers() {
+  const container = document.getElementById('embers1');
+  if (!container) return;
+  container.innerHTML = '';
+  const count = 40;
+  for (let i = 0; i < count; i++) {
+    const ember = document.createElement('div');
+    ember.className = 'ember';
+    ember.style.left = Math.random() * 100 + '%';
+    ember.style.bottom = Math.random() * 30 + '%';
+    ember.style.animationDuration = (3 + Math.random() * 4) + 's';
+    ember.style.animationDelay = (Math.random() * 3) + 's';
+    const size = 1 + Math.random() * 2.5;
+    ember.style.width = size + 'px';
+    ember.style.height = size + 'px';
+    container.appendChild(ember);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  SKIP / END / CLICK-TO-START
+// ════════════════════════════════════════════════════════════
+skipBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  cancelled = true;
+  clearTimeout(timerId);
+  narration.classList.remove('show');
+  chapter.classList.remove('show');
+  fadeStage(0, 800).then(() => {
+    endCard.classList.add('show');
+    skipBtn.classList.remove('show');
+  });
+});
+
+endCard.addEventListener('click', () => {
+  endCard.classList.remove('show');
+  // This is where "Chapter One" would begin.
+  // For now, we simply restart the prologue after a moment.
+  setTimeout(() => {
+    resetAndPlay();
+  }, 1200);
+});
+
+function resetAndPlay() {
+  cancelled = false;
+  currentScene = -1;
+  scenes.forEach(s => s.classList.remove('active'));
+  narration.classList.remove('show');
+  chapter.classList.remove('show');
+  endCard.classList.remove('show');
+  stage.style.opacity = '1';
+  skipBtn.classList.add('show');
+  playPrologue();
+}
+
+// ════════════════════════════════════════════════════════════
+//  BEGIN
+// ════════════════════════════════════════════════════════════
+stage.addEventListener('click', () => {
+  if (currentScene === -1) {
+    skipBtn.classList.add('show');
+    stage.removeEventListener('click', arguments.callee);
+    playPrologue();
+  }
+}, { once: false });
+</script>
+
+</body>
+</html>
