@@ -1,9 +1,8 @@
 import * as THREE from 'three';
-import { gameState, terrainHeight as defaultHeight, setTerrainHeightFn, Audio, HUD } from './engine.js';
+import { gameState, Audio, HUD } from './engine.js';
 
 /* ═══════════════════════════════════════════════════════════════
-   VERDANT VALE — world.js  (FIXED)
-   Infinite terrain · house · stable · seed shed · sky · weather
+   VERDANT VALE — world.js
    ═══════════════════════════════════════════════════════════════ */
 
 // ── Constants ───────────────────────────────────────────────
@@ -66,9 +65,6 @@ export function infiniteTerrainHeight(x, z) {
   const rawHeight = hills + mountains + bumps + riverDepth;
   return rawHeight * (1 - flatWeight * 0.92) + flatWeight * 0.15;
 }
-
-// Register with engine
-setTerrainHeightFn(infiniteTerrainHeight);
 
 // ═══════════════════════════════════════════════════════════════
 //  MATERIALS
@@ -387,7 +383,7 @@ class ChunkManager {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  WOODEN HOUSE — walkable interior
+//  WOODEN HOUSE
 // ═══════════════════════════════════════════════════════════════
 function buildHouse() {
   const group = new THREE.Group();
@@ -405,21 +401,18 @@ function buildHouse() {
   floor.receiveShadow = true;
   group.add(floor);
 
-  // Back wall
   const backWall = new THREE.Mesh(new THREE.BoxGeometry(W, H, wallThickness), MAT.woodLight);
   backWall.position.set(0, 0.5 + H / 2, -D / 2 + wallThickness / 2);
   backWall.castShadow = true;
   backWall.receiveShadow = true;
   group.add(backWall);
 
-  // Left wall
   const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, H, D), MAT.woodLight);
   leftWall.position.set(-W / 2 + wallThickness / 2, 0.5 + H / 2, 0);
   leftWall.castShadow = true;
   leftWall.receiveShadow = true;
   group.add(leftWall);
 
-  // Right wall with window hole
   const winW = 2.2, winH = 1.6;
   const winY = 0.5 + H / 2 + 0.3;
   const rightWallX = W / 2 - wallThickness / 2;
@@ -448,7 +441,6 @@ function buildHouse() {
   rWallBot.receiveShadow = true;
   group.add(rWallBot);
 
-  // Glass
   const glass = new THREE.Mesh(new THREE.BoxGeometry(0.06, winH, winW), MAT.glass);
   glass.position.set(rightWallX, winY, 0);
   group.add(glass);
@@ -460,7 +452,6 @@ function buildHouse() {
   crossV.position.set(rightWallX, winY, 0);
   group.add(crossV);
 
-  // Front wall with door
   const doorW = 1.6, doorH = 2.4;
   const frontLeftW = (W - doorW) / 2 - 1.25;
 
@@ -482,7 +473,6 @@ function buildHouse() {
   fWallTop.receiveShadow = true;
   group.add(fWallTop);
 
-  // Door frame (interactable "rest")
   const doorFrame = new THREE.Mesh(new THREE.BoxGeometry(doorW + 0.15, 0.1, 0.35), MAT.woodDark);
   doorFrame.position.set(0, 0.5 + doorH + 0.05, D / 2 - 0.1);
   doorFrame.userData.interact = {
@@ -491,7 +481,6 @@ function buildHouse() {
   };
   group.add(doorFrame);
 
-  // Roof
   const roofGeo = new THREE.ConeGeometry(W * 0.78, 2.8, 4);
   roofGeo.rotateY(Math.PI / 4);
   const roof = new THREE.Mesh(roofGeo, MAT.roofRed);
@@ -504,7 +493,6 @@ function buildHouse() {
   trim.position.y = 0.5 + H + 0.02;
   group.add(trim);
 
-  // Chimney
   const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.2, 0.9), MAT.stoneDark);
   chimney.position.set(W * 0.32, 0.5 + H + 1.5, -D * 0.22);
   chimney.castShadow = true;
@@ -514,12 +502,10 @@ function buildHouse() {
   chimneyTop.position.set(W * 0.32, 0.5 + H + 2.6, -D * 0.22);
   group.add(chimneyTop);
 
-  // Interior light
   const interiorLight = new THREE.PointLight(0xffd8a0, 1.2, 12, 2);
   interiorLight.position.set(0, 2.2, 0);
   group.add(interiorLight);
 
-  // Bed
   const bedFrame = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 2.2), MAT.woodDark);
   bedFrame.position.set(-W / 2 + 1.5, 0.75, -D / 2 + 1.8);
   bedFrame.castShadow = true;
@@ -537,7 +523,6 @@ function buildHouse() {
   pillow.position.set(-W / 2 + 1.5, 1.35, -D / 2 + 1.0);
   group.add(pillow);
 
-  // Table
   const tableTop = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.9), MAT.woodMed);
   tableTop.position.set(W / 2 - 1.8, 1.1, D / 2 - 2.2);
   tableTop.castShadow = true;
@@ -550,7 +535,6 @@ function buildHouse() {
     group.add(leg);
   }
 
-  // Chair
   const chairSeat = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.55), MAT.woodMed);
   chairSeat.position.set(W / 2 - 1.8, 0.95, D / 2 - 3.2);
   group.add(chairSeat);
@@ -559,12 +543,10 @@ function buildHouse() {
   chairBack.position.set(W / 2 - 1.8, 1.25, D / 2 - 3.45);
   group.add(chairBack);
 
-  // Shelf
   const shelf = new THREE.Mesh(new THREE.BoxGeometry(3, 0.08, 0.4), MAT.woodDark);
   shelf.position.set(0, 2.0, -D / 2 + 0.5);
   group.add(shelf);
 
-  // Jars on shelf — FIXED: MAT.burial removed
   for (let i = 0; i < 5; i++) {
     const jar = new THREE.Mesh(
       new THREE.CylinderGeometry(0.1, 0.1, 0.28, 6),
@@ -626,7 +608,6 @@ function buildStable() {
     group.add(post);
   }
 
-  // Hay bale (interactable)
   const hay = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 1.1, 12), MAT.hay);
   hay.rotation.z = Math.PI / 2;
   hay.position.set(-W / 2 + 1.2, 0.85, -D / 2 + 1.0);
@@ -638,7 +619,6 @@ function buildStable() {
   };
   group.add(hay);
 
-  // Water trough (interactable — refill)
   const trough = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 0.7), MAT.woodDark);
   trough.position.set(W / 2 - 1.3, 0.5, -D / 2 + 1.0);
   trough.castShadow = true;
@@ -652,7 +632,6 @@ function buildStable() {
   troughWater.position.set(W / 2 - 1.3, 0.62, -D / 2 + 1.0);
   group.add(troughWater);
 
-  // Hitching post
   const post1 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.5, 0.18), MAT.woodDark);
   post1.position.set(-1.5, 0.75, D / 2 + 1.5);
   post1.castShadow = true;
@@ -713,7 +692,6 @@ function buildSeedShed() {
   shedLight.position.set(0, 1.8, 0);
   group.add(shedLight);
 
-  // Shelves
   for (let row = 0; row < 3; row++) {
     const shelf = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.08, 0.5), MAT.woodDark);
     shelf.position.set(0, 0.6 + row * 0.55, -D / 2 + 0.4);
@@ -722,7 +700,6 @@ function buildSeedShed() {
     group.add(shelf);
   }
 
-  // Seed jars
   const seedTypes = [
     { id: 'tomato', name: 'Tomato', color: 0xe83a2a, emoji: '🍅' },
     { id: 'carrot', name: 'Carrot', color: 0xe87820, emoji: '🥕' },
@@ -785,7 +762,6 @@ function buildSeedShed() {
     group.add(jar);
   });
 
-  // Wooden counter outside
   const counter = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.1, 0.8), MAT.woodMed);
   counter.position.set(0, 1.0, D / 2 + 0.3);
   counter.castShadow = true;
@@ -1117,7 +1093,6 @@ function buildFenceAroundHouse(scene) {
 
   const gx1 = -8, gx2 = 8, gz1 = 5, gz2 = 14;
 
-  // Left
   for (let z = gz1; z < gz2; z += 2) {
     const x = gx1;
     const y = infiniteTerrainHeight(x, z);
@@ -1132,7 +1107,6 @@ function buildFenceAroundHouse(scene) {
     group.add(rail);
   }
 
-  // Right
   for (let z = gz1; z < gz2; z += 2) {
     const x = gx2;
     const y = infiniteTerrainHeight(x, z);
@@ -1147,7 +1121,6 @@ function buildFenceAroundHouse(scene) {
     group.add(rail);
   }
 
-  // Back
   for (let x = gx1; x < gx2; x += 2) {
     const z = gz2;
     const y = infiniteTerrainHeight(x, z);
@@ -1161,7 +1134,6 @@ function buildFenceAroundHouse(scene) {
     group.add(rail);
   }
 
-  // Front with gate gap
   for (let x = gx1; x < gx2; x += 2) {
     if (x > -1 && x < 1) continue;
     const z = gz1;
@@ -1182,7 +1154,12 @@ function buildFenceAroundHouse(scene) {
 // ═══════════════════════════════════════════════════════════════
 //  WORLD FACTORY
 // ═══════════════════════════════════════════════════════════════
-export async function createWorld(scene, sunLight, hemiLight) {
+export async function createWorld(scene, sunLight, hemiLight, setTerrainFn) {
+  // FIXED: Safely set the terrain function from inside the boot process
+  if (setTerrainFn) {
+    setTerrainFn(infiniteTerrainHeight);
+  }
+
   // Chunks
   const chunks = new ChunkManager(scene);
 
@@ -1238,13 +1215,11 @@ export async function createWorld(scene, sunLight, hemiLight) {
         if (c.position.x > 150) c.position.x = -150;
       }
 
-      // Follow player
       ambient.dust.position.set(px, 0, pz);
       ambient.ff.position.set(px, 0, pz);
       weather.rain.position.set(px, 0, pz);
       weather.snow.position.set(px, 0, pz);
 
-      // Dust sway
       const dustArr = ambient.dustGeo.attributes.position.array;
       for (let i = 0; i < ambient.dustCount; i++) {
         dustArr[i * 3] += Math.sin(elapsed * 0.6 + i) * 0.003;
@@ -1255,7 +1230,6 @@ export async function createWorld(scene, sunLight, hemiLight) {
       }
       ambient.dustGeo.attributes.position.needsUpdate = true;
 
-      // Fireflies
       const ffArr = ambient.ffGeo.attributes.position.array;
       for (let i = 0; i < ambient.ffCount; i++) {
         ffArr[i * 3] += Math.sin(elapsed * 1.2 + i * 0.5) * 0.012;
@@ -1264,7 +1238,6 @@ export async function createWorld(scene, sunLight, hemiLight) {
       }
       ambient.ffGeo.attributes.position.needsUpdate = true;
 
-      // Rain
       const rainArr = weather.rainGeo.attributes.position.array;
       for (let i = 0; i < weather.rainCount; i++) {
         rainArr[i * 3 + 1] -= weather.rainVel[i] * dt;
@@ -1276,7 +1249,6 @@ export async function createWorld(scene, sunLight, hemiLight) {
       }
       weather.rainGeo.attributes.position.needsUpdate = true;
 
-      // Snow
       const snowArr = weather.snowGeo.attributes.position.array;
       for (let i = 0; i < weather.snowCount; i++) {
         snowArr[i * 3 + 1] -= 1.5 * dt;
@@ -1364,11 +1336,3 @@ export async function createWorld(scene, sunLight, hemiLight) {
     },
   };
 }
-
-// Keep these constants exported for engine reference
-export const WORLD_CONSTANTS = {
-  HOUSE_POS,
-  STABLE_POS,
-  SHED_POS,
-  CHUNK_SIZE,
-};
