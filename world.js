@@ -1461,3 +1461,233 @@ export async function createWorld(scene, sunLight, hemiLight) {
     setWeather(weatherType, intensity = 1) {
       weather.rainMat.opacity = weatherType === 'rain' ? 0.4 * intensity : weatherType === 'storm' ? 0.6 * intensity : 0;
       weather.snowMat.opacity = weatherType === 'snow' ? 0.6 * intensity : 0;
+      clouds.mat.opacity = weatherType === 'clear' ? 0.82 : weatherType === 'cloudy' ? 0.95 : 0.98;
+      clouds.mat.color.setHex(weatherType === 'storm' ? 0x707080 : weatherType === 'rain' ? 0x9090a0 : 0xffffff);
+    },
+
+    getInteractables() {
+      return interactables;
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PATHS — dirt paths connecting buildings
+// ═══════════════════════════════════════════════════════════════
+function buildPaths(scene) {
+  const group = new THREE.Group();
+  scene.add(group);
+
+  // Path from spawn to house (straight line)
+  const pathMat = new THREE.MeshStandardMaterial({
+    color: 0x8a6a4a, roughness: 0.98,
+  });
+
+  function makePathSegment(x1, z1, x2, z2, width = 1.4) {
+    const dx = x2 - x1;
+    const dz = z2 - z1;
+    const length = Math.sqrt(dx * dx + dz * dz);
+    const midX = (x1 + x2) / 2;
+    const midZ = (z1 + z2) / 2;
+
+    // Sample multiple points along path to follow terrain
+    const segments = Math.ceil(length / 2);
+    for (let i = 0; i < segments; i++) {
+      const t1 = i / segments;
+      const t2 = (i + 1) / segments;
+      const px1 = x1 + dx * t1;
+      const pz1 = z1 + dz * t1;
+      const px2 = x1 + dx * t2;
+      const pz2 = z1 + dz * t2;
+
+      const segDx = px2 - px1;
+      const segDz = pz2 - pz1;
+      const segLen = Math.sqrt(segDx * segDx + segDz * segDz);
+
+      const geo = new THREE.PlaneGeometry(width, segLen + 0.1);
+      geo.rotateX(-Math.PI / 2);
+
+      // Deform to terrain
+      const pos = geo.attributes.position;
+      const centerX = (px1 + px2) / 2;
+      const centerZ = (pz1 + pz2) / 2;
+      const angle = Math.atan2(segDx, segDz);
+
+      // Move plane vertices to match segment position
+      for (let v = 0; v < pos.count; v++) {
+        const lx = pos.getX(v);
+        const lz = pos.getZ(v);
+        // rotate around center
+        const rotatedX = lx * Math.cos(angle) - lz * Math.sin(angle);
+        const rotatedZ = lx * Math.sin(angle) + lz * Math.cos(angle);
+        const wx = centerX + rotatedX;
+        const wz = centerZ + rotatedZ;
+        pos.setX(v, wx);
+        pos.setZ(v, wz);
+        pos.setY(v, infiniteTerrainHeight(wx, wz) + 0.03);
+      }
+      geo.computeVertexNormals();
+
+      const mesh = new THREE.Mesh(geo, pathMat);
+      mesh.receiveShadow = true;
+      group.add(mesh);
+    }
+  }
+
+  // Main path from spawn to house
+  makePathSegment(0, 8, 0, HOUSE_POS.z + 6, 1.6);
+  // Path to stable
+  makePathSegment(0, 0, STABLE_POS.x - 4, STABLE_POS.z + 2, 1.2);
+  // Path to shed
+  makePathSegment(0, 0, SHED_POS.x + 4, SHED_POS.z + 2, 1.2);
+
+  return group;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FENCE around house garden
+// ═══════════════════════════════════════════════════════════════
+function buildFenceAroundHouse(scene) {
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const fenceMat = MAT.woodDark;
+  const postGeo = new THREE.BoxGeometry(0.15, 1.1, 0.15);
+  const railGeo = new THREE.BoxGeometry(2, 0.08, 0.08);
+
+  // A simple rectangular fence in front of house (the garden area)
+  const gx1 = -8, gx2 = 8, gz1 = 5, gz2 = 14;
+
+  // Left fence
+  for (let z = gz1; z < gz2; z += 2) {
+    const x = gx1;
+    const y = infiniteTerrainHeight(x, z);
+    const post = new THREE.Mesh(postGeo, fenceMat);
+    post.position.set(x, y + 0.55, z);
+    post.castShadow = true;
+    group.add(post);
+
+    const rail = new THREE.Mesh(railGeo, fenceMat);
+    rail.position.set(x, y + 0.6, z + 1);
+    rail.rotation.y = Math.PI / 2;
+    group.add(rail);
+  }
+  // Right fence
+  for (let z = gz1; z < gz2; z += 2) {
+    const x = gx2;
+    const y = infiniteTerrainHeight(x, z);
+    const post = new THREE.Mesh(postGeo, fenceMat);
+    post.position.set(x, y + 0.55, z);
+    post.castShadow = true;
+    group.add(post);
+
+    const rail = new THREE.Mesh(railGeo, fenceMat);
+    rail.position.set(x, y + 0.6, z + 1);
+    rail.rotation.y = Math.PI / 2;
+    group.add(rail);
+  }
+  // Back fence (no gate — house blocks)
+  for (let x = gx1; x < gx2; x += 2) {
+    const z = gz2;
+    const y = infiniteTerrainHeight(x, z);
+    const post = new THREE.Mesh(postGeo, fenceMat);
+    post.position.set(x, y + 0.55, z);
+    post.castShadow = true;
+    group.add(post);
+
+    const rail = new THREE.Mesh(railGeo, fenceMat);
+    rail.position.set(x + 1, y + 0.6, z);
+    group.add(rail);
+  }
+  // Front fence — with a gap in the middle for the gate
+  for (let x = gx1; x < gx2; x += 2) {
+    if (x > -1 && x < 1) continue; // gate gap
+    const z = gz1;
+    const y = infiniteTerrainHeight(x, z);
+    const post = new THREE.Mesh(postGeo, fenceMat);
+    post.position.set(x, y + 0.55, z);
+    post.castShadow = true;
+    group.add(post);
+
+    const rail = new THREE.Mesh(railGeo, fenceMat);
+    rail.position.set(x + 1, y + 0.6, z);
+    group.add(rail);
+  }
+
+  return group;
+}
+
+// Constants for particle counts (used in update)
+const dustCount = 120;
+const ffCount = 60;
+const rainCount = 800;
+const snowCount = 400;
+
+// ═══════════════════════════════════════════════════════════════
+//  INTERACTION HANDLER — called by engine when player interacts
+// ═══════════════════════════════════════════════════════════════
+export function handleInteraction(target) {
+  if (!target || !target.userData?.interact) return;
+  const inter = target.userData.interact;
+  const player = gameState.player;
+
+  switch (inter.type) {
+    case 'take_seed': {
+      const seedId = inter.seedId;
+      // Seeds cost coins
+      const costs = { tomato: 5, carrot: 4, potato: 6, corn: 8, lettuce: 5, strawberry: 10 };
+      const cost = costs[seedId] || 5;
+      if (player.coins < cost) {
+        HUD.showToast(`Need ${cost}🪙 for ${inter.seedName} seeds`);
+        return;
+      }
+      player.coins -= cost;
+      player.seeds[seedId] = (player.seeds[seedId] || 0) + 1;
+      player.heldItem = 'seed_' + seedId;
+      Audio.playTone(720, 0.15, 'sine', 0.06);
+      HUD.showToast(`Took ${inter.emoji} ${inter.seedName} seed — ${cost}🪙`);
+      window.dispatchEvent(new CustomEvent('hud-refresh'));
+      break;
+    }
+
+    case 'feed_horse': {
+      // Drop 4 will handle horse
+      player.heldItem = 'hay';
+      HUD.showToast('Grabbed hay 🌾');
+      Audio.playTone(400, 0.1, 'triangle', 0.05);
+      break;
+    }
+
+    case 'refill_water': {
+      player.water = player.waterMax;
+      Audio.playWaterSplash();
+      HUD.showToast('Watering can filled 💧');
+      window.dispatchEvent(new CustomEvent('hud-refresh'));
+      break;
+    }
+
+    case 'rest': {
+      // Restore small amount of stamina (no stamina system yet, but store it)
+      HUD.showToast('You rest a moment…');
+      Audio.playTone(440, 0.5, 'sine', 0.04);
+      break;
+    }
+
+    case 'sleep': {
+      // Skip to next morning
+      gameState.world.timeOfDay = 0.28;
+      gameState.world.day++;
+      HUD.showToast(`🌅 Day ${gameState.world.day} — rested well`);
+      Audio.playTone(523, 0.8, 'sine', 0.05);
+      setTimeout(() => Audio.playTone(659, 0.8, 'sine', 0.04), 200);
+      setTimeout(() => Audio.playTone(784, 1.0, 'sine', 0.03), 400);
+      break;
+    }
+
+    default:
+      break;
+  }
+
+  // Sync HUD
+  if (window.__hudRef?.refresh) window.__hudRef.refresh();
+}
