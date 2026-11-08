@@ -460,14 +460,12 @@ html, body {
   <div class="tagline">their story begins in the dark</div>
   <div class="hint">tap to begin chapter one</div>
 </div>
-
 <script>
 /* ════════════════════════════════════════════════════════════
    PROLOGUE — a 3-minute animated short.
-   Pure HTML/CSS. No libraries. Runs anywhere.
+   Pure HTML/CSS/JS. No libraries. Runs anywhere.
    ════════════════════════════════════════════════════════════ */
 
-// ── Element refs ──────────────────────────────────────────
 const scenes = document.querySelectorAll('.scene');
 const narration = document.getElementById('narration');
 const chapter = document.getElementById('chapter');
@@ -475,12 +473,11 @@ const skipBtn = document.getElementById('skip');
 const endCard = document.getElementById('end');
 const stage = document.getElementById('stage');
 
-// ── State ─────────────────────────────────────────────────
 let currentScene = -1;
 let cancelled = false;
 let timerId = null;
+let hasStarted = false;
 
-// ── Utility: sleep that respects cancellation ─────────────
 function sleep(ms) {
   return new Promise((resolve) => {
     timerId = setTimeout(() => {
@@ -489,7 +486,6 @@ function sleep(ms) {
   });
 }
 
-// ── Utility: show a scene ─────────────────────────────────
 function showScene(n) {
   scenes.forEach((s, i) => {
     s.classList.toggle('active', i === n);
@@ -497,7 +493,6 @@ function showScene(n) {
   currentScene = n;
 }
 
-// ── Utility: narrate a line ───────────────────────────────
 function narrate(html, holdMs = 3200) {
   return new Promise((resolve) => {
     if (cancelled) return resolve();
@@ -513,7 +508,6 @@ function narrate(html, holdMs = 3200) {
   });
 }
 
-// ── Utility: chapter card ────────────────────────────────
 function showChapter(ms = 3200) {
   return new Promise((resolve) => {
     if (cancelled) return resolve();
@@ -528,7 +522,6 @@ function showChapter(ms = 3200) {
   });
 }
 
-// ── Utility: fade the whole stage ────────────────────────
 function fadeStage(opacity, ms = 1200) {
   return new Promise((resolve) => {
     stage.style.transition = `opacity ${ms}ms ease`;
@@ -539,164 +532,67 @@ function fadeStage(opacity, ms = 1200) {
   });
 }
 
-// ════════════════════════════════════════════════════════════
-//  THE PROLOGUE SCRIPT
-// ════════════════════════════════════════════════════════════
 async function playPrologue() {
-  // Fade in from black
   stage.style.opacity = '0';
   await sleep(100);
   await fadeStage(1, 2000);
 
-  // ── Chapter card ──────────────────────────────────────
   await showChapter(3200);
 
-  // ── Scene 1 — the burning village ─────────────────────
   showScene(0);
   spawnEmbers();
 
-  await narrate(
-    `One night, the Northern Kingdom's army burned an entire village to the ground.`,
-    3800
-  );
-  await narrate(
-    `<span class="whisper">They say it is only a rumor.</span>`,
-    2400
-  );
-  await narrate(
-    `But the people whisper that the leader of the Northern Kingdom was not always a tyrant.`,
-    4200
-  );
-  await narrate(
-    `Long ago, before the war, he was a wealthy merchant. He had a wife, a daughter, and a home by the river.`,
-    4800
-  );
-  await narrate(
-    `But one night, his rivals burned his estate to the ground.`,
-    3400
-  );
-  await narrate(
-    `His family died in the fire.`,
-    2800
-  );
+  await narrate(`One night, the Northern Kingdom's army burned an entire village to the ground.`, 3800);
+  await narrate(`<span class="whisper">They say it is only a rumor.</span>`, 2400);
+  await narrate(`But the people whisper that the leader of the Northern Kingdom was not always a tyrant.`, 4200);
+  await narrate(`Long ago, before the war, he was a wealthy merchant. He had a wife, a daughter, and a home by the river.`, 4800);
+  await narrate(`But one night, his rivals burned his estate to the ground.`, 3400);
+  await narrate(`His family died in the fire.`, 2800);
 
-  // ── Scene 2 — the morning after ───────────────────────
   showScene(1);
   await sleep(600);
 
-  await narrate(
-    `The man who survived that night was not the same man who had built the estate.`,
-    4200
-  );
-  await narrate(
-    `Something inside him broke.`,
-    2600
-  );
-  await narrate(
-    `He stopped believing in peace. He stopped believing in mercy.`,
-    3800
-  );
-  await narrate(
-    `He only believed in <em>fire</em> — because fire was the only thing that had ever been honest with him.`,
-    5000
-  );
-  await narrate(
-    `And now, he wants to burn everything else, <em>just like they did to him.</em>`,
-    4400
-  );
+  await narrate(`The man who survived that night was not the same man who had built the estate.`, 4200);
+  await narrate(`Something inside him broke.`, 2600);
+  await narrate(`He stopped believing in peace. He stopped believing in mercy.`, 3800);
+  await narrate(`He only believed in <em>fire</em> — because fire was the only thing that had ever been honest with him.`, 5000);
+  await narrate(`And now, he wants to burn everything else, <em>just like they did to him.</em>`, 4400);
 
-  // ── Scene 3 — the parents ─────────────────────────────
   showScene(2);
   await sleep(800);
 
-  await narrate(
-    `And on this night, that monstrous army reached the children's village.`,
-    4400
-  );
-  await narrate(
-    `Two children — <em>Feris and Joie</em> — were not in the village that night.`,
-    4400
-  );
-  await narrate(
-    `They had been sent to their uncle's house, a short walk away.`,
-    3600
-  );
-  await narrate(
-    `Feris was fifteen. Joie was ten.`,
-    3000
-  );
-  await narrate(
-    `When they returned the next morning, there was nothing left of their home.`,
-    4200
-  );
+  await narrate(`And on this night, that monstrous army reached the children's village.`, 4400);
+  await narrate(`Two children — <em>Feris and Joie</em> — were not in the village that night.`, 4400);
+  await narrate(`They had been sent to their uncle's house, a short walk away.`, 3600);
+  await narrate(`Feris was fifteen. Joie was ten.`, 3000);
+  await narrate(`When they returned the next morning, there was nothing left of their home.`, 4200);
 
-  // ── Scene 4 — the knife ───────────────────────────────
   showScene(3);
   await sleep(800);
 
-  await narrate(
-    `They searched through the ruins of their own house until they found their mother — burned beyond saving.`,
-    5000
-  );
-  await narrate(
-    `Beside her lay their father. He was dead, but his hand was still clenched around a small knife.`,
-    5000
-  );
-  await narrate(
-    `Feris pulled the knife gently from his father's grip.`,
-    3400
-  );
-  await narrate(
-    `There was nothing else to take.`,
-    2800
-  );
+  await narrate(`They searched through the ruins of their own house until they found their mother — burned beyond saving.`, 5000);
+  await narrate(`Beside her lay their father. He was dead, but his hand was still clenched around a small knife.`, 5000);
+  await narrate(`Feris pulled the knife gently from his father's grip.`, 3400);
+  await narrate(`There was nothing else to take.`, 2800);
 
-  // ── Scene 5 — the forest ──────────────────────────────
   showScene(4);
   await sleep(1000);
 
-  await narrate(
-    `Terrified and alone, they ran back to their uncle's house.`,
-    3400
-  );
-  await narrate(
-    `But the war had already reached it.`,
-    2600
-  );
-  await narrate(
-    `Their uncle tried to protect them. He pressed a few tools into Feris's hands — matches, a flint, a small pouch of dried food — pointed toward the deep forest, and told them to run.`,
-    6000
-  );
-  await narrate(
-    `<em>And not to look back.</em>`,
-    3200
-  );
-  await narrate(
-    `Behind them, they heard shouting. Their uncle's family was captured. Enslaved.`,
-    4400
-  );
+  await narrate(`Terrified and alone, they ran back to their uncle's house.`, 3400);
+  await narrate(`But the war had already reached it.`, 2600);
+  await narrate(`Their uncle tried to protect them. He pressed a few tools into Feris's hands — matches, a flint, a small pouch of dried food — pointed toward the deep forest, and told them to run.`, 6000);
+  await narrate(`<em>And not to look back.</em>`, 3200);
+  await narrate(`Behind them, they heard shouting. Their uncle's family was captured. Enslaved.`, 4400);
 
-  // ── Final fade ────────────────────────────────────────
-  await narrate(
-    `Two children. One knife. A world at war.`,
-    4000
-  );
-  await narrate(
-    `And in the depths of the forest… <em>their real story begins.</em>`,
-    5000
-  );
+  await narrate(`Two children. One knife. A world at war.`, 4000);
+  await narrate(`And in the depths of the forest… <em>their real story begins.</em>`, 5000);
 
-  // ── Fade to black ─────────────────────────────────────
   await fadeStage(0, 2500);
 
-  // ── End card ──────────────────────────────────────────
   endCard.classList.add('show');
   skipBtn.classList.remove('show');
 }
 
-// ════════════════════════════════════════════════════════════
-//  EMBERS — floating particles over scene 1
-// ════════════════════════════════════════════════════════════
 function spawnEmbers() {
   const container = document.getElementById('embers1');
   if (!container) return;
@@ -716,9 +612,6 @@ function spawnEmbers() {
   }
 }
 
-// ════════════════════════════════════════════════════════════
-//  SKIP / END / CLICK-TO-START
-// ════════════════════════════════════════════════════════════
 skipBtn.addEventListener('click', (e) => {
   e.stopPropagation();
   cancelled = true;
@@ -733,8 +626,6 @@ skipBtn.addEventListener('click', (e) => {
 
 endCard.addEventListener('click', () => {
   endCard.classList.remove('show');
-  // This is where "Chapter One" would begin.
-  // For now, we simply restart the prologue after a moment.
   setTimeout(() => {
     resetAndPlay();
   }, 1200);
@@ -752,16 +643,15 @@ function resetAndPlay() {
   playPrologue();
 }
 
-// ════════════════════════════════════════════════════════════
-//  BEGIN
-// ════════════════════════════════════════════════════════════
-stage.addEventListener('click', () => {
-  if (currentScene === -1) {
-    skipBtn.classList.add('show');
-    stage.removeEventListener('click', arguments.callee);
-    playPrologue();
-  }
-}, { once: false });
+// ── Start on first click/tap anywhere ────────────────────
+function startPrologue() {
+  if (hasStarted) return;
+  hasStarted = true;
+  skipBtn.classList.add('show');
+  playPrologue();
+}
+
+stage.addEventListener('click', startPrologue);
 </script>
 
 </body>
