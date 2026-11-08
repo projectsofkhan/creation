@@ -1,49 +1,53 @@
 import * as THREE from 'three';
-import { gameState, Audio, HUD, terrainHeight } from './engine.js';
+import { gameState, Audio, HUD, terrainHeight, Input } from './engine.js';
 import { CROPS } from './plants.js';
 
 /* ═══════════════════════════════════════════════════════════════
-   VERDANT VALE — tools.js
-   First-person hands · hoe · watering can · trowel · basket
+   VERDANT VALE — tools.js  (FIXED)
    ═══════════════════════════════════════════════════════════════ */
 
+// ── Shared materials for tools ──────────────────────────────
+const MAT = {
+  wood: new THREE.MeshStandardMaterial({ color: 0x8a6a44, roughness: 0.9 }),
+  woodDark: new THREE.MeshStandardMaterial({ color: 0x5a3d24, roughness: 0.92 }),
+  metal: new THREE.MeshStandardMaterial({ color: 0x9a9aac, roughness: 0.4, metalness: 0.8 }),
+  metalDark: new THREE.MeshStandardMaterial({ color: 0x6a6a70, roughness: 0.5, metalness: 0.8 }),
+  silver: new THREE.MeshStandardMaterial({ color: 0xd8d8e0, roughness: 0.3, metalness: 0.85 }),
+  skin: new THREE.MeshStandardMaterial({ color: 0xe8bfa0, roughness: 0.72 }),
+  sleeve: new THREE.MeshStandardMaterial({ color: 0x4a6a4a, roughness: 0.9 }),
+  wicker: new THREE.MeshStandardMaterial({ color: 0xb08a50, roughness: 0.95 }),
+  wickerDark: new THREE.MeshStandardMaterial({ color: 0x8a6a3a, roughness: 0.92 }),
+};
+
 // ═══════════════════════════════════════════════════════════════
-//  HAND MODELS — first-person arms
+//  HAND MODELS
 // ═══════════════════════════════════════════════════════════════
 function buildArm(side) {
-  // side: -1 (left), 1 (right)
   const arm = new THREE.Group();
 
-  const skin = new THREE.MeshStandardMaterial({ color: 0xe8bfa0, roughness: 0.72 });
-  const sleeve = new THREE.MeshStandardMaterial({ color: 0x4a6a4a, roughness: 0.9 });
-
-  // Forearm — extends from bottom of screen forward
   const forearm = new THREE.Mesh(
     new THREE.CapsuleGeometry(0.055, 0.32, 4, 8),
-    sleeve
+    MAT.sleeve
   );
   forearm.rotation.x = Math.PI / 2.2;
   forearm.position.set(side * 0.02, -0.1, -0.15);
   forearm.castShadow = true;
   arm.add(forearm);
 
-  // Hand (palm)
   const palm = new THREE.Mesh(
     new THREE.BoxGeometry(0.09, 0.04, 0.11),
-    skin
+    MAT.skin
   );
   palm.position.set(side * 0.02, -0.06, -0.35);
   palm.rotation.x = 0.15;
   palm.castShadow = true;
   arm.add(palm);
 
-  // 4 fingers
   for (let i = 0; i < 4; i++) {
     const finger = new THREE.Mesh(
       new THREE.CapsuleGeometry(0.012, 0.055, 3, 5),
-      skin
+      MAT.skin
     );
-    finger.rotation.x = Math.PI / 2;
     finger.position.set(
       side * 0.02 + (i - 1.5) * 0.022,
       -0.06,
@@ -53,10 +57,9 @@ function buildArm(side) {
     arm.add(finger);
   }
 
-  // Thumb
   const thumb = new THREE.Mesh(
     new THREE.CapsuleGeometry(0.014, 0.05, 3, 5),
-    skin
+    MAT.skin
   );
   thumb.rotation.z = side * 0.9;
   thumb.rotation.x = Math.PI / 2.6;
@@ -71,34 +74,27 @@ function buildArm(side) {
 // ═══════════════════════════════════════════════════════════════
 function buildHoe() {
   const g = new THREE.Group();
-
-  const wood = new THREE.MeshStandardMaterial({ color: 0x8a6a44, roughness: 0.9 });
-  const metal = new THREE.MeshStandardMaterial({ color: 0x9a9aac, roughness: 0.4, metalness: 0.8 });
-
-  // Handle
   const handle = new THREE.Mesh(
     new THREE.CylinderGeometry(0.018, 0.022, 0.9, 8),
-    wood
+    MAT.wood
   );
   handle.position.set(0, -0.15, -0.45);
   handle.rotation.x = 1.0;
   handle.castShadow = true;
   g.add(handle);
 
-  // Metal blade
   const blade = new THREE.Mesh(
     new THREE.BoxGeometry(0.14, 0.02, 0.14),
-    metal
+    MAT.metal
   );
   blade.position.set(0, 0.05, -0.75);
   blade.rotation.x = 0.35;
   blade.castShadow = true;
   g.add(blade);
 
-  // Blade connector
   const connector = new THREE.Mesh(
     new THREE.CylinderGeometry(0.016, 0.016, 0.08, 6),
-    metal
+    MAT.metal
   );
   connector.position.set(0, 0.02, -0.68);
   connector.rotation.x = 1.1;
@@ -109,23 +105,17 @@ function buildHoe() {
 
 function buildWateringCan() {
   const g = new THREE.Group();
-
-  const metal = new THREE.MeshStandardMaterial({ color: 0x5a8a9a, roughness: 0.5, metalness: 0.5 });
-  const silver = new THREE.MeshStandardMaterial({ color: 0xd8d8e0, roughness: 0.3, metalness: 0.8 });
-
-  // Body
   const body = new THREE.Mesh(
     new THREE.CylinderGeometry(0.09, 0.11, 0.18, 14),
-    metal
+    MAT.metal
   );
   body.position.set(0, -0.08, -0.4);
   body.castShadow = true;
   g.add(body);
 
-  // Spout
   const spout = new THREE.Mesh(
     new THREE.CylinderGeometry(0.012, 0.035, 0.24, 8),
-    metal
+    MAT.metal
   );
   spout.position.set(0.1, -0.02, -0.42);
   spout.rotation.z = -0.6;
@@ -133,19 +123,17 @@ function buildWateringCan() {
   spout.castShadow = true;
   g.add(spout);
 
-  // Rose (sprinkler head)
   const rose = new THREE.Mesh(
     new THREE.CylinderGeometry(0.04, 0.03, 0.02, 12),
-    silver
+    MAT.silver
   );
   rose.position.set(0.17, 0.06, -0.5);
   rose.rotation.z = -0.6;
   g.add(rose);
 
-  // Handle (top arc)
   const handle = new THREE.Mesh(
     new THREE.TorusGeometry(0.08, 0.012, 6, 14, Math.PI),
-    metal
+    MAT.metal
   );
   handle.position.set(0, 0.06, -0.4);
   handle.rotation.x = Math.PI / 2;
@@ -157,34 +145,27 @@ function buildWateringCan() {
 
 function buildTrowel() {
   const g = new THREE.Group();
-
-  const wood = new THREE.MeshStandardMaterial({ color: 0x8a6a44, roughness: 0.9 });
-  const metal = new THREE.MeshStandardMaterial({ color: 0x9a9aac, roughness: 0.4, metalness: 0.8 });
-
-  // Handle
   const handle = new THREE.Mesh(
     new THREE.CylinderGeometry(0.02, 0.025, 0.15, 8),
-    wood
+    MAT.wood
   );
   handle.position.set(0, -0.12, -0.4);
   handle.rotation.x = 1.0;
   g.add(handle);
 
-  // Metal scoop
   const scoop = new THREE.Mesh(
     new THREE.BoxGeometry(0.06, 0.005, 0.14),
-    metal
+    MAT.metal
   );
   scoop.position.set(0, -0.05, -0.5);
   scoop.rotation.x = 0.4;
   scoop.castShadow = true;
   g.add(scoop);
 
-  // Scoop sides
   for (const side of [-1, 1]) {
     const wall = new THREE.Mesh(
       new THREE.BoxGeometry(0.005, 0.03, 0.13),
-      metal
+      MAT.metal
     );
     wall.position.set(side * 0.03, -0.03, -0.5);
     wall.rotation.x = 0.4;
@@ -196,46 +177,37 @@ function buildTrowel() {
 
 function buildBasket() {
   const g = new THREE.Group();
-
-  const wicker = new THREE.MeshStandardMaterial({ color: 0xb08a50, roughness: 0.95 });
-  const wickerDark = new THREE.MeshStandardMaterial({ color: 0x8a6a3a, roughness: 0.92 });
-
-  // Basket body (bowl shape)
   const body = new THREE.Mesh(
     new THREE.CylinderGeometry(0.13, 0.09, 0.16, 14, 1, true),
-    wicker
+    MAT.wicker
   );
   body.position.set(0, -0.15, -0.4);
   body.material.side = THREE.DoubleSide;
   body.castShadow = true;
   g.add(body);
 
-  // Rim
   const rim = new THREE.Mesh(
     new THREE.TorusGeometry(0.13, 0.014, 6, 20),
-    wickerDark
+    MAT.wickerDark
   );
   rim.position.set(0, -0.07, -0.4);
   rim.rotation.x = Math.PI / 2;
   g.add(rim);
 
-  // Bottom
   const bottom = new THREE.Mesh(
     new THREE.CircleGeometry(0.09, 14),
-    wicker
+    MAT.wicker
   );
   bottom.position.set(0, -0.23, -0.4);
   bottom.rotation.x = -Math.PI / 2;
   g.add(bottom);
 
-  // Handle (arc)
   const handle = new THREE.Mesh(
     new THREE.TorusGeometry(0.12, 0.012, 6, 20, Math.PI),
-    wickerDark
+    MAT.wickerDark
   );
   handle.position.set(0, -0.05, -0.4);
   handle.rotation.y = Math.PI / 2;
-  handle.rotation.x = 0;
   g.add(handle);
 
   return g;
@@ -243,22 +215,14 @@ function buildBasket() {
 
 function buildSeedHand(seedId) {
   const g = new THREE.Group();
-  const crop = CROPS[seedId];
-  if (!crop) return g;
-
-  // Small pile of seeds on palm
   const seedColor = {
     tomato: 0xf0e8c0, carrot: 0xd0c8a0, potato: 0xc0a880,
     corn: 0xf0e0a0, lettuce: 0x3a2a1a, strawberry: 0xd8c8a8,
   }[seedId] || 0xd0c8a0;
 
   const seedMat = new THREE.MeshStandardMaterial({ color: seedColor, roughness: 0.7 });
-
   for (let i = 0; i < 8; i++) {
-    const seed = new THREE.Mesh(
-      new THREE.SphereGeometry(0.012, 5, 4),
-      seedMat
-    );
+    const seed = new THREE.Mesh(new THREE.SphereGeometry(0.012, 5, 4), seedMat);
     seed.position.set(
       (Math.random() - 0.5) * 0.06,
       -0.05 + Math.random() * 0.02,
@@ -267,12 +231,34 @@ function buildSeedHand(seedId) {
     seed.scale.set(1, 0.7, 1.3);
     g.add(seed);
   }
+  return g;
+}
 
+function buildHayHand() {
+  const g = new THREE.Group();
+  const hayMat = new THREE.MeshStandardMaterial({ color: 0xd4b060, roughness: 0.95 });
+  for (let i = 0; i < 12; i++) {
+    const straw = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.005, 0.005, 0.15, 3),
+      hayMat
+    );
+    straw.position.set(
+      (Math.random() - 0.5) * 0.08,
+      -0.05 + Math.random() * 0.03,
+      -0.36 + (Math.random() - 0.5) * 0.05
+    );
+    straw.rotation.set(
+      (Math.random() - 0.5) * 1.5,
+      (Math.random() - 0.5) * 1.5,
+      (Math.random() - 0.5) * 1.5
+    );
+    g.add(straw);
+  }
   return g;
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  HAND MANAGER — swaps first-person hands + tools
+//  HAND MANAGER
 // ═══════════════════════════════════════════════════════════════
 export class HandManager {
   constructor(camera) {
@@ -280,18 +266,13 @@ export class HandManager {
     this.group = new THREE.Group();
     this.camera.add(this.group);
 
-    // NOTE: camera.add() only renders if we add camera to scene. We do that in engine.
-
     this.leftArm = buildArm(-1);
     this.rightArm = buildArm(1);
-    this.group.add(this.leftArm);
-    this.group.add(this.rightArm);
+    this.group.add(this.leftArm, this.rightArm);
 
-    // Held item group (attached to right hand)
     this.heldGroup = new THREE.Group();
     this.rightArm.add(this.heldGroup);
 
-    // All tool models
     this.tools = {
       hoe: buildHoe(),
       wateringcan: buildWateringCan(),
@@ -303,8 +284,7 @@ export class HandManager {
       seed_corn: buildSeedHand('corn'),
       seed_lettuce: buildSeedHand('lettuce'),
       seed_strawberry: buildSeedHand('strawberry'),
-      hay: buildSeedHand('carrot'),  // placeholder — hay is just handful
-      hand: null,
+      hay: buildHayHand(),
     };
 
     for (const [id, model] of Object.entries(this.tools)) {
@@ -319,20 +299,12 @@ export class HandManager {
     this.swinging = false;
     this.swingProgress = 0;
     this.hidden = false;
-
-    // Subtle idle sway
-    this.baseGroupPos = new THREE.Vector3(0, 0, 0);
     this.swayTime = 0;
 
     this.setTool('hand');
   }
 
   setTool(id) {
-    if (!this.tools[id] && id !== 'hand') {
-      console.warn('No tool model for', id);
-      return;
-    }
-    // Hide all
     for (const t of Object.values(this.tools)) {
       if (t) t.visible = false;
     }
@@ -347,12 +319,10 @@ export class HandManager {
   }
 
   update(dt, elapsed, moving, running) {
-    // ── Idle sway (breathing) ──────────────────────────
     this.swayTime += dt;
     const idleSwayY = Math.sin(this.swayTime * 1.5) * 0.004;
     const idleSwayX = Math.cos(this.swayTime * 1.1) * 0.003;
 
-    // ── Walk bob ───────────────────────────────────────
     let walkBobY = 0, walkBobX = 0, walkBobZ = 0;
     if (moving) {
       const speed = running ? 12 : 8;
@@ -361,7 +331,6 @@ export class HandManager {
       walkBobZ = Math.sin(this.swayTime * speed * 0.5) * 0.008;
     }
 
-    // ── Tool swing animation ───────────────────────────
     let swingRotX = 0, swingRotZ = 0, swingTransY = 0;
     if (this.swinging) {
       this.swingProgress += dt * 3.2;
@@ -370,7 +339,6 @@ export class HandManager {
         this.swingProgress = 0;
       } else {
         const p = this.swingProgress;
-        // Wind up, strike, recover
         if (p < 0.3) {
           const t = p / 0.3;
           swingRotX = t * 0.5;
@@ -390,7 +358,6 @@ export class HandManager {
       }
     }
 
-    // ── Apply to held group (right hand) ───────────────
     this.heldGroup.position.set(
       idleSwayX + walkBobX,
       idleSwayY + walkBobY + swingTransY,
@@ -399,11 +366,8 @@ export class HandManager {
     this.heldGroup.rotation.x = swingRotX;
     this.heldGroup.rotation.z = swingRotZ;
 
-    // ── Apply to full group (both arms) ────────────────
     this.group.position.set(walkBobX * 0.4, walkBobY * 0.4, 0);
     this.group.rotation.z = idleSwayX * 0.3;
-
-    // ── Hide when menu open ────────────────────────────
     this.group.visible = !this.hidden && gameState.player.handsVisible;
   }
 
@@ -412,37 +376,49 @@ export class HandManager {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  ACTION — what to do when player presses "interact"
+//  ACTION — E key / touch button
 // ═══════════════════════════════════════════════════════════════
+const raycaster = new THREE.Raycaster();
+raycaster.far = 2.8;
+
 export function performAction(handManager, camera, plantManager, worldInteractables) {
   const player = gameState.player;
   const held = handManager.currentTool;
 
-  // ── 1. Check plants first ─────────────────────────────
+  // ── 1. Check plants ─────────────────────────────
   const plant = raycastPlant(camera, plantManager);
   if (plant) {
-    if (plant.growth >= 0.98 && held === 'basket') {
-      // Harvest
-      const result = plant.harvest();
-      if (result) {
-        player.harvest += result.yield;
-        player.coins += result.value;
-        HUD.showToast(`Harvested ${result.yield}× ${plant.crop.emoji} ${plant.crop.name} — +${result.value}🪙`);
-        Audio.playTone(660, 0.2, 'sine', 0.07);
-        setTimeout(() => Audio.playTone(880, 0.25, 'sine', 0.05), 100);
-        plantManager.removePlant(plant);
-        handManager.playSwing();
-        window.dispatchEvent(new CustomEvent('hud-refresh'));
+    if (plant.growth >= 0.98) {
+      if (held === 'basket') {
+        const result = plant.harvest();
+        if (result) {
+          player.harvest += result.yield;
+          player.coins += result.value;
+          HUD.showToast(`Harvested ${result.yield}× ${plant.crop.emoji} ${plant.crop.name} — +${result.value}🪙`);
+          Audio.playTone(660, 0.2, 'sine', 0.07);
+          setTimeout(() => Audio.playTone(880, 0.25, 'sine', 0.05), 100);
+          plantManager.removePlant(plant);
+          handManager.playSwing();
+          window.dispatchEvent(new CustomEvent('hud-refresh'));
+        }
+      } else {
+        HUD.showToast(`Equip the basket 🧺 to harvest this ${plant.crop.name}`);
       }
       return;
     }
-    if (plant.growth >= 0.98 && held !== 'basket') {
-      HUD.showToast(`Equip the basket to harvest`);
-      return;
-    }
-    if (plant.water < 0.4 && held === 'wateringcan') {
-      plant.water_();
-      handManager.playSwing();
+    if (plant.water < 0.4) {
+      if (held === 'wateringcan') {
+        if (player.water > 0) {
+          plant.water_();
+          player.water--;
+          handManager.playSwing();
+          window.dispatchEvent(new CustomEvent('hud-refresh'));
+        } else {
+          HUD.showToast('Watering can is empty — refill at the trough');
+        }
+      } else {
+        HUD.showToast(`Switch to watering can 💧 to water this ${plant.crop.name}`);
+      }
       return;
     }
     if (plant.hasDisease) {
@@ -450,13 +426,12 @@ export function performAction(handManager, camera, plantManager, worldInteractab
       handManager.playSwing();
       return;
     }
-    // Show status
     HUD.showToast(plant.getPrompt().replace(/<[^>]*>/g, ''));
     return;
   }
 
-  // ── 2. Check world interactables (shed, stable, house) ─
-  if (worldInteractables) {
+  // ── 2. Check world interactables ────────────────
+  if (worldInteractables && worldInteractables.length > 0) {
     const target = raycastInteractable(camera, worldInteractables);
     if (target) {
       handleWorldInteraction(target, handManager);
@@ -464,14 +439,13 @@ export function performAction(handManager, camera, plantManager, worldInteractab
     }
   }
 
-  // ── 3. Otherwise — act on ground (till or plant) ──────
+  // ── 3. Ground actions (till / plant) ────────────
   const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
   const targetX = camera.position.x + dir.x * 1.5;
   const targetZ = camera.position.z + dir.z * 1.5;
   const targetY = terrainHeight(targetX, targetZ);
 
   if (held === 'hoe') {
-    // Till — just visual + message for now
     HUD.showToast('Tilled the soil 🌱');
     Audio.playTone(180, 0.15, 'triangle', 0.06);
     handManager.playSwing();
@@ -485,24 +459,24 @@ export function performAction(handManager, camera, plantManager, worldInteractab
     if (plant) {
       handManager.playSwing();
       spawnDirtPuff(targetX, targetY, targetZ);
+      // Switch to hands after planting so you don't waste seeds
+      if (player.seeds[cropId] <= 0) handManager.setTool('hand');
     }
     return;
   }
 
   if (held === 'wateringcan') {
-    HUD.showToast('Refill the watering can at the trough');
+    HUD.showToast('Aim at a plant 💧 to water it');
     return;
   }
 
-  // Empty hand — nothing
+  if (held === 'basket') {
+    HUD.showToast('Aim at a ripe plant 🍅 to harvest');
+    return;
+  }
+
   HUD.showToast('Nothing here — walk closer to something');
 }
-
-// ═══════════════════════════════════════════════════════════════
-//  RAYCAST HELPERS
-// ═══════════════════════════════════════════════════════════════
-const raycaster = new THREE.Raycaster();
-raycaster.far = 2.8;
 
 function raycastPlant(camera, plantManager) {
   const plantMeshes = plantManager.getInteractableMeshes();
@@ -510,10 +484,7 @@ function raycastPlant(camera, plantManager) {
   const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
   raycaster.set(camera.position, dir);
   const hits = raycaster.intersectObjects(plantMeshes, true);
-  if (hits.length > 0) {
-    return plantManager.findPlantFromObject(hits[0].object);
-  }
-  return null;
+  return hits.length > 0 ? plantManager.findPlantFromObject(hits[0].object) : null;
 }
 
 function raycastInteractable(camera, interactables) {
@@ -529,9 +500,6 @@ function raycastInteractable(camera, interactables) {
   return null;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  WORLD INTERACTION (shed jars, trough, hay, bed, etc.)
-// ═══════════════════════════════════════════════════════════════
 function handleWorldInteraction(target, handManager) {
   const inter = target.userData.interact;
   const player = gameState.player;
@@ -540,6 +508,7 @@ function handleWorldInteraction(target, handManager) {
     case 'take_seed': {
       const seedId = inter.seedId;
       const crop = CROPS[seedId];
+      if (!crop) return;
       const cost = crop.seedCost;
       if (player.coins < cost) {
         HUD.showToast(`Need ${cost}🪙 for ${crop.name} seeds`);
@@ -551,6 +520,12 @@ function handleWorldInteraction(target, handManager) {
       Audio.playTone(720, 0.15, 'sine', 0.06);
       HUD.showToast(`Took ${crop.emoji} ${crop.name} seed (${cost}🪙)`);
       window.dispatchEvent(new CustomEvent('hud-refresh'));
+      break;
+    }
+    case 'take_tool': {
+      handManager.setTool(inter.toolId);
+      HUD.showToast(`Equipped ${inter.emoji || ''} ${inter.toolName}`);
+      Audio.playTone(620, 0.15, 'sine', 0.06);
       break;
     }
     case 'feed_horse': {
@@ -580,34 +555,34 @@ function handleWorldInteraction(target, handManager) {
       setTimeout(() => Audio.playTone(784, 1.0, 'sine', 0.03), 400);
       break;
     }
+    case 'horse': {
+      if (window.__horseManager) window.__horseManager.handleInteract();
+      break;
+    }
+    default:
+      break;
   }
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  DIRT PUFF — small particle effect
+//  DIRT + WATER FX
 // ═══════════════════════════════════════════════════════════════
 let dirtParticles = null;
-let dirtScene = null;
+let dirtCursor = 0;
 
 export function initDirtParticles(scene) {
-  dirtScene = scene;
   dirtParticles = [];
   const geo = new THREE.SphereGeometry(0.05, 5, 4);
   for (let i = 0; i < 40; i++) {
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0x7a5a3a, transparent: true, opacity: 0,
-    });
+    const mat = new THREE.MeshBasicMaterial({ color: 0x7a5a3a, transparent: true, opacity: 0 });
     const p = new THREE.Mesh(geo, mat);
     p.visible = false;
-    p.userData = {
-      active: false, life: 0, vel: new THREE.Vector3(),
-    };
+    p.userData = { active: false, life: 0, vel: new THREE.Vector3() };
     scene.add(p);
     dirtParticles.push(p);
   }
 }
 
-let dirtCursor = 0;
 function spawnDirtPuff(x, y, z) {
   if (!dirtParticles) return;
   for (let i = 0; i < 8; i++) {
@@ -642,15 +617,11 @@ export function updateDirtParticles(dt) {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  WATER STREAM — visual while watering
-// ═══════════════════════════════════════════════════════════════
 let waterStream = null;
 
 export function initWaterStream(scene) {
   const geo = new THREE.BufferGeometry();
-  const count = 60;
-  const positions = new Float32Array(count * 3);
+  const positions = new Float32Array(60 * 3);
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   const mat = new THREE.PointsMaterial({
     color: 0x88ddff, size: 0.06, transparent: true, opacity: 0.8,
@@ -691,11 +662,10 @@ export function updateWaterStream(dt, camera, active) {
   waterStream.visible = true;
   const pos = waterStream.geometry.attributes.position.array;
   for (let i = 0; i < 60; i++) {
-    const t = (i / 60);
-    const spread = 0.08;
-    pos[i * 3] = data.origin.x + data.dir.x * (0.2 + t * 1.2) + (Math.random() - 0.5) * spread;
+    const t = i / 60;
+    pos[i * 3] = data.origin.x + data.dir.x * (0.2 + t * 1.2) + (Math.random() - 0.5) * 0.08;
     pos[i * 3 + 1] = data.origin.y - t * 0.6 + Math.random() * 0.1;
-    pos[i * 3 + 2] = data.origin.z + data.dir.z * (0.2 + t * 1.2) + (Math.random() - 0.5) * spread;
+    pos[i * 3 + 2] = data.origin.z + data.dir.z * (0.2 + t * 1.2) + (Math.random() - 0.5) * 0.08;
   }
   waterStream.geometry.attributes.position.needsUpdate = true;
 }
