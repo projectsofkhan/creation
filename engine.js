@@ -5,8 +5,8 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 
-import { createWorld, handleInteraction } from './world.js';
-import { PlantManager } from './plants.js';
+import { createWorld } from './world.js';
+import { PlantManager, CROPS } from './plants.js';
 import {
   HandManager, performAction,
   initDirtParticles, updateDirtParticles,
@@ -15,7 +15,7 @@ import {
 import { HorseManager } from './horse.js';
 
 /* ═══════════════════════════════════════════════════════════════
-   VERDANT VALE — engine.js  (full wired version)
+   VERDANT VALE — engine.js  (FIXED + WIRED)
    ═══════════════════════════════════════════════════════════════ */
 
 const $bar = document.getElementById('barFill');
@@ -250,13 +250,13 @@ export const Audio = {
 //  SAVE / LOAD
 // ═══════════════════════════════════════════════════════════════
 export const Save = {
-  KEY: 'verdant-vale-v2',
+  KEY: 'verdant-vale-v3',
   save() {
     try {
       const p = gameState.player;
       const w = gameState.world;
       const data = {
-        v: 2,
+        v: 3,
         player: {
           position: [p.position.x, p.position.y, p.position.z],
           yaw: p.yaw, pitch: p.pitch,
@@ -264,6 +264,7 @@ export const Save = {
           seeds: { ...p.seeds }, heldItem: p.heldItem,
         },
         world: { timeOfDay: w.timeOfDay, day: w.day, weather: w.weather },
+        horse: { happy: gameState.horse.happy },
         savedAt: Date.now(),
       };
       localStorage.setItem(this.KEY, JSON.stringify(data));
@@ -296,6 +297,9 @@ export const Save = {
         w.day = data.world.day ?? 1;
         w.weather = data.world.weather ?? 'clear';
       }
+      if (data.horse) {
+        gameState.horse.happy = data.horse.happy ?? 0.65;
+      }
       return true;
     } catch (e) { return false; }
   },
@@ -326,7 +330,6 @@ function updatePlayerController(dt) {
   const p = gameState.player;
   const cam = gameState.camera;
 
-  // Look
   const LOOK_SENS_DESKTOP = 0.0022;
   const LOOK_SENS_TOUCH = 0.006;
 
@@ -340,7 +343,6 @@ function updatePlayerController(dt) {
   }
   p.pitch = clamp(p.pitch, -Math.PI / 2 + 0.05, Math.PI / 2 - 0.05);
 
-  // Movement
   let forward = 0, strafe = 0, run = false;
   if (Input.keys['KeyW'] || Input.keys['ArrowUp']) forward += 1;
   if (Input.keys['KeyS'] || Input.keys['ArrowDown']) forward -= 1;
@@ -473,10 +475,14 @@ export const HUD = {
   setPrompt(html) {
     if (!this.prompt) return;
     if (html) {
-      this.prompt.innerHTML = html;
+      if (this.prompt._last !== html) {
+        this.prompt.innerHTML = html;
+        this.prompt._last = html;
+      }
       this.prompt.classList.add('show');
     } else {
       this.prompt.classList.remove('show');
+      this.prompt._last = null;
     }
   },
 
@@ -672,7 +678,7 @@ function setupTouch() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  TOOL PICKUPS — hooks on the shed wall
+//  TOOL PICKUPS — on the shed wall
 // ═══════════════════════════════════════════════════════════════
 function addToolPickups(scene, shedX, shedZ) {
   const y = terrainHeight(shedX, shedZ);
@@ -684,12 +690,14 @@ function addToolPickups(scene, shedX, shedZ) {
     { id: 'basket', pos: [2.8, 1.4, 2.0], name: 'Basket', emoji: '🧺' },
   ];
 
+  const created = [];
   for (const t of tools) {
     const hook = new THREE.Mesh(
-      new THREE.BoxGeometry(0.08, 0.15, 0.08),
+      new THREE.BoxGeometry(0.1, 0.35, 0.08),
       new THREE.MeshStandardMaterial({ color: 0x3a2410, roughness: 0.8 })
     );
     hook.position.set(shedX + t.pos[0], y + t.pos[1] + 0.3, shedZ + t.pos[2]);
+    hook.castShadow = true;
     hook.userData.interact = {
       type: 'take_tool',
       toolId: t.id,
@@ -698,7 +706,9 @@ function addToolPickups(scene, shedX, shedZ) {
       prompt: `<span class="key">E</span> Take ${t.emoji} ${t.name}`,
     };
     scene.add(hook);
+    created.push(hook);
   }
+  return created;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -764,14 +774,34 @@ async function boot() {
 
   // ── World ────────────────────────────────────────
   progress(30, 'building world');
-  const world = await createWorld(scene, sunLight, hemiLight);
+  let world;
+  try {
+    world = await createWorld(scene, sunLight, hemiLight);
+  } catch (e) {
+    console.error('[engine] World creation failed:', e);
+    // Fallback flat terrain so game is still playable
+    const fallbackGeo = new THREE.PlaneGeometry(200, 200, 40, 40);
+    fallbackGeo.rotateX(-Math.PI / 2);
+    const fallbackMesh = new THREE.Mesh(
+      fallbackGeo,
+      new THREE.MeshStandardMaterial({ color: 0x5a8a4a, roughness: 0.95 })
+    );
+    fallbackMesh.receiveShadow = true;
+    scene.add(fallbackMesh);
+    world = {
+      update: () => {},
+      updateTimeOfDay: () => {},
+      getInteractables: () => [],
+    };
+    HUD.showToast('⚠️ World failed — using flat ground');
+  }
 
   // ── Player start ─────────────────────────────────
   progress(60, 'waking up');
   gameState.player.position.y = terrainHeight(gameState.player.position.x, gameState.player.position.z);
 
   // ── Hands + tools ────────────────────────────────
-  scene.add(camera);
+  scene.add(camera); // IMPORTANT: camera must be in scene for hand models to render
   const handManager = new HandManager(camera);
   window.__handManager = handManager;
   initDirtParticles(scene);
@@ -782,11 +812,22 @@ async function boot() {
   window.__plantManager = plantManager;
 
   // ── Horse ────────────────────────────────────────
-  const horseManager = new HorseManager(scene, 18, -8);
-  window.__horseManager = horseManager;
+  let horseManager;
+  try {
+    horseManager = new HorseManager(scene, 18, -8);
+    window.__horseManager = horseManager;
+  } catch (e) {
+    console.warn('Horse failed:', e);
+    horseManager = {
+      update: () => {},
+      handleInteract: () => {},
+      getInteractable: () => null,
+      horse: null,
+    };
+  }
 
   // ── Tool pickups on shed wall ────────────────────
-  addToolPickups(scene, -18, -14);
+  const toolPickups = addToolPickups(scene, -18, -14);
 
   // ── Input ────────────────────────────────────────
   progress(70, 'wiring controls');
@@ -796,7 +837,7 @@ async function boot() {
   HUD.init();
   HUD.refresh();
 
-  // ── Pause buttons ────────────────────────────────
+  // ── Pause + UI buttons ───────────────────────────
   document.getElementById('pauseResume')?.addEventListener('click', togglePause);
   document.getElementById('pauseSave')?.addEventListener('click', () => {
     HUD.showToast(Save.save() ? 'Game saved ✓' : 'Save failed');
@@ -821,7 +862,9 @@ async function boot() {
   });
   document.getElementById('btnJournal')?.addEventListener('click', e => {
     e.stopPropagation();
-    HUD.showToast(`You hold: ${gameState.player.heldItem} · seeds: ${JSON.stringify(gameState.player.seeds)}`);
+    const s = gameState.player.seeds;
+    const txt = Object.entries(s).filter(([k,v]) => v > 0).map(([k,v]) => `${CROPS[k]?.emoji || '🌱'}${v}`).join(' ');
+    HUD.showToast(`Seeds: ${txt || 'none'} · Holding: ${gameState.player.heldItem}`);
   });
   document.getElementById('btnHelp')?.addEventListener('click', e => {
     e.stopPropagation();
@@ -875,7 +918,7 @@ async function boot() {
     const dt = Math.min(clock.getDelta(), 1 / 30);
 
     if (gameState.started && !gameState.paused) {
-      // Time
+      // Time advance
       gameState.world.timeOfDay += dt / gameState.world.dayLength;
       if (gameState.world.timeOfDay >= 1) {
         gameState.world.timeOfDay -= 1;
@@ -883,59 +926,61 @@ async function boot() {
         HUD.showToast(`🌅 Day ${gameState.world.day}`, 3000);
       }
 
-      // Player or horse
+      // ── Player vs horse ───────────────────────
       if (gameState.horse.mounted && horseManager.horse) {
-        // Horse controls the position + rotation
+        horseManager.update(dt, clock.elapsedTime, camera);
         gameState.player.yaw = horseManager.horse.rotation;
         gameState.player.eyeHeight = 2.3;
       } else {
         updatePlayerController(dt);
         gameState.player.eyeHeight = EYE_HEIGHT;
+        if (horseManager.horse) horseManager.update(dt, clock.elapsedTime, camera);
       }
 
       applyCamera(camera);
 
-      // World tick
-      world.update(dt, clock.elapsedTime, camera);
-      world.updateTimeOfDay(gameState.world.timeOfDay, sunLight, hemiLight, camera);
+      // ── World tick ──────────────────────────
+      try {
+        world.update(dt, clock.elapsedTime, camera);
+        world.updateTimeOfDay(gameState.world.timeOfDay, sunLight, hemiLight, camera);
+      } catch (e) { /* silent — world might not be fully initialized */ }
 
-      // Hands + tools
-      handManager.update(dt, clock.elapsedTime, gameState.player.moveAmt > 0.1, gameState.player.runBlend > 0.5);
+      // ── Hands + tools ───────────────────────
+      handManager.update(dt, clock.elapsedTime,
+        gameState.player.moveAmt > 0.1,
+        gameState.player.runBlend > 0.5);
       updateDirtParticles(dt);
       updateWaterStream(dt, camera,
         handManager.currentTool === 'wateringcan' && Input.wantsPrimary);
 
-      // Plants
+      // ── Plants ──────────────────────────────
       plantManager.update(dt);
 
-      // Horse
-      horseManager.update(dt, clock.elapsedTime, camera);
-
-      // ── Interaction ─────────────────────────────
-      const allInteractables = [
-        ...world.getInteractables(),
-        horseManager.getInteractable(),
-      ];
-
-      // Add tool pickups + shed interactables from world
-      scene.traverse(obj => {
-        if (obj.userData.interact && obj.userData.interact.type === 'take_tool') {
-          if (!allInteractables.includes(obj)) allInteractables.push(obj);
-        }
-      });
+      // ── Interaction ─────────────────────────
+      const allInteractables = [];
+      try {
+        const worldInteractables = world.getInteractables ? world.getInteractables() : [];
+        if (Array.isArray(worldInteractables)) allInteractables.push(...worldInteractables);
+      } catch (e) {}
+      if (horseManager.getInteractable && horseManager.getInteractable()) {
+        allInteractables.push(horseManager.getInteractable());
+      }
+      allInteractables.push(...toolPickups);
 
       if (Input.wantsInteract) {
         Input.wantsInteract = false;
         performAction(handManager, camera, plantManager, allInteractables);
       }
 
-      // Prompt raycast
+      // ── Prompt raycast ──────────────────────
       const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
       raycaster.set(camera.position, dir);
 
       const plantMeshes = plantManager.getInteractableMeshes();
-      const plantHits = raycaster.intersectObjects(plantMeshes, true);
-      const worldHits = raycaster.intersectObjects(allInteractables, true);
+      const plantHits = plantMeshes.length > 0
+        ? raycaster.intersectObjects(plantMeshes, true) : [];
+      const worldHits = allInteractables.length > 0
+        ? raycaster.intersectObjects(allInteractables, true) : [];
 
       let promptText = '';
       if (plantHits.length > 0) {
@@ -944,11 +989,11 @@ async function boot() {
       } else if (worldHits.length > 0) {
         let obj = worldHits[0].object;
         while (obj && !obj.userData.interact) obj = obj.parent;
-        if (obj) promptText = obj.userData.interact.prompt;
+        if (obj?.userData?.interact) promptText = obj.userData.interact.prompt;
       }
       HUD.setPrompt(promptText);
 
-      // HUD clock (throttled)
+      // ── HUD clock (throttled) ───────────────
       if (!animate._acc) animate._acc = 0;
       animate._acc += dt;
       if (animate._acc > 0.4) {
