@@ -1,17 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
-//  engine.js — v2 CLEAN BOOT
-//  Replaces: engine.js (old), script.js (dead — delete it)
-//
-//  What's fixed vs old:
-//  • ONE terrain source (terrain.js) — no duplicate sine waves
-//  • Quality tiers (high/medium/low) auto-detected for mobile
-//  • Async chunk streaming (no multi-second freeze on load)
-//  • AABB collision (you can't walk through buildings/trees)
-//  • Fog color matches sky horizon every frame (no seam band)
-//  • Single directional light + single shadow map
-//  • Save key collision resolved (verdant-vale-v2)
-//  • HUD wired to gameState only (no dual-state drift)
-//  • Pointer lock + touch look both feed Input cleanly
+//  engine.js — v2.1 FINAL
+//  Complete boot with player rig, all systems wired.
+//  Replaces: engine.js (all prior versions)
 // ═══════════════════════════════════════════════════════════════
 
 import * as THREE from 'three';
@@ -21,11 +11,13 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 
-import { terrainHeight, WATER_LEVEL } from './terrain.js';
+import { terrainHeight } from './terrain.js';
+import { MATS } from './materials.js';
 import { createWorld } from './world.js';
 import { PlantManager } from './plants.js';
 import { HandManager, performAction, initDirtParticles, updateDirtParticles } from './tools.js';
 import { HorseManager } from './horse.js';
+import { createPlayer, updatePlayerAnimation } from './player.js';
 
 // ═══════════════════════════════════════════════════════════════
 //  CONSTANTS
@@ -36,32 +28,28 @@ export const RUN_SPEED = 5.8;
 export const JUMP_VELOCITY = 5.0;
 export const GRAVITY = 18;
 export const PLAYER_RADIUS = 0.35;
-export const DAY_LENGTH = 480; // 8 min real-time per in-game day
+export const DAY_LENGTH = 480;
 
 // ═══════════════════════════════════════════════════════════════
-//  QUALITY TIER — detect once, apply everywhere
+//  QUALITY TIERS
 // ═══════════════════════════════════════════════════════════════
 function detectQuality() {
   const q = new URLSearchParams(location.search).get('quality');
   if (q === 'low' || q === 'medium' || q === 'high') return q;
-
   const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
   const cores = navigator.hardwareConcurrency || 4;
   const dpr = window.devicePixelRatio || 1;
-
   if (mobile && (cores < 6 || dpr > 2.5)) return 'low';
   if (mobile || cores < 4) return 'medium';
   return 'high';
 }
-
 const QUALITY = detectQuality();
 const Q = {
-  low:    { pixelRatio: 1.0,  shadows: false, shadowMap: 0,    bloom: false, grass: 400,  flowers: 60,  view: 2 },
-  medium: { pixelRatio: 1.5,  shadows: true,  shadowMap: 1024, bloom: true,  grass: 800,  flowers: 120, view: 3 },
-  high:   { pixelRatio: 2.0,  shadows: true,  shadowMap: 2048, bloom: true,  grass: 1600, flowers: 240, view: 3 },
+  low:    { pixelRatio: 1.0, shadows: false, shadowMap: 0,    bloom: false, view: 2 },
+  medium: { pixelRatio: 1.5, shadows: true,  shadowMap: 1024, bloom: true,  view: 3 },
+  high:   { pixelRatio: 2.0, shadows: true,  shadowMap: 2048, bloom: true,  view: 3 },
 }[QUALITY];
-
-console.log(`[Verdant Vale] quality=${QUALITY}`, Q);
+console.log(`[Verdant Vale] quality=${QUALITY}`);
 
 // ═══════════════════════════════════════════════════════════════
 //  GAME STATE — single source of truth
@@ -84,16 +72,8 @@ export const gameState = {
     seeds: { tomato: 5, carrot: 3, potato: 2, corn: 0, lettuce: 0, strawberry: 0 },
     heldItem: 'hand',
   },
-  world: {
-    timeOfDay: 0.30,
-    day: 1,
-    weather: 'clear',
-  },
-  camera: {
-    baseFOV: 62,
-    currentFOV: 62,
-    shake: 0,
-  },
+  world: { timeOfDay: 0.30, day: 1, weather: 'clear' },
+  camera: { baseFOV: 62, currentFOV: 62, shake: 0 },
   paused: false,
   started: false,
   horse: { mounted: false, happy: 0.65 },
@@ -111,12 +91,9 @@ export const Input = {
   wantsPrimary: false,
   wantsJump: false,
   wantsInteract: false,
-
   reset() {
-    this.mouse.dx = 0;
-    this.mouse.dy = 0;
-    this.touchLook.dx = 0;
-    this.touchLook.dy = 0;
+    this.mouse.dx = 0; this.mouse.dy = 0;
+    this.touchLook.dx = 0; this.touchLook.dy = 0;
     this.wantsPrimary = false;
     this.wantsJump = false;
     this.wantsInteract = false;
@@ -141,9 +118,7 @@ export const Audio = {
       this.sfxGain = this.ctx.createGain(); this.sfxGain.gain.value = this.sfxVol * 0.7; this.sfxGain.connect(this.master);
     } catch (e) { console.warn('Audio init failed', e); }
   },
-
   resume() { if (this.ctx?.state === 'suspended') this.ctx.resume(); },
-
   tone(freq = 440, dur = 0.3, type = 'sine', vol = 0.06) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
@@ -155,12 +130,10 @@ export const Audio = {
     o.connect(g); g.connect(this.sfxGain);
     o.start(t); o.stop(t + dur);
   },
-
   footstep(run = false) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
-    const f = this.ctx.createBiquadFilter();
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain(), f = this.ctx.createBiquadFilter();
     f.type = 'lowpass'; f.frequency.value = 380;
     o.type = 'sine';
     o.frequency.setValueAtTime(run ? 85 : 65, t);
@@ -170,7 +143,6 @@ export const Audio = {
     o.connect(f); f.connect(g); g.connect(this.sfxGain);
     o.start(t); o.stop(t + 0.14);
   },
-
   splash() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
@@ -184,7 +156,6 @@ export const Audio = {
     src.connect(f); f.connect(g); g.connect(this.sfxGain);
     src.start(t);
   },
-
   startMusic() {
     if (!this.ctx || this.musicPlaying) return;
     this.musicPlaying = true;
@@ -214,7 +185,6 @@ export const Audio = {
     };
     pad();
   },
-
   stopMusic() { this.musicPlaying = false; },
   setMusicVolume(v) { this.musicVol = v; if (this.musicGain) this.musicGain.gain.value = v * 0.5; },
   setSFXVolume(v) { this.sfxVol = v; if (this.sfxGain) this.sfxGain.gain.value = v * 0.7; },
@@ -224,7 +194,6 @@ export const Audio = {
 //  SAVE / LOAD
 // ═══════════════════════════════════════════════════════════════
 const SAVE_KEY = 'verdant-vale-v2';
-
 export const Save = {
   save() {
     try {
@@ -277,26 +246,21 @@ export const Save = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  COLLISION — AABB list, resolved every frame
+//  COLLISION
 // ═══════════════════════════════════════════════════════════════
 export const Collision = {
-  boxes: [], // { minX, maxX, minZ, maxZ, minY, maxY }
+  boxes: [],
   add(box) { this.boxes.push(box); },
   clear() { this.boxes.length = 0; },
-
-  // Push a circle out of all AABBs. Returns adjusted {x, z}.
   resolve(x, z, radius) {
     let px = x, pz = z;
     for (const b of this.boxes) {
-      // Closest point on box to circle center
       const cx = Math.max(b.minX, Math.min(px, b.maxX));
       const cz = Math.max(b.minZ, Math.min(pz, b.maxZ));
       const dx = px - cx, dz = pz - cz;
       const d2 = dx * dx + dz * dz;
       if (d2 < radius * radius) {
         const d = Math.sqrt(d2) || 0.0001;
-        const push = (radius - d) / d;
-        // If center is inside the box, push toward nearest edge
         if (d2 < 0.0001) {
           const toMinX = px - b.minX, toMaxX = b.maxX - px;
           const toMinZ = pz - b.minZ, toMaxZ = b.maxZ - pz;
@@ -306,6 +270,7 @@ export const Collision = {
           else if (m === toMinZ) pz = b.minZ - radius;
           else pz = b.maxZ + radius;
         } else {
+          const push = (radius - d) / d;
           px += dx * push;
           pz += dz * push;
         }
@@ -316,89 +281,12 @@ export const Collision = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  PLAYER CONTROLLER
+//  CAMERA
 // ═══════════════════════════════════════════════════════════════
-const SENS_DESKTOP = 0.0022;
-const SENS_TOUCH = 0.006;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
-
-function updatePlayer(dt) {
-  const p = gameState.player;
-  const cam = gameState.camera;
-
-  if (Input.mouse.locked) {
-    p.yaw -= Input.mouse.dx * SENS_DESKTOP;
-    p.pitch -= Input.mouse.dy * SENS_DESKTOP;
-  }
-  if (Input.touchLook.dx || Input.touchLook.dy) {
-    p.yaw -= Input.touchLook.dx * SENS_TOUCH;
-    p.pitch -= Input.touchLook.dy * SENS_TOUCH;
-  }
-  p.pitch = clamp(p.pitch, -1.45, 1.45);
-
-  let forward = 0, strafe = 0, run = false;
-  if (Input.keys['KeyW'] || Input.keys['ArrowUp']) forward += 1;
-  if (Input.keys['KeyS'] || Input.keys['ArrowDown']) forward -= 1;
-  if (Input.keys['KeyD'] || Input.keys['ArrowRight']) strafe += 1;
-  if (Input.keys['KeyA'] || Input.keys['ArrowLeft']) strafe -= 1;
-  if (Input.keys['ShiftLeft'] || Input.keys['ShiftRight']) run = true;
-
-  if (Input.touch.joystick.active) {
-    const jx = Input.touch.joystick.x, jy = Input.touch.joystick.y;
-    if (Math.abs(jx) > 0.15) strafe += jx;
-    if (Math.abs(jy) > 0.15) forward -= jy;
-    if (Math.hypot(jx, jy) > 0.85) run = true;
-  }
-
-  const mag = Math.hypot(forward, strafe);
-  if (mag > 1) { forward /= mag; strafe /= mag; }
-
-  const sinY = Math.sin(p.yaw), cosY = Math.cos(p.yaw);
-  const dirX = -sinY * forward + cosY * strafe;
-  const dirZ = -cosY * forward - sinY * strafe;
-
-  const targetSpeed = run ? RUN_SPEED : WALK_SPEED;
-  const accel = p.onGround ? 12 : 3;
-  p.velocity.x = lerp(p.velocity.x, dirX * targetSpeed, 1 - Math.exp(-accel * dt));
-  p.velocity.z = lerp(p.velocity.z, dirZ * targetSpeed, 1 - Math.exp(-accel * dt));
-
-  if (Input.wantsJump && p.onGround) {
-    p.velocity.y = JUMP_VELOCITY;
-    p.onGround = false;
-  }
-  if (!p.onGround) p.velocity.y -= GRAVITY * dt;
-
-  // Integrate + collide
-  let nx = p.position.x + p.velocity.x * dt;
-  let nz = p.position.z + p.velocity.z * dt;
-  const r = Collision.resolve(nx, nz, PLAYER_RADIUS);
-  p.position.x = r.x;
-  p.position.z = r.z;
-  p.position.y += p.velocity.y * dt;
-
-  const groundY = terrainHeight(p.position.x, p.position.z);
-  if (p.position.y <= groundY) {
-    p.position.y = groundY;
-    p.velocity.y = 0;
-    p.onGround = true;
-  }
-
-  const horizSpeed = Math.hypot(p.velocity.x, p.velocity.z);
-  p.moveAmt = horizSpeed / RUN_SPEED;
-  p.runBlend = lerp(p.runBlend, run ? 1 : 0, 1 - Math.exp(-6 * dt));
-
-  if (p.onGround && horizSpeed > 0.4) {
-    const prev = p.headBob;
-    p.headBob += dt * (run ? 12 : 8);
-    if (Math.floor(prev / Math.PI) !== Math.floor(p.headBob / Math.PI)) {
-      Audio.footstep(run);
-    }
-  }
-
-  const targetFOV = cam.baseFOV + (run && horizSpeed > 2 ? 4 : 0);
-  cam.currentFOV = lerp(cam.currentFOV, targetFOV, 1 - Math.exp(-5 * dt));
-}
+const SENS_DESKTOP = 0.0022;
+const SENS_TOUCH = 0.006;
 
 function applyCamera(camera) {
   const p = gameState.player, c = gameState.camera;
@@ -407,6 +295,7 @@ function applyCamera(camera) {
   const bobX = p.moveAmt > 0.05 && p.onGround
     ? Math.cos(p.headBob * 0.5) * 0.018 * p.moveAmt : 0;
 
+  // Camera at player position (which mirrors rig root) + eye height
   camera.position.set(
     p.position.x + bobX,
     p.position.y + p.eyeHeight + bobY,
@@ -425,8 +314,8 @@ function applyCamera(camera) {
       (Math.random() - 0.5) * c.shake * 0.05
     )));
   }
-
   camera.quaternion.copy(q);
+
   if (Math.abs(camera.fov - c.currentFOV) > 0.01) {
     camera.fov = c.currentFOV;
     camera.updateProjectionMatrix();
@@ -437,15 +326,12 @@ function applyCamera(camera) {
 //  HUD
 // ═══════════════════════════════════════════════════════════════
 export const HUD = {
-  el: {},
-  toastTimer: null,
-
+  el: {}, toastTimer: null,
   init() {
     const ids = ['crosshair','prompt','toast','coinVal','waterVal','waterBar',
                  'harvestVal','clockDisplay','dayDisplay','weatherDisplay'];
     for (const id of ids) this.el[id] = document.getElementById(id);
   },
-
   refresh() {
     const p = gameState.player;
     if (this.el.coinVal) this.el.coinVal.textContent = p.coins;
@@ -453,7 +339,6 @@ export const HUD = {
     if (this.el.waterBar) this.el.waterBar.style.width = (p.water / p.waterMax * 100) + '%';
     if (this.el.harvestVal) this.el.harvestVal.textContent = p.harvest;
   },
-
   setPrompt(html) {
     const el = this.el.prompt;
     if (!el) return;
@@ -465,7 +350,6 @@ export const HUD = {
       el._last = null;
     }
   },
-
   toast(text, dur = 2400) {
     const el = this.el.toast;
     if (!el) return;
@@ -474,7 +358,6 @@ export const HUD = {
     clearTimeout(this.toastTimer);
     this.toastTimer = setTimeout(() => el.classList.remove('show'), dur);
   },
-
   clock(timeOfDay, day, weather) {
     const totalMin = timeOfDay * 24 * 60;
     const h = Math.floor(totalMin / 60), m = Math.floor(totalMin % 60);
@@ -487,8 +370,6 @@ export const HUD = {
     }
   },
 };
-
-window.addEventListener('hud-refresh', () => HUD.refresh());
 
 // ═══════════════════════════════════════════════════════════════
 //  INPUT WIRING
@@ -657,27 +538,23 @@ async function boot() {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   document.body.insertBefore(renderer.domElement, document.getElementById('loader'));
 
-  // ── Post-processing ───────────────────────────────────
+  // Post
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  let bloom = null, fxaa = null;
+  let fxaa = null;
   if (Q.bloom) {
-    bloom = new UnrealBloomPass(
-      new THREE.Vector2(innerWidth / 2, innerHeight / 2),
-      0.22, 0.55, 0.92
-    );
-    composer.addPass(bloom);
+    composer.addPass(new UnrealBloomPass(
+      new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.22, 0.55, 0.92
+    ));
   }
   if (QUALITY !== 'low') {
     fxaa = new ShaderPass(FXAAShader);
     const pr = renderer.getPixelRatio();
-    fxaa.material.uniforms.resolution.value.set(
-      1 / (innerWidth * pr), 1 / (innerHeight * pr)
-    );
+    fxaa.material.uniforms.resolution.value.set(1 / (innerWidth * pr), 1 / (innerHeight * pr));
     composer.addPass(fxaa);
   }
 
-  // ── Lights (single sun, single hemi) ─────────────────
+  // Lights
   prog(15, 'placing sun');
   const sunLight = new THREE.DirectionalLight(0xfff2d0, 1.6);
   sunLight.position.set(40, 60, 30);
@@ -699,37 +576,46 @@ async function boot() {
   scene.add(hemiLight);
   scene.add(new THREE.AmbientLight(0xfff0d0, 0.18));
 
-  // ── World (async, streams chunks) ────────────────────
+  // World
   prog(30, 'building world');
   const world = await createWorld(scene, sunLight, hemiLight, { Q, prog });
 
-  // ── Player spawn ─────────────────────────────────────
-  prog(60, 'waking up');
-  gameState.player.position.y = terrainHeight(
-    gameState.player.position.x, gameState.player.position.z
-  );
+  // Player rig
+  prog(55, 'waking farmer');
+  const playerRig = createPlayer();
+  scene.add(playerRig.root);
+  playerRig.root.position.copy(gameState.player.position);
+  playerRig.root.position.y = terrainHeight(playerRig.root.position.x, playerRig.root.position.z);
+  gameState.player.position.copy(playerRig.root.position);
+  window.__playerRig = playerRig;
 
-  // ── Hands + tools ────────────────────────────────────
+  // Camera attached to scene (third-person rig — camera is separate, follows position)
   scene.add(camera);
-  const handManager = new HandManager(camera);
+
+  // Hands (tools attach to rig's toolAnchor)
+  const handManager = new HandManager(camera, playerRig);
+  window.__handManager = handManager;
   initDirtParticles(scene);
 
-  // ── Plants ───────────────────────────────────────────
+  // Plants
   const plantManager = new PlantManager(scene);
+  window.__plantManager = plantManager;
 
-  // ── Horse ────────────────────────────────────────────
+  // Horse
+  prog(62, 'saddling horse');
   let horseManager;
   try {
     horseManager = new HorseManager(scene, 6, -6);
+    window.__horseManager = horseManager;
   } catch (e) {
     console.warn('Horse failed:', e);
     horseManager = { update(){}, handleInteract(){}, getInteractable(){ return null; }, horse: null };
   }
 
-  // ── Build collision boxes ────────────────────────────
+  // Collision
   world.buildCollision(Collision);
 
-  // ── Input + HUD ──────────────────────────────────────
+  // Input + HUD
   prog(70, 'wiring controls');
   wireKeyboard();
   wireMouse(renderer);
@@ -737,7 +623,13 @@ async function boot() {
   HUD.init();
   HUD.refresh();
 
-  // ── Pause buttons ────────────────────────────────────
+  // Expose globals for other modules
+  window.__gameState = gameState;
+  window.__HUD = HUD;
+  window.__Audio = Audio;
+  window.addEventListener('hud-refresh', () => HUD.refresh());
+
+  // Pause buttons
   document.getElementById('pauseResume')?.addEventListener('click', togglePause);
   document.getElementById('pauseSave')?.addEventListener('click', () => {
     HUD.toast(Save.save() ? 'Game saved ✓' : 'Save failed');
@@ -760,7 +652,7 @@ async function boot() {
     e.stopPropagation(); togglePause();
   });
 
-  // ── Resize ───────────────────────────────────────────
+  // Resize
   window.addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
@@ -772,11 +664,11 @@ async function boot() {
     }
   });
 
-  // ── Load save ────────────────────────────────────────
+  // Save load
   const saved = Save.load();
   if (saved) { Save.apply(saved); HUD.refresh(); }
 
-  // ── Menu ─────────────────────────────────────────────
+  // Menu
   prog(95, 'ready');
   const menu = document.getElementById('menu');
   const playBtn = document.getElementById('playBtn');
@@ -796,10 +688,10 @@ async function boot() {
     setTimeout(() => HUD.toast('The horse is to your right →', 3000), 3800);
   });
 
-  // ── Main loop ────────────────────────────────────────
+  // Main loop
   const clock = new THREE.Clock();
   const raycaster = new THREE.Raycaster();
-  raycaster.far = 4.0; // forgiving interact range
+  raycaster.far = 4.0;
   let hudAcc = 0;
 
   function animate() {
@@ -808,6 +700,17 @@ async function boot() {
     const elapsed = clock.elapsedTime;
 
     if (gameState.started && !gameState.paused) {
+      // Mouse look
+      if (Input.mouse.locked) {
+        gameState.player.yaw -= Input.mouse.dx * SENS_DESKTOP;
+        gameState.player.pitch -= Input.mouse.dy * SENS_DESKTOP;
+      }
+      if (Input.touchLook.dx || Input.touchLook.dy) {
+        gameState.player.yaw -= Input.touchLook.dx * SENS_TOUCH;
+        gameState.player.pitch -= Input.touchLook.dy * SENS_TOUCH;
+      }
+      gameState.player.pitch = clamp(gameState.player.pitch, -1.45, 1.45);
+
       // Day/night
       gameState.world.timeOfDay += dt / DAY_LENGTH;
       if (gameState.world.timeOfDay >= 1) {
@@ -816,24 +719,93 @@ async function boot() {
         HUD.toast(`🌅 Day ${gameState.world.day}`, 3000);
       }
 
-      // Movement / riding
+      // Movement
       if (gameState.horse.mounted && horseManager.horse) {
         horseManager.update(dt, elapsed, camera);
         gameState.player.yaw = horseManager.horse.rotation;
         gameState.player.eyeHeight = 2.3;
       } else {
-        updatePlayer(dt);
+        // Build anim state from input
+        const animState = {
+          movement: {
+            w: !!(Input.keys['KeyW'] || Input.keys['ArrowUp']),
+            s: !!(Input.keys['KeyS'] || Input.keys['ArrowDown']),
+            a: !!(Input.keys['KeyA'] || Input.keys['ArrowLeft']),
+            d: !!(Input.keys['KeyD'] || Input.keys['ArrowRight']),
+            shift: !!(Input.keys['ShiftLeft'] || Input.keys['ShiftRight']),
+          },
+          cameraYaw: gameState.player.yaw,
+          cameraPitch: gameState.player.pitch,
+        };
+        if (Input.touch.joystick.active) {
+          const jx = Input.touch.joystick.x, jy = Input.touch.joystick.y;
+          if (jy < -0.15) animState.movement.w = true;
+          if (jy > 0.15) animState.movement.s = true;
+          if (jx > 0.15) animState.movement.d = true;
+          if (jx < -0.15) animState.movement.a = true;
+          if (Math.hypot(jx, jy) > 0.85) animState.movement.shift = true;
+        }
+
+        updatePlayerAnimation(playerRig, animState, dt, terrainHeight, 200);
+
+        // Collision after move
+        const r = Collision.resolve(
+          playerRig.root.position.x,
+          playerRig.root.position.z,
+          PLAYER_RADIUS
+        );
+        playerRig.root.position.x = r.x;
+        playerRig.root.position.z = r.z;
+        playerRig.root.position.y = terrainHeight(r.x, r.z);
+
+        // Mirror to gameState (camera reads this)
+        gameState.player.position.copy(playerRig.root.position);
+        gameState.player.moveAmt = Math.hypot(playerRig.velocity.x, playerRig.velocity.z) / RUN_SPEED;
+        gameState.player.runBlend = playerRig.anim.runBlend.value;
         gameState.player.eyeHeight = EYE_HEIGHT;
+
+        // Head look
+        playerRig.setLook(0, gameState.player.pitch);
+
+        // Head bob for camera
+        if (gameState.player.moveAmt > 0.1) {
+          gameState.player.headBob += dt * (animState.movement.shift ? 12 : 8);
+        }
+
+        // Action swing
+        if (Input.wantsPrimary) {
+          playerRig.triggerToolSwing();
+          Input.wantsPrimary = false;
+        }
+
+        // Jump
+        if (Input.wantsJump && gameState.player.onGround) {
+          gameState.player.velocity.y = JUMP_VELOCITY;
+          gameState.player.onGround = false;
+        }
+        if (!gameState.player.onGround) {
+          gameState.player.velocity.y -= GRAVITY * dt;
+          playerRig.root.position.y += gameState.player.velocity.y * dt;
+          gameState.player.position.y = playerRig.root.position.y;
+          const groundY = terrainHeight(playerRig.root.position.x, playerRig.root.position.z);
+          if (playerRig.root.position.y <= groundY) {
+            playerRig.root.position.y = groundY;
+            gameState.player.position.y = groundY;
+            gameState.player.velocity.y = 0;
+            gameState.player.onGround = true;
+          }
+        }
+
+        // Update horse (still wanders even when not mounted)
         horseManager.update(dt, elapsed, camera);
       }
       applyCamera(camera);
 
-      // World tick
+      // World
       world.update(dt, elapsed, camera);
       world.updateTimeOfDay(gameState.world.timeOfDay, sunLight, hemiLight, camera, scene);
 
-      // Hands
-      handManager.update(dt, elapsed, gameState.player.moveAmt > 0.1, gameState.player.runBlend > 0.5);
+      // Dirt particles
       updateDirtParticles(dt);
 
       // Plants
@@ -850,10 +822,9 @@ async function boot() {
         performAction(handManager, camera, plantManager, interactables);
       }
 
-      // Prompt raycast
+      // Prompt
       const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
       raycaster.set(camera.position, dir);
-
       const plantMeshes = plantManager.getInteractableMeshes();
       const plantHits = plantMeshes.length ? raycaster.intersectObjects(plantMeshes, true) : [];
       const worldHits = interactables.length ? raycaster.intersectObjects(interactables, true) : [];
@@ -869,14 +840,13 @@ async function boot() {
       }
       HUD.setPrompt(prompt);
 
-      // Clock (throttled)
+      // Clock
       hudAcc += dt;
       if (hudAcc > 0.4) {
         hudAcc = 0;
         HUD.clock(gameState.world.timeOfDay, gameState.world.day, gameState.world.weather);
       }
     } else if (!gameState.started) {
-      // Menu orbit
       const p = gameState.player;
       const t = elapsed * 0.08;
       camera.position.set(p.position.x + Math.sin(t) * 6, p.position.y + 2.5, p.position.z + Math.cos(t) * 6);
