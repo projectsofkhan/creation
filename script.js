@@ -24,52 +24,63 @@ const alerp = (a, b, t) => {
 };
 
 /* ============================================================
-   AUDIO FILES — loaded from your URLs
+   AUDIO — LOCAL FILES IN ./audio/
    ============================================================ */
 const AUDIO_URLS = {
-  explode:     'https://www.myinstants.com/media/sounds/exploded_zfp5Xgm.mp3',
-  hollowPurple:'https://www.myinstants.com/media/sounds/hollow-purple.mp3',
-  nuke:        'https://www.myinstants.com/media/sounds/nuke-bomb.mp3',
-  gojoDomain:  'https://www.myinstants.com/media/sounds/rpreplay_final1623689697_mov.mp3',
-  sukunaDomain:'https://www.myinstants.com/media/sounds/domain-expansion-sukuna.mp3',
-  sukunaLaugh: 'https://www.myinstants.com/media/sounds/sukuna-laugh.mp3',
-  blackslash:  'https://www.myinstants.com/media/sounds/bascklash.mp3'
+  explode:      './audio/explode.mp3',
+  hollowPurple: './audio/purple.mp3',
+  nuke:         './audio/nuke.mp3',
+  gojoDomain:   './audio/gojo-domain.mp3',
+  sukunaDomain: './audio/sukuna-domain.mp3',
+  sukunaLaugh:  './audio/sukuna-laugh.mp3',
+  blackslash:   './audio/blackslash.mp3'
 };
+
 const AUDIO = {};
+const AUDIO_OK = {};
 let audioLoaded = 0, audioTotal = Object.keys(AUDIO_URLS).length;
 
 function preloadAudio() {
   return new Promise(resolve => {
     const ld = $('ld');
+    let resolved = false;
+    const finish = () => { if (!resolved) { resolved = true; resolve(); } };
+
     for (const [key, url] of Object.entries(AUDIO_URLS)) {
       const a = new Audio();
-      a.crossOrigin = 'anonymous';
       a.preload = 'auto';
       a.src = url;
       a.volume = key === 'sukunaLaugh' ? .7 : 1.0;
-      a.addEventListener('canplaythrough', () => {
+      AUDIO[key] = a;
+      AUDIO_OK[key] = false;
+
+      let settled = false;
+      const done = (ok) => {
+        if (settled) return;
+        settled = true;
+        AUDIO_OK[key] = ok;
         audioLoaded++;
         if (ld) ld.textContent = `Loading audio… ${audioLoaded}/${audioTotal}`;
-        if (audioLoaded === audioTotal) resolve();
-      }, { once: true });
-      a.addEventListener('error', () => {
-        audioLoaded++;
-        console.warn('[audio] failed to load', key);
-        if (audioLoaded === audioTotal) resolve();
-      }, { once: true });
-      AUDIO[key] = a;
+        console.log(`[audio] ${key}: ${ok ? 'OK' : 'FAILED'} — ${url}`);
+        if (audioLoaded === audioTotal) finish();
+      };
+      a.addEventListener('canplaythrough', () => done(true), { once: true });
+      a.addEventListener('error', () => done(false), { once: true });
+      setTimeout(() => { if (!settled) done(false); }, 8000);
     }
+    setTimeout(finish, 9000);
   });
 }
 
 function playSound(name, volScale = 1) {
   const a = AUDIO[name];
-  if (!a) return;
+  if (!a || !AUDIO_OK[name]) return;
   try {
-    a.currentTime = 0;
-    a.volume = Math.min(1, (name === 'sukunaLaugh' ? .7 : 1.0) * volScale);
-    const p = a.play();
-    if (p && p.catch) p.catch(e => {});
+    const clone = a.cloneNode();
+    clone.volume = Math.min(1, (name === 'sukunaLaugh' ? .7 : 1.0) * volScale);
+    const p = clone.play();
+    if (p && p.catch) p.catch(() => {});
+    clone.addEventListener('ended', () => { try { clone.src = ''; } catch(e){} }, { once: true });
   } catch (e) {}
 }
 
@@ -228,7 +239,7 @@ stars.visible = false;
 scene.add(stars);
 
 /* ============================================================
-   MALEVOLENT SHRINE — towering, layered, skeletal
+   SHRINE
    ============================================================ */
 const shrine = new THREE.Group();
 const boneMat   = new THREE.MeshStandardMaterial({ color: 0xefe4d0, emissive: 0x330808, emissiveIntensity: .5, roughness: .55 });
@@ -236,15 +247,12 @@ const shrineRed = new THREE.MeshStandardMaterial({ color: 0x2a0202, emissive: 0x
 const shrineDark= new THREE.MeshStandardMaterial({ color: 0x0a0101, emissive: 0x770014, emissiveIntensity: 1.1, roughness: .5 });
 const goldMat   = new THREE.MeshStandardMaterial({ color: 0xc0a030, emissive: 0x664400, emissiveIntensity: .8, roughness: .3, metalness: .85 });
 
-// massive stepped base
 for (let i = 0; i < 6; i++) {
   const step = new THREE.Mesh(new THREE.BoxGeometry(20 - i * 2.5, .6, 14 - i * 2), shrineDark);
   step.position.y = .3 + i * .6;
   step.position.z = -2 + i * .3;
   shrine.add(step);
 }
-
-// giant pillar columns with ribbed detail
 for (let i = 0; i < 6; i++) {
   const a = (i / 6) * PI * 2;
   const x = Math.cos(a) * 6;
@@ -252,7 +260,6 @@ for (let i = 0; i < 6; i++) {
   const pillar = new THREE.Mesh(new THREE.CylinderGeometry(.7, .9, 18, 10), shrineRed);
   pillar.position.set(x, 11, z);
   shrine.add(pillar);
-  // gold rings
   for (let r = 0; r < 4; r++) {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(.75, .04, 6, 16), goldMat);
     ring.position.set(x, 3 + r * 4, z);
@@ -263,8 +270,6 @@ for (let i = 0; i < 6; i++) {
   cap.position.set(x, 20, z);
   shrine.add(cap);
 }
-
-// layered temple roof
 const roofGroup = new THREE.Group();
 roofGroup.position.y = 20.5;
 roofGroup.position.z = -1;
@@ -281,7 +286,6 @@ trim.position.y = .35;
 roofGroup.add(trim);
 shrine.add(roofGroup);
 
-// giant demon skull on roof
 const giantSkull = new THREE.Mesh(new THREE.SphereGeometry(2.6, 26, 20), boneMat);
 giantSkull.position.y = 24.5; giantSkull.scale.set(1, 1.2, .95); shrine.add(giantSkull);
 for (const s of [-1, 1]) {
@@ -290,8 +294,6 @@ for (const s of [-1, 1]) {
   const horn = new THREE.Mesh(new THREE.ConeGeometry(.4, 4.0, 7), boneMat);
   horn.position.set(s * 1.5, 27.5, .8); horn.rotation.z = s * .6; shrine.add(horn);
 }
-
-// giant skeletal ribs protruding from shrine sides
 for (let i = 0; i < 6; i++) {
   for (const s of [-1, 1]) {
     const rib = new THREE.Mesh(new THREE.TorusGeometry(3, .15, 6, 12, PI * .6), boneMat);
@@ -300,8 +302,6 @@ for (let i = 0; i < 6; i++) {
     shrine.add(rib);
   }
 }
-
-// throne of Sukuna
 const throne = new THREE.Group();
 const throneDarkMat = new THREE.MeshStandardMaterial({ color: 0x080101, emissive: 0xbb0018, emissiveIntensity: 1.3, roughness: .4 });
 const throneBoneMat = new THREE.MeshStandardMaterial({ color: 0xe8d8c0, emissive: 0x220000, emissiveIntensity: .5, roughness: .6 });
@@ -322,7 +322,6 @@ shrine.add(throne);
 shrine.visible = false;
 scene.add(shrine);
 
-// domain pillars around the field
 const domainWalls = new THREE.Group();
 for (let i = 0; i < 24; i++) {
   const a = (i / 24) * PI * 2;
@@ -343,7 +342,6 @@ const voidGroup = new THREE.Group();
 voidGroup.visible = false;
 scene.add(voidGroup);
 
-// tunnel rings — recede infinitely
 const voidRings = [];
 for (let i = 0; i < 24; i++) {
   const ring = new THREE.Mesh(
@@ -354,8 +352,6 @@ for (let i = 0; i < 24; i++) {
   voidGroup.add(ring);
   voidRings.push(ring);
 }
-
-// floating shards — information particles
 const voidShards = [];
 for (let i = 0; i < 60; i++) {
   const shard = new THREE.Mesh(
@@ -369,13 +365,9 @@ for (let i = 0; i < 60; i++) {
   voidGroup.add(shard);
   voidShards.push(shard);
 }
-
-// bright center light
 const voidCore = new THREE.PointLight(0xaaddff, 0, 250, 2);
 voidCore.position.set(0, 3, 0);
 voidGroup.add(voidCore);
-
-// glowing floor for void
 const voidFloor = new THREE.Mesh(
   new THREE.CircleGeometry(80, 64),
   new THREE.MeshBasicMaterial({ color: 0x1a3a60, transparent: true, opacity: .9, side: THREE.DoubleSide })
@@ -512,7 +504,7 @@ function impact(p, pw, c = [1.3, .7, .5]) {
   lightFlash(p, 0xffa070, 300 * pw);
   shake = Math.max(shake, .6 * pw);
   if (caPass) caPass.uniforms.amount.value = Math.max(caPass.uniforms.amount.value, .008 + pw * .003);
-  playSound('explode', .8 * pw);
+  playSound('explode', .6 * pw);
 }
 function flashScreen(c, o, t = .7) {
   const e = $('fl'); e.style.transition = 'none'; e.style.background = c; e.style.opacity = o;
@@ -531,7 +523,7 @@ function say(name, text, d = 2.4) {
 function freeze(t) { hitStop = Math.max(hitStop, t); }
 
 /* ============================================================
-   POSE SYSTEM — with anticipation + follow-through
+   POSE SYSTEM
    ============================================================ */
 const POSE = {
   idle:      { hy:0,   tx:0,   ty:0,   hdx:0,   lsx:-.15, lsz:.15, lel:-.35, rsx:-.15, rsz:-.15, rel:-.35, lhx:0,   lkn:.1,  rhx:0,   rkn:.1  },
@@ -551,7 +543,6 @@ const POSE = {
 };
 const KEYS = ['hy','tx','ty','hdx','lsx','lsz','lel','rsx','rsz','rel','lhx','lkn','rhx','rkn'];
 
-/* Character builder — layered clothing, proper proportions */
 function makeCharacter(opts) {
   const g = new THREE.Group();
   const M = (c, o = {}) => new THREE.MeshStandardMaterial({
@@ -568,57 +559,45 @@ function makeCharacter(opts) {
   const hips = grp(g, 0, 1.0, 0);
   const torso = grp(hips, 0, .1, 0);
 
-  // layered torso — narrower waist, broader chest
   const lowerTorso = new THREE.Mesh(new THREE.CylinderGeometry(.22, .26, .28, 10), topM);
   lowerTorso.position.y = .14; torso.add(lowerTorso);
   const upperTorso = new THREE.Mesh(new THREE.CylinderGeometry(.28, .22, .30, 10), topM);
   upperTorso.position.y = .42; torso.add(upperTorso);
-  // chest detail
   const chest = new THREE.Mesh(new THREE.BoxGeometry(.32, .08, .04), topM);
   chest.position.set(0, .48, .18); torso.add(chest);
 
   const clothMat = M(opts.top, {r:.5, side: THREE.DoubleSide});
   if (opts.hairStyle === 'gojo') {
-    // Gojo dark jacket tail — two panels
     for (const s of [1, -1]) {
       const tail = new THREE.Mesh(new THREE.PlaneGeometry(.30, .60, 1, 3), clothMat);
       tail.position.set(s * .14, -.30, .02); tail.rotation.x = .25; torso.add(tail);
     }
   } else {
-    // Sukuna hakama — wide flowing
     const hakama = new THREE.Mesh(new THREE.CylinderGeometry(.30, .46, .65, 10, 1, true), clothMat);
     hakama.position.y = -.20; hips.add(hakama);
-    // shoulder pads — rounded top
     for (const s of [1, -1]) {
       const pad = new THREE.Mesh(new THREE.SphereGeometry(.16, 10, 8, 0, PI*2, 0, PI*.7), topM);
       pad.position.set(s * .34, .62, 0); pad.scale.y = .6; torso.add(pad);
     }
-    // collar kimono
     const collar = new THREE.Mesh(new THREE.TorusGeometry(.20, .04, 6, 20, PI * 1.3), M(0x0a0202, {r:.4}));
     collar.position.set(0, .60, 0); collar.rotation.x = PI / 2; collar.rotation.z = PI * .15; torso.add(collar);
   }
 
-  // neck
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, .12, 8), skinM);
   neck.position.y = .65; torso.add(neck);
 
   const head = grp(torso, 0, .88, 0);
-  // skull with slight jaw taper
   const skull = new THREE.Mesh(new THREE.SphereGeometry(.16, 20, 16), skinM);
   skull.position.y = .10; skull.scale.set(.95, 1.05, .95); head.add(skull);
   const jaw = new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 10, 0, PI*2, PI*.55, PI*.45), skinM);
   jaw.position.y = .04; head.add(jaw);
-  // nose
   const nose = new THREE.Mesh(new THREE.BoxGeometry(.03, .04, .03), skinM);
   nose.position.set(0, .11, .16); head.add(nose);
 
-  // hair cap
   const hairCap = new THREE.Mesh(new THREE.SphereGeometry(.17, 20, 15, 0, PI*2, 0, PI*.58), hairM);
   hairCap.position.y = .10; head.add(hairCap);
 
-  // hair tufts
   if (opts.hairStyle === 'gojo') {
-    // white spiky hair — swept up
     for (let i = 0; i < 11; i++) {
       const a = -PI*.6 + (i/10)*PI*1.2;
       const len = .16 + Math.random()*.10;
@@ -628,7 +607,6 @@ function makeCharacter(opts) {
       head.add(cone);
     }
   } else {
-    // red spiky hair — swept back
     for (let i = 0; i < 9; i++) {
       const a = -PI*.5 + (i/8)*PI*1.0;
       const cone = new THREE.Mesh(new THREE.ConeGeometry(.055, .18, 5), hairM);
@@ -649,17 +627,13 @@ function makeCharacter(opts) {
   const mouth = new THREE.Mesh(new THREE.BoxGeometry(.07, .012, .01), new THREE.MeshBasicMaterial({color: 0x331111}));
   mouth.position.set(0, .045, .152); head.add(mouth);
 
-  // arms — layered
   const arm = s => {
     const sh = grp(torso, s*.34, .62, 0);
-    sh.add(new THREE.Mesh(new THREE.SphereGeometry(.12, 10, 8), topM)); // shoulder
-    // upper arm
+    sh.add(new THREE.Mesh(new THREE.SphereGeometry(.12, 10, 8), topM));
     const upper = new THREE.Mesh(new THREE.CapsuleGeometry(.07, .22, 4, 8), topM);
     upper.position.y = -.18; sh.add(upper);
     const el = grp(sh, 0, -.35, 0);
-    // forearm skin
     el.add(new THREE.Mesh(new THREE.CapsuleGeometry(.06, .24, 4, 8), skinM)).position.y = -.18;
-    // cuff
     const cuff = new THREE.Mesh(new THREE.CylinderGeometry(.10, .08, .16, 8), topM);
     cuff.position.y = -.08; el.add(cuff);
     const hand = grp(el, 0, -.36, 0);
@@ -669,15 +643,11 @@ function makeCharacter(opts) {
   };
   const armL = arm(1), armR = arm(-1);
 
-  // legs — layered
   const leg = s => {
     const hp = grp(hips, s*.13, 0, 0);
-    // thigh
     hp.add(new THREE.Mesh(new THREE.CapsuleGeometry(.09, .34, 4, 8), pantsM)).position.y = -.23;
     const kn = grp(hp, 0, -.46, 0);
-    // shin
     kn.add(new THREE.Mesh(new THREE.CapsuleGeometry(.075, .32, 4, 8), pantsM)).position.y = -.22;
-    // boot (higher, more defined)
     const boot = new THREE.Mesh(new THREE.BoxGeometry(.15, .22, .34), bootM);
     boot.position.set(0, -.42, .06); kn.add(boot);
     return { hp, kn };
@@ -702,13 +672,11 @@ function setPose(c, name, hold = false) {
   c.ret = hold ? 0 : .3;
 }
 
-/* Fighter update — spring physics with momentum, breathing, land absorb */
 function updateFighter(f, trackArr, other, dt, time) {
   const t = track(trackArr, time);
   const prevY = f.p.y;
   f.p.set(t[1], t[3], t[2]);
 
-  // detect landing
   const landing = prevY > .3 && f.p.y < .1 && f.spd > .3;
   if (landing) {
     f.cur.hy -= .15;
@@ -734,7 +702,6 @@ function updateFighter(f, trackArr, other, dt, time) {
   if (f.ret > 0) { f.ret -= dt; if (f.ret <= 0) f.tgt = POSE.idle; }
 
   const c = f.cur, v = f.vel;
-  // spring physics per joint — anticipation comes from a higher stiffness on target change
   const stiffness = 200, damping = 24;
   for (const k of KEYS) {
     const target = f.tgt[k] || 0;
@@ -743,7 +710,6 @@ function updateFighter(f, trackArr, other, dt, time) {
     c[k] += v[k] * dt;
   }
 
-  // anatomical clamps
   c.lkn = cl(c.lkn, 0, 2.4);
   c.rkn = cl(c.rkn, 0, 2.4);
   c.lel = cl(c.lel, -2.4, 0);
@@ -753,7 +719,6 @@ function updateFighter(f, trackArr, other, dt, time) {
   c.tx  = cl(c.tx, -1, 1);
   c.hdx = cl(c.hdx, -.6, .6);
 
-  // breathing when idle
   f.breathe += dt * 1.5;
   const breath = Math.sin(f.breathe) * .01 * (1 - f.spd);
 
@@ -901,7 +866,6 @@ const EVENTS = [];
 const at = (t, fn) => EVENTS.push([t, fn]);
 const midPoint = () => new V((gojo.p.x + sukuna.p.x) / 2, 1.4, 0);
 
-/* INTRO & CLASH */
 at(0, () => {
   showBanner('JUJUTSU KAISEN', 'GOJO  vs  SUKUNA', 4.4);
   flashScreen('#000', 1, 1.6);
@@ -932,12 +896,10 @@ at(12.38, () => {
 });
 at(13.2, () => { puff(new V(sukuna.p.x, .3, 0), 40, 12, 3.5, 2.2); shake = 2.5; });
 
-/* BREATHER + TAUNT */
 at(13.6, () => { setPose(gojo, 'idle'); setPose(sukuna, 'idle'); });
-at(13.9, () => say('SUKUNA', '"Good. Show me more."', 2));
+at(13.9, () => { say('SUKUNA', '"Good. Show me more."', 2); playSound('sukunaLaugh'); });
 at(14.5, () => { setPose(sukuna, 'open', true); playSound('sukunaDomain'); });
 
-/* MALEVOLENT SHRINE */
 at(15.0, () => {
   say('SUKUNA', '"Domain Expansion — Malevolent Shrine."', 2.6);
   setEnv('shrine'); shrine.scale.y = .01; shrine.visible = true; throne.visible = true;
@@ -947,7 +909,6 @@ at(15.0, () => {
 at(16.0, () => { sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); shake = 3; });
 at(16.5, () => { setPose(gojo, 'kneel', true); say('GOJO', '"...tch."', 1.2); });
 
-// slash barrage — Gojo gets hit many times
 for (let i = 0; i < 14; i++) {
   at(17.0 + i * 0.85, () => {
     setPose(gojo, 'hit', true);
@@ -972,7 +933,6 @@ for (let i = 0; i < 14; i++) {
 at(29.5, () => { say('GOJO', '"...that all?"', 1.5); setPose(gojo, 'idle'); });
 at(30.5, () => { setPose(gojo, 'sign', true); say('GOJO', '"My turn."', 1.4); });
 
-/* UNLIMITED VOID */
 at(32.0, () => {
   playSound('gojoDomain');
   setPose(sukuna, 'idle'); setPose(gojo, 'sign', true);
@@ -1000,11 +960,9 @@ for (let i = 0; i < 8; i++) {
 }
 at(41.5, () => { say('GOJO', '"You feel it yet? Infinite information."', 2); });
 
-/* AFTERMATH */
 at(42.5, () => { setEnv('city'); setPose(sukuna, 'kneel', true); setPose(gojo, 'idle'); sukuna.g.position.set(25, 0, 8); });
 at(43.5, () => say('SUKUNA', '"...impressive, Gojo Satoru."', 1.8));
 
-/* HOLLOW PURPLE SETUP */
 at(44.5, () => { setPose(gojo, 'cast', true); say('GOJO', '"Blue... and Red."', 1.6); });
 at(45.5, () => { orbBlue.visible = true; orbBlue.position.set(gojo.p.x + 1.2, 1.5, 1.2); orbBlue.scale.setScalar(.2); });
 at(46.3, () => { orbRed.visible = true; orbRed.position.set(gojo.p.x + 1.2, 1.5, -1.2); orbRed.scale.setScalar(.2); });
@@ -1020,7 +978,6 @@ at(47.5, () => {
   playSound('hollowPurple'); say('GOJO', '"Hollow Purple."', 1.5);
 });
 
-/* HOLLOW PURPLE GROWTH + LAUNCH */
 at(49.5, () => {
   const t0 = T;
   const grow = () => {
@@ -1094,7 +1051,6 @@ at(50.6, () => {
 });
 at(53.5, () => { setPose(gojo, 'idle'); puff(new V(10, .3, 0), 40, 10, 4, 3); });
 
-/* FINAL CLASH */
 at(59.0, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); });
 at(60.0, () => { setPose(gojo, 'punchR'); setPose(sukuna, 'punchR'); impact(new V(0, 1.4, 0), 4); ringFX(new V(0, .1, 0), 0xffffff, 30, 1); });
 at(60.5, () => { flashScreen('#fff', 1, .5); shake = 6; playSound('explode'); });
@@ -1126,8 +1082,6 @@ addShot(13, 15, k => {
   const r = lerp(9, 7, k);
   setCam(Math.sin(a) * r, 2.0, Math.cos(a) * r, sukuna.p.x, 1.6, sukuna.p.z, 46);
 });
-
-/* SHRINE — dramatic angles */
 addShot(15, 18, k => {
   const r = lerp(24, 16, es(k));
   const a = lerp(-.4, .3, k);
@@ -1148,7 +1102,6 @@ addShot(28, 32, k => {
   setCam(gojo.p.x + Math.sin(a) * 6, 2.0, gojo.p.z + Math.cos(a) * 6, gojo.p.x, 1.4, 0, 40);
 });
 
-/* VOID — tumble */
 let camRoll = 0;
 addShot(32, 33, k => setCam(gojo.p.x + 2.5, 1.8, gojo.p.z + 2.5, gojo.p.x, 1.6, 0, 38));
 addShot(33, 42, k => {
@@ -1162,7 +1115,6 @@ addShot(33, 42, k => {
 });
 addShot(42, 42.5, () => { cam.up.set(0, 1, 0); camRoll = 0; });
 
-/* AFTERMATH + PURPLE */
 addShot(42.5, 45.5, k => {
   const r = lerp(10, 16, es(k));
   setCam(gojo.p.x + 2, 2.0, 3, 20, 1.4, 0, 46);
@@ -1176,7 +1128,6 @@ addShot(50.5, 52, k => {
 });
 addShot(52, 55, k => setCam(lerp(25, 30, k), 10, 35, 20, 2, 0, 58));
 
-/* FINAL */
 addShot(55, 59, k => setCam(lerp(20, 6, es(k)), lerp(6, 2, k), lerp(20, 8, k), 0, 1.4, 0, 50));
 addShot(59, 61, k => setCam(lerp(0, 1.3, k), lerp(1.5, 2.8, k), 6, 0, 1.5, 0, 48));
 addShot(61, 999, k => setCam(0, 1.6, 6, 0, 1.4, 0, 40));
@@ -1321,7 +1272,7 @@ function frame(now) {
 }
 
 /* ============================================================
-   START / REPLAY — with audio preload
+   START / REPLAY
    ============================================================ */
 setEnv('city');
 
@@ -1331,6 +1282,10 @@ $('go').addEventListener('click', async () => {
   btn.textContent = 'Loading…';
 
   await preloadAudio();
+
+  const ok = Object.values(AUDIO_OK).filter(Boolean).length;
+  console.log(`[audio] ${ok}/${audioTotal} sounds loaded`);
+  if (ok === 0) console.warn('[audio] NO audio loaded. Check ./audio/ folder and filenames.');
 
   $('st').style.display = 'none';
 
