@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Apex Drive</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
-  html, body { width:100%; height:100%; overflow:hidden; background:#07070b; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
   
-  /* FORCE LANDSCAPE: Rotates the game 90deg if phone is held in portrait */
-  #app, #hud, #select, #loader { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  /* FORCE LANDSCAPE LAYOUT */
+  #game-container, #ui-layer, #select-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
   @media (orientation: portrait) {
-    #app, #hud, #select, #loader {
+    #game-container, #ui-layer, #select-screen {
       width: 100vh;
       height: 100vw;
       top: 50%;
@@ -21,145 +22,475 @@
     }
   }
 
-  #app { background:#000; }
-  #app canvas { display:block; }
+  #game-container { z-index: 1; }
+  #game-container canvas { display: block; width: 100%; height: 100%; }
 
-  /* LOADER */
-  #loader { background:#07070b; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; z-index:9000; transition:opacity .3s; }
-  #loader.hide { opacity:0; pointer-events:none; display:none; }
-  #loader .t { font-size:10px; letter-spacing:10px; opacity:.4; }
-  #loader .b { width:160px; height:1px; background:rgba(255,255,255,.1); }
-  #loader .f { height:100%; width:0%; background:#fff; transition:width .3s; }
-
-  /* SELECT */
-  #select { z-index:8000; background:linear-gradient(180deg,#07070b,#0e0e16); display:flex; flex-direction:column; padding:calc(20px + env(safe-area-inset-top)) calc(28px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(28px + env(safe-area-inset-left)); transition:opacity .3s, transform .3s; }
-  #select.hide { opacity:0; pointer-events:none; }
-  @media (orientation: portrait) {
-    #select.hide { transform: translate(-50%, -50%) rotate(90deg) scale(1.03); }
-  }
-  @media (orientation: landscape) {
-    #select.hide { transform: scale(1.03); }
-  }
-  #select .hd { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px; }
-  #select .hd .lbl { font-size:9px; letter-spacing:7px; opacity:.35; }
-  #select .hd .ttl { font-size:26px; font-weight:200; margin-top:6px; letter-spacing:.5px; }
-  #select .hd .tag { font-size:9px; letter-spacing:3px; opacity:.3; }
-
-  .grid { flex:1; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-  .card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:16px; padding:14px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer; transition:all .2s; }
-  .card:active { transform:scale(.97); }
-  .card.on { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.3); }
-  .card .sil { height:56px; display:flex; align-items:center; justify-content:center; }
-  .card .sil svg { width:100%; height:100%; max-width:140px; }
-  .card .sil svg path, .card .sil svg circle { stroke:rgba(255,255,255,.3); fill:none; stroke-width:1.3; transition:stroke .2s; }
-  .card.on .sil svg path, .card.on .sil svg circle { stroke:rgba(255,255,255,.95); }
-  .card .nm { font-size:11px; font-weight:600; margin-bottom:8px; letter-spacing:.3px; }
-  .card .sp { display:flex; justify-content:space-between; font-size:8px; letter-spacing:.5px; opacity:.4; margin-top:3px; }
-  .card .sp b { font-weight:600; opacity:.9; }
-  #go { margin-top:14px; padding:15px; border-radius:14px; background:#fff; color:#000; font-size:11px; letter-spacing:5px; font-weight:700; text-align:center; cursor:pointer; }
-  #go:active { transform:scale(.98); opacity:.9; }
+  /* SELECT SCREEN */
+  #select-screen { z-index: 9000; background: linear-gradient(180deg,#07070b,#0e0e16); display: flex; flex-direction: column; padding: 30px; transition: opacity 0.3s; }
+  #select-screen.hide { opacity: 0; pointer-events: none; }
+  .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+  .header h1 { font-size: 24px; font-weight: 300; letter-spacing: 2px; }
+  .header span { font-size: 10px; opacity: 0.5; letter-spacing: 4px; }
+  
+  .car-grid { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+  .car-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s; }
+  .car-card.active { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
+  .car-card svg { width: 100%; height: 60px; margin-bottom: 15px; }
+  .car-card svg path, .car-card svg circle { stroke: rgba(255,255,255,0.3); fill: none; stroke-width: 2; }
+  .car-card.active svg path, .car-card.active svg circle { stroke: #fff; }
+  .car-card h3 { font-size: 14px; margin-bottom: 8px; }
+  .car-card p { font-size: 10px; opacity: 0.5; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  
+  #start-btn { margin-top: 20px; background: #fff; color: #000; padding: 20px; text-align: center; border-radius: 16px; font-weight: 700; letter-spacing: 4px; cursor: pointer; font-size: 14px; }
+  #start-btn:active { transform: scale(0.98); background: #ddd; }
 
   /* HUD */
-  #hud { pointer-events:none; z-index:100; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); opacity:0; transition:opacity .3s; }
-  #hud.on { opacity:1; }
-  #hud > * { pointer-events:auto; }
+  #ui-layer { z-index: 100; pointer-events: none; opacity: 0; transition: opacity 0.3s; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  #ui-layer.on { opacity: 1; }
+  #ui-layer > * { pointer-events: auto; }
 
-  #spd { position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:180px; height:100px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
-  #spd svg { position:absolute; bottom:0; width:180px; height:100px; overflow:visible; }
-  #spd .v { font-size:28px; font-weight:200; font-variant-numeric:tabular-nums; line-height:1; text-shadow:0 2px 20px rgba(0,0,0,.6); }
-  #spd .u { font-size:8px; letter-spacing:4px; opacity:.4; margin-top:2px; }
-  #spd .g { position:absolute; right:0; top:6px; font-size:11px; font-weight:700; padding:3px 8px; border-radius:5px; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15); }
+  /* SPEEDOMETER */
+  #speedo { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); text-align: center; width: 180px; }
+  #speedo .val { font-size: 36px; font-weight: 200; line-height: 1; font-variant-numeric: tabular-nums; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+  #speedo .unit { font-size: 10px; opacity: 0.4; letter-spacing: 4px; margin-top: 4px; }
+  #speedo .gear { position: absolute; top: -30px; right: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+  #speedo svg { position: absolute; bottom: 25px; left: 0; width: 100%; height: 90px; z-index: -1; overflow: visible; }
 
-  #steer { position:absolute; bottom:calc(28px + env(safe-area-inset-bottom)); left:calc(22px + env(safe-area-inset-left)); display:flex; gap:14px; }
-  .sb { width:64px; height:64px; border-radius:50%; background:rgba(255,255,255,.06); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; transition:background .1s, transform .1s; }
-  .sb.on { background:rgba(255,255,255,.2); transform:scale(.94); }
-  .sb svg { width:24px; height:24px; fill:none; stroke:#fff; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  /* CONTROLS */
+  #steer-area { position: absolute; bottom: 30px; left: 30px; display: flex; gap: 15px; }
+  #pedal-area { position: absolute; bottom: 30px; right: 30px; display: flex; gap: 15px; align-items: flex-end; }
+  
+  .btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .btn:active, .btn.press { background: rgba(255,255,255,0.3); transform: scale(0.95); }
+  .btn svg { width: 32px; height: 32px; stroke: #fff; stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  
+  .steer-btn { width: 75px; height: 75px; }
+  .pedal-btn { width: 70px; height: 70px; }
+  .pedal-btn.gas { width: 85px; height: 85px; }
 
-  #ped { position:absolute; bottom:calc(28px + env(safe-area-inset-bottom)); right:calc(22px + env(safe-area-inset-right)); display:flex; gap:14px; align-items:flex-end; }
-  .pb { width:66px; height:66px; border-radius:50%; background:rgba(255,255,255,.06); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; transition:background .1s, transform .1s; }
-  .pb.g { width:80px; height:80px; }
-  .pb.on { background:rgba(255,255,255,.2); transform:scale(.94); }
-  .pb svg { width:26px; height:26px; fill:none; stroke:#fff; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-  .pb.g svg { width:30px; height:30px; }
+  /* GEARS */
+  #gear-area { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .gear-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); padding: 10px 20px; border-radius: 20px; font-size: 12px; letter-spacing: 2px; font-weight: 600; backdrop-filter: blur(10px); }
+  .gear-btn:active { background: rgba(255,255,255,0.3); }
 
-  #gears { position:absolute; top:calc(14px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); display:flex; gap:10px; }
-  .gb { height:40px; padding:0 16px; border-radius:20px; background:rgba(255,255,255,.06); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; transition:background .1s, transform .1s; font-size:16px; font-weight:300; }
-  .gb.on { background:rgba(255,255,255,.2); transform:scale(.95); }
-  .gb span { font-size:10px; letter-spacing:2px; margin-left:6px; opacity:.6; font-weight:600; }
-
-  #tr { position:absolute; top:calc(14px + env(safe-area-inset-top)); right:calc(20px + env(safe-area-inset-right)); text-align:right; }
-  #tr .n { font-size:10px; letter-spacing:3px; opacity:.5; }
-  #tr .m { font-size:8px; letter-spacing:2px; opacity:.3; margin-top:3px; }
-
-  #bk { position:absolute; top:calc(14px + env(safe-area-inset-top)); left:calc(20px + env(safe-area-inset-left)); width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.06); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; }
-  #bk:active { background:rgba(255,255,255,.2); }
-  #bk svg { width:16px; height:16px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  /* BACK BUTTON */
+  #back-btn { position: absolute; top: 20px; left: 20px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; }
+  #back-btn svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2; fill: none; }
 </style>
 </head>
 <body>
-<div id="app"></div>
 
-<div id="loader">
-  <div class="t">APEX DRIVE</div>
-  <div class="b"><div class="f" id="lf"></div></div>
+<!-- 3D CANVAS -->
+<div id="game-container">
+  <canvas id="gameCanvas"></canvas>
 </div>
 
-<div id="select">
-  <div class="hd">
+<!-- SELECT SCREEN -->
+<div id="select-screen">
+  <div class="header">
     <div>
-      <div class="lbl">APEX DRIVE</div>
-      <div class="ttl">Select Vehicle</div>
+      <span>APEX DRIVE</span>
+      <h1>Select Vehicle</h1>
     </div>
-    <div class="tag">REAL PHYSICS</div>
   </div>
-  <div class="grid" id="grid"></div>
-  <div id="go">START ENGINE</div>
+  <div class="car-grid" id="carGrid">
+    <!-- Cards injected by JS -->
+  </div>
+  <div id="start-btn">START ENGINE</div>
 </div>
 
-<div id="hud">
-  <div id="bk"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
-  <div id="tr">
-    <div class="n" id="cn">BMW M5</div>
-    <div class="m" id="tm">AUTOMATIC</div>
+<!-- HUD -->
+<div id="ui-layer">
+  <div id="back-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+  
+  <div id="gear-area">
+    <div class="gear-btn" id="btn-down">DOWN</div>
+    <div class="gear-btn" id="btn-up">UP</div>
   </div>
-  <div id="gears">
-    <div class="gb" id="gdown"><span>DOWN</span></div>
-    <div class="gb" id="gup"><span>UP</span></div>
-  </div>
-  <div id="spd">
-    <div class="v" id="kmh">0</div>
-    <div class="u">KM/H</div>
-    <div class="g" id="gr">1</div>
-    <svg viewBox="0 0 180 100">
+
+  <div id="speedo">
+    <div class="gear" id="gear-val">1</div>
+    <div class="val" id="speed-val">0</div>
+    <div class="unit">KM/H</div>
+    <svg viewBox="0 0 180 90">
       <defs>
-        <linearGradient id="gg" x1="0" y1="1" x2="1" y2="0">
-          <stop offset="0%" stop-color="#3ee07a"/>
-          <stop offset="55%" stop-color="#ffcc33"/>
-          <stop offset="100%" stop-color="#ff3355"/>
+        <linearGradient id="grad" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0%" stop-color="#00ff88"/>
+          <stop offset="50%" stop-color="#ffdd00"/>
+          <stop offset="100%" stop-color="#ff0044"/>
         </linearGradient>
       </defs>
-      <path d="M 12 92 A 78 78 0 0 1 168 92" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="5" stroke-linecap="round"/>
-      <path id="arc" d="M 12 92 A 78 78 0 0 1 168 92" fill="none" stroke="url(#gg)" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 250"/>
+      <path d="M 10 85 A 80 80 0 0 1 170 85" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6" stroke-linecap="round"/>
+      <path id="speed-arc" d="M 10 85 A 80 80 0 0 1 170 85" fill="none" stroke="url(#grad)" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 260"/>
     </svg>
   </div>
-  <div id="steer">
-    <div class="sb" id="sL"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
-    <div class="sb" id="sR"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+
+  <div id="steer-area">
+    <div class="btn steer-btn" id="btn-left"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div class="btn steer-btn" id="btn-right"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
   </div>
-  <div id="ped">
-    <div class="pb" id="brk"><svg viewBox="0 0 24 24"><line x1="6" y1="12" x2="18" y2="12"/></svg></div>
-    <div class="pb g" id="gas"><svg viewBox="0 0 24 24"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></div>
+
+  <div id="pedal-area">
+    <div class="btn pedal-btn" id="btn-brake"><svg viewBox="0 0 24 24"><line x1="6" y1="12" x2="18" y2="12"/></svg></div>
+    <div class="btn pedal-btn gas" id="btn-gas"><svg viewBox="0 0 24 24"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></div>
   </div>
 </div>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://esm.sh/three@0.160.0",
-    "cannon-es": "https://esm.sh/cannon-es@0.20.0"
+<script>
+// ============================================================
+// NATIVE 3D MATH ENGINE (NO EXTERNAL LIBRARIES)
+// ============================================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = window.innerWidth, H = window.innerHeight;
+
+function resize() {
+  const isPortrait = window.innerHeight > window.innerWidth;
+  W = isPortrait ? window.innerHeight : window.innerWidth;
+  H = isPortrait ? window.innerWidth : window.innerHeight;
+  canvas.width = W * Math.min(window.devicePixelRatio, 2);
+  canvas.height = H * Math.min(window.devicePixelRatio, 2);
+  ctx.scale(Math.min(window.devicePixelRatio, 2), Math.min(window.devicePixelRatio, 2));
+}
+window.addEventListener('resize', resize);
+resize();
+
+// 3D Projection Math
+function project(x, y, z, camX, camY, camZ, camPitch, camYaw) {
+  // Translate
+  let dx = x - camX;
+  let dy = y - camY;
+  let dz = z - camZ;
+
+  // Rotate Yaw (Y axis)
+  let tx = dx * Math.cos(camYaw) - dz * Math.sin(camYaw);
+  let tz = dx * Math.sin(camYaw) + dz * Math.cos(camYaw);
+  dx = tx; dz = tz;
+
+  // Rotate Pitch (X axis)
+  let ty = dy * Math.cos(camPitch) - dz * Math.sin(camPitch);
+  tz = dy * Math.sin(camPitch) + dz * Math.cos(camPitch);
+  dy = ty; dz = tz;
+
+  if (dz <= 0.1) return null; // Behind camera
+
+  const fov = 500;
+  const scale = fov / dz;
+  return {
+    x: W / 2 + dx * scale,
+    y: H / 2 - dy * scale,
+    scale: scale
+  };
+}
+
+// ============================================================
+// GAME STATE
+// ============================================================
+const CARS = [
+  { id: 'm5', name: 'BMW M5', power: 4500, drive: 'AWD', mass: 1900, color: '#1a2338', length: 4.6, width: 1.9, height: 1.4, wheelBase: 2.9 },
+  { id: 'mustang', name: 'Mustang 1969', power: 3800, drive: 'RWD', mass: 1550, color: '#7a1c1c', length: 4.7, width: 1.9, height: 1.3, wheelBase: 2.75 },
+  { id: 'porsche', name: 'Porsche 911', power: 4200, drive: 'RWD', mass: 1420, color: '#2c2c2c', length: 4.4, width: 1.85, height: 1.2, wheelBase: 2.45 },
+  { id: 'ferrari', name: 'LaFerrari', power: 5500, drive: 'RWD', mass: 1350, color: '#b81414', length: 4.7, width: 1.95, height: 1.1, wheelBase: 2.65 }
+];
+
+const state = {
+  running: false,
+  carIndex: 0,
+  x: 0, z: 0, angle: 0,
+  speed: 0, steer: 0,
+  gear: 1, rpm: 900,
+  throttle: 0, brake: 0,
+  wheelSpin: 0,
+  camX: 0, camY: 5, camZ: 10, camPitch: 0.2, camYaw: 0
+};
+
+const keys = { gas: false, brake: false, left: false, right: false };
+
+// ============================================================
+// RENDER ENGINE
+// ============================================================
+function drawRect(x, y, z, w, h, d, color, cam) {
+  // Very simplified 2D projection of a 3D box (8 corners)
+  const hw = w/2, hh = h/2, hd = d/2;
+  const corners = [
+    [x-hw, y-hh, z-hd], [x+hw, y-hh, z-hd], [x+hw, y-hh, z+hd], [x-hw, y-hh, z+hd], // Bottom
+    [x-hw, y+hh, z-hd], [x+hw, y+hh, z-hd], [x+hw, y+hh, z+hd], [x-hw, y+hh, z+hd]  // Top
+  ];
+  
+  const p = corners.map(c => project(c[0], c[1], c[2], cam.x, cam.y, cam.z, cam.pitch, cam.yaw));
+  if (p.some(v => v === null)) return;
+
+  ctx.fillStyle = color;
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = 1;
+
+  // Draw faces (simple painter's algorithm)
+  const faces = [
+    [p[4], p[5], p[6], p[7]], // Top
+    [p[0], p[1], p[5], p[4]], // Front
+    [p[2], p[3], p[7], p[6]], // Back
+    [p[1], p[2], p[6], p[5]], // Right
+    [p[3], p[0], p[4], p[7]]  // Left
+  ];
+
+  faces.forEach(f => {
+    ctx.beginPath();
+    ctx.moveTo(f[0].x, f[0].y);
+    for (let i = 1; i < 4; i++) ctx.lineTo(f[i].x, f[i].y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  });
+}
+
+function drawRoad() {
+  // Draw ground
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw road strip
+  const roadW = 12;
+  const startZ = -state.z % 20; // Shift for scrolling effect
+  
+  // Simplified road projection
+  const zNear = state.z - 10;
+  const zFar = state.z + 100;
+  
+  const pNearL = project(-roadW/2, 0, zNear, state.camX, state.camY, state.camZ, state.camPitch, state.camYaw);
+  const pNearR = project(roadW/2, 0, zNear, state.camX, state.camY, state.camZ, state.camPitch, state.camYaw);
+  const pFarL = project(-roadW/2, 0, zFar, state.camX, state.camY, state.camZ, state.camPitch, state.camYaw);
+  const pFarR = project(roadW/2, 0, zFar, state.camX, state.camY, state.camZ, state.camPitch, state.camYaw);
+
+  if (pNearL && pNearR && pFarL && pFarR) {
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.moveTo(pNearL.x, pNearL.y);
+    ctx.lineTo(pNearR.x, pNearR.y);
+    ctx.lineTo(pFarR.x, pFarR.y);
+    ctx.lineTo(pFarL.x, pFarL.y);
+    ctx.closePath();
+    ctx.fill();
+
+    // Dashed center line
+    ctx.strokeStyle = '#ffdd00';
+    ctx.lineWidth = Math.max(1, pNearL.scale * 0.2);
+    ctx.setLineDash([10, 20]);
+    ctx.beginPath();
+    ctx.moveTo(pNearL.x + (pNearR.x - pNearL.x)/2, pNearL.y);
+    ctx.lineTo(pFarL.x + (pFarR.x - pFarL.x)/2, pFarL.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 }
+
+function drawCar() {
+  const car = CARS[state.carIndex];
+  const cx = state.x;
+  const cz = state.z;
+  
+  // Chassis
+  drawRect(cx, 0.55, cz, car.width, 0.6, car.length, car.color, state);
+  
+  // Cabin
+  drawRect(cx, 1.1, cz - 0.2, car.width * 0.8, 0.5, car.length * 0.4, '#111', state);
+  
+  // Headlights
+  drawRect(cx - car.width*0.35, 0.6, cz + car.length/2, 0.3, 0.15, 0.1, '#ffffaa', state);
+  drawRect(cx + car.width*0.35, 0.6, cz + car.length/2, 0.3, 0.15, 0.1, '#ffffaa', state);
+  
+  // Taillights
+  drawRect(cx - car.width*0.35, 0.6, cz - car.length/2, 0.3, 0.15, 0.1, '#ff2222', state);
+  drawRect(cx + car.width*0.35, 0.6, cz - car.length/2, 0.3, 0.15, 0.1, '#ff2222', state);
+
+  // Wheels (Simple black blocks)
+  const wheelSize = 0.7;
+  const tw = car.width / 2 + 0.1;
+  const wb = car.wheelBase / 2;
+  drawRect(cx - tw, 0.35, cz + wb, 0.3, wheelSize, wheelSize, '#050505', state);
+  drawRect(cx + tw, 0.35, cz + wb, 0.3, wheelSize, wheelSize, '#050505', state);
+  drawRect(cx - tw, 0.35, cz - wb, 0.3, wheelSize, wheelSize, '#050505', state);
+  drawRect(cx + tw, 0.35, cz - wb, 0.3, wheelSize, wheelSize, '#050505', state);
+}
+
+// ============================================================
+// MAIN LOOP
+// ============================================================
+let lastTime = performance.now();
+
+function loop(time) {
+  requestAnimationFrame(loop);
+  
+  let dt = (time - lastTime) / 1000;
+  lastTime = time;
+  if (dt > 0.1) dt = 0.016;
+
+  if (state.running) {
+    // 1. Steering
+    const steerInput = (keys.left ? 1 : 0) - (keys.right ? 1 : 0);
+    state.steer += (steerInput - state.steer) * 5 * dt;
+    
+    // 2. Physics
+    const car = CARS[state.carIndex];
+    state.throttle = keys.gas ? 1 : 0;
+    state.brake = keys.brake ? 1 : 0;
+    
+    const gearRatios = [3.4, 2.3, 1.7, 1.3, 1.0, 0.8];
+    const ratio = gearRatios[Math.min(state.gear - 1, 5)];
+    
+    const engineForce = state.throttle * (car.power * ratio * 0.1);
+    const brakeForce = state.brake * 2000;
+    const drag = state.speed * 2.5;
+
+    state.speed += (engineForce - brakeForce - drag) * dt;
+    if (state.speed < 0) state.speed = 0;
+    if (state.speed > 80) state.speed = 80; // Cap speed
+
+    // 3. Movement
+    state.z += Math.cos(state.angle) * state.speed * dt;
+    state.x += Math.sin(state.angle) * state.speed * dt;
+    
+    // Steering effect on angle (speed dependent)
+    if (state.speed > 0.5) {
+      state.angle += state.steer * (state.speed * 0.05) * dt;
+    }
+
+    // 4. Wheel Spin
+    state.wheelSpin += state.speed * 5 * dt;
+
+    // 5. Auto Gearbox
+    let targetRpm = 900 + (state.speed / 80) * 7000;
+    state.rpm += (targetRpm - state.rpm) * 0.1;
+    
+    if (state.rpm > 6500 && state.gear < 6) { state.gear++; document.getElementById('gear-val').textContent = state.gear; }
+    if (state.rpm < 3000 && state.gear > 1) { state.gear--; document.getElementById('gear-val').textContent = state.gear; }
+
+    // 6. Camera Follow
+    const targetCamX = state.x - Math.sin(state.angle) * 8;
+    const targetCamZ = state.z - Math.cos(state.angle) * 8;
+    state.camX += (targetCamX - state.camX) * 5 * dt;
+    state.camZ += (targetCamZ - state.camZ) * 5 * dt;
+    state.camYaw = -state.angle;
+    state.camPitch = 0.15 + (state.speed * 0.0005);
+
+    // 7. HUD Update
+    const kmh = Math.round(state.speed * 3.6);
+    document.getElementById('speed-val').textContent = kmh;
+    document.getElementById('speed-arc').setAttribute('stroke-dasharray', `${Math.min(kmh/300, 1) * 260} 260`);
+
+  } else {
+    // Idle camera
+    state.camX = Math.sin(time * 0.0005) * 5;
+    state.camZ = state.z - 10;
+    state.camYaw = 0;
+  }
+
+  // Render
+  drawRoad();
+  drawCar();
+
+  requestAnimationFrame(loop);
+}
+
+// ============================================================
+// UI LOGIC
+// ============================================================
+function buildSelectScreen() {
+  const grid = document.getElementById('carGrid');
+  grid.innerHTML = '';
+  
+  CARS.forEach((car, i) => {
+    const div = document.createElement('div');
+    div.className = `car-card ${i === 0 ? 'active' : ''}`;
+    div.innerHTML = `
+      <svg viewBox="0 0 100 40"><path d="M 10 30 L 20 15 L 80 15 L 90 30 Z" /><circle cx="25" cy="32" r="6"/><circle cx="75" cy="32" r="6"/></svg>
+      <div>
+        <h3>${car.name}</h3>
+        <p><span>DRIVE</span><span>${car.drive}</span></p>
+        <p><span>POWER</span><span>${car.power} hp</span></p>
+      </div>
+    `;
+    div.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.car-card').forEach(c => c.classList.remove('active'));
+      div.classList.add('active');
+      state.carIndex = i;
+    });
+    grid.appendChild(div);
+  });
+}
+
+function bindButton(id, onDown, onUp) {
+  const el = document.getElementById(id);
+  const down = (e) => { e.preventDefault(); el.classList.add('press'); onDown(); };
+  const up = (e) => { e.preventDefault(); el.classList.remove('press'); onUp(); };
+  el.addEventListener('pointerdown', down);
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('pointerleave', up);
+}
+
+function setupInputs() {
+  bindButton('btn-left', () => keys.left = true, () => keys.left = false);
+  bindButton('btn-right', () => keys.right = true, () => keys.right = false);
+  bindButton('btn-gas', () => keys.gas = true, () => keys.gas = false);
+  bindButton('btn-brake', () => keys.brake = true, () => keys.brake = false);
+
+  document.getElementById('btn-up').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (state.running && state.gear < 6) { state.gear++; document.getElementById('gear-val').textContent = state.gear; }
+  });
+  document.getElementById('btn-down').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (state.running && state.gear > 1) { state.gear--; document.getElementById('gear-val').textContent = state.gear; }
+  });
+
+  document.getElementById('back-btn').addEventListener('pointerdown', () => {
+    state.running = false;
+    document.getElementById('ui-layer').classList.remove('on');
+    document.getElementById('select-screen').classList.remove('hide');
+  });
+
+  // Keyboard support for PC testing
+  window.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    if (e.key === 'ArrowUp' || e.key === 'w') keys.gas = true;
+    if (e.key === 'ArrowDown' || e.key === 's') keys.brake = true;
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+  });
+  window.addEventListener('keyup', e => {
+    if (e.key === 'ArrowUp' || e.key === 'w') keys.gas = false;
+    if (e.key === 'ArrowDown' || e.key === 's') keys.brake = false;
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+  });
+}
+
+document.getElementById('start-btn').addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  
+  // 1. Force Fullscreen (works on Android Chrome)
+  const el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen().catch(()=>{});
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+
+  // 2. Switch UI
+  document.getElementById('select-screen').classList.add('hide');
+  document.getElementById('ui-layer').classList.add('on');
+
+  // 3. Reset State
+  state.running = true;
+  state.x = 0; state.z = 0; state.angle = 0;
+  state.speed = 0; state.gear = 1; state.rpm = 900; state.steer = 0;
+  document.getElementById('gear-val').textContent = '1';
+  
+  state.camX = state.x; state.camZ = state.z - 10; state.camY = 5;
+});
+
+// INIT
+buildSelectScreen();
+setupInputs();
+requestAnimationFrame(loop);
 </script>
-<script type="module" src="./game.js"></script>
 </body>
 </html>
