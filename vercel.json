@@ -1,5 +1,4 @@
 {
-  "rewrites": [
-    { "source": "/((?!creation/).*)", "destination": "/index.html" }
-  ]
+  "cleanUrls": true,
+  "trailingSlash": false
 }
