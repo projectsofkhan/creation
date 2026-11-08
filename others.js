@@ -1395,3 +1395,1154 @@ export function createHayBale() {
 
   return g;
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  VERDANT VALE — others.js  (PART 2 of 2)
+//  World building: terrain, sky, trees, weather, day/night, FX
+// ═══════════════════════════════════════════════════════════════
+
+// ── Noise (perlin-ish, cheap) ──────────────────────────────
+export function noise2D(x, z) {
+  return Math.sin(x * 0.08) * Math.cos(z * 0.07) * 0.6
+       + Math.sin(x * 0.19 + 1.7) * Math.cos(z * 0.21 + 3.2) * 0.3
+       + Math.sin(x * 0.4 + 5.1) * Math.cos(z * 0.37 + 1.3) * 0.1;
+}
+export function noise3D(x, y, z) {
+  return noise2D(x + y * 0.3, z + y * 0.7);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  WEATHER SYSTEM
+// ═══════════════════════════════════════════════════════════════
+export const WEATHER_TYPES = {
+  clear:   { icon: '☀️', text: 'Clear',       rain: 0,    cloud: 0.2, sun: 1.0 },
+  cloudy:  { icon: '⛅', text: 'Cloudy',      rain: 0,    cloud: 0.6, sun: 0.7 },
+  rain:    { icon: '🌧️', text: 'Rain',        rain: 0.8,  cloud: 0.9, sun: 0.4 },
+  storm:   { icon: '⛈️', text: 'Storm',       rain: 1.0,  cloud: 1.0, sun: 0.25 },
+  fog:     { icon: '🌫️', text: 'Foggy',       rain: 0.1,  cloud: 0.5, sun: 0.5 },
+  snow:    { icon: '❄️', text: 'Snow',        rain: 0.3,  cloud: 0.7, sun: 0.55 },
+};
+
+export function createWeather() {
+  const state = {
+    current: 'clear',
+    next: 'clear',
+    transition: 0,      // 0 = current fully, 1 = fully next
+    transitionSpeed: 0.08,
+    timeUntilChange: 90 + Math.random() * 90,
+    windDir: Math.random() * Math.PI * 2,
+  };
+
+  const api = {
+    state,
+    get() {
+      const a = WEATHER_TYPES[state.current];
+      const b = WEATHER_TYPES[state.next];
+      const t = state.transition;
+      return {
+        icon: b.icon,
+        text: t > 0.5 ? b.text : a.text,
+        rain: a.rain * (1 - t) + b.rain * t,
+        cloud: a.cloud * (1 - t) + b.cloud * t,
+        sun: a.sun * (1 - t) + b.sun * t,
+      };
+    },
+    update(dt) {
+      // smooth transition
+      if (state.transition < 1) {
+        state.transition = Math.min(1, state.transition + dt * state.transitionSpeed);
+      }
+      // countdown to next weather
+      state.timeUntilChange -= dt;
+      if (state.timeUntilChange <= 0) {
+        state.current = state.next;
+        state.next = pickNextWeather(state.current);
+        state.transition = 0;
+        state.timeUntilChange = 90 + Math.random() * 120;
+        state.windDir += (Math.random() - 0.5) * Math.PI;
+      }
+    },
+    set(w) {
+      if (WEATHER_TYPES[w] && w !== state.next) {
+        state.next = w;
+        state.transition = 0;
+      }
+    },
+  };
+
+  function pickNextWeather(from) {
+    const roll = Math.random();
+    if (from === 'clear') {
+      if (roll < 0.55) return 'cloudy';
+      if (roll < 0.85) return 'rain';
+      return 'fog';
+    }
+    if (from === 'cloudy') {
+      if (roll < 0.4) return 'clear';
+      if (roll < 0.75) return 'rain';
+      return 'storm';
+    }
+    if (from === 'rain') {
+      if (roll < 0.5) return 'cloudy';
+      if (roll < 0.75) return 'storm';
+      return 'clear';
+    }
+    if (from === 'storm') {
+      if (roll < 0.6) return 'rain';
+      return 'cloudy';
+    }
+    if (from === 'fog') {
+      if (roll < 0.5) return 'clear';
+      return 'cloudy';
+    }
+    return 'clear';
+  }
+
+  return api;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SKY DOME (shader — time of day + weather tinting)
+// ═══════════════════════════════════════════════════════════════
+function createSky(scene) {
+  const geo = new THREE.SphereGeometry(240, 32, 16);
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    uniforms: {
+      topColor:    { value: new THREE.Color(0x5a9bd8) },
+      bottomColor: { value: new THREE.Color(0xd8e8f0) },
+      sunPos:      { value: new THREE.Vector3(0, 1, 0) },
+      sunColor:    { value: new THREE.Color(0xffeecc) },
+      moonPos:     { value: new THREE.Vector3(0, -1, 0) },
+      moonColor:   { value: new THREE.Color(0xdde8ff) },
+      cloudTint:   { value: new THREE.Color(0xffffff) },
+      cloudAmount: { value: 0.2 },
+      time:        { value: 0 },
+    },
+    vertexShader: `
+      varying vec3 vWorld;
+      varying vec3 vNormal;
+      void main() {
+        vWorld = (modelMatrix * vec4(position, 1.0)).xyz;
+        vNormal = normalize(position);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 topColor;
+      uniform vec3 bottomColor;
+      uniform vec3 sunPos;
+      uniform vec3 sunColor;
+      uniform vec3 moonPos;
+      uniform vec3 moonColor;
+      uniform vec3 cloudTint;
+      uniform float cloudAmount;
+      uniform float time;
+      varying vec3 vWorld;
+      varying vec3 vNormal;
+
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+      }
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1,0)), u.x),
+                   mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x), u.y);
+      }
+      float fbm(vec2 p) {
+        float v = 0.0;
+        float a = 0.5;
+        for (int i = 0; i < 4; i++) {
+          v += a * noise(p);
+          p *= 2.0;
+          a *= 0.5;
+        }
+        return v;
+      }
+
+      void main() {
+        vec3 dir = normalize(vNormal);
+        float h = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
+        vec3 col = mix(bottomColor, topColor, pow(h, 0.85));
+
+        // Sun glow
+        float sd = distance(dir, normalize(sunPos));
+        col += sunColor * smoothstep(0.35, 0.0, sd) * 0.9;
+
+        // Moon glow
+        float md = distance(dir, normalize(moonPos));
+        col += moonColor * smoothstep(0.15, 0.0, md) * 0.35;
+
+        // Clouds (procedural, drifting)
+        if (dir.y > 0.0) {
+          vec2 uv = dir.xz / (dir.y + 0.15);
+          vec2 drift = vec2(time * 0.008, time * 0.004);
+          float c = fbm(uv * 1.4 + drift);
+          c = smoothstep(0.35, 0.75, c) * cloudAmount;
+          col = mix(col, cloudTint, c);
+        }
+
+        // Stars (only upper hemisphere, at night — driven by uniform darkening)
+        if (dir.y > 0.1) {
+          vec3 starHash = fract(sin(floor(dir * 380.0) * vec3(12.9898, 78.233, 43.1)) * 43758.5453);
+          float star = step(0.9975, starHash.x);
+          col += vec3(star) * (1.0 - sunColor.r * 0.5) * 0.6;
+        }
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  scene.add(mesh);
+  return { mesh, mat };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SUN + MOON
+// ═══════════════════════════════════════════════════════════════
+function createCelestialBodies(scene) {
+  const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(6, 24, 24),
+    new THREE.MeshBasicMaterial({ color: 0xffe8a0 })
+  );
+  scene.add(sun);
+
+  const sunGlow = new THREE.Mesh(
+    new THREE.SphereGeometry(9, 24, 24),
+    new THREE.MeshBasicMaterial({
+      color: 0xffe8a0, transparent: true, opacity: 0.18,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+  );
+  scene.add(sunGlow);
+
+  const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(3.8, 20, 20),
+    new THREE.MeshBasicMaterial({ color: 0xdde8ff })
+  );
+  scene.add(moon);
+
+  return { sun, sunGlow, moon };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CLOUDS
+// ═══════════════════════════════════════════════════════════════
+function createClouds(scene) {
+  const group = new THREE.Group();
+  const puffGeo = new THREE.SphereGeometry(1, 8, 6);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, roughness: 1, flatShading: true,
+    transparent: true, opacity: 0.85,
+  });
+
+  const clouds = [];
+  for (let i = 0; i < 18; i++) {
+    const g = new THREE.Group();
+    const puffs = 4 + (Math.random() * 4 | 0);
+    for (let j = 0; j < puffs; j++) {
+      const p = new THREE.Mesh(puffGeo, mat);
+      p.position.set(
+        (Math.random() - 0.5) * 9,
+        (Math.random() - 0.5) * 1.6,
+        (Math.random() - 0.5) * 5
+      );
+      p.scale.setScalar(1.2 + Math.random() * 1.5);
+      g.add(p);
+    }
+    g.position.set(
+      (Math.random() - 0.5) * 180,
+      45 + Math.random() * 16,
+      (Math.random() - 0.5) * 180
+    );
+    g.scale.setScalar(2.2 + Math.random() * 2);
+    g.userData = { speed: 0.25 + Math.random() * 0.5, baseY: g.position.y, sway: Math.random() * Math.PI * 2 };
+    group.add(g);
+    clouds.push(g);
+  }
+  scene.add(group);
+  return { group, clouds, mat };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TERRAIN
+// ═══════════════════════════════════════════════════════════════
+export function createTerrain(scene, WORLD_SIZE, HALF_GRID, terrainHeight) {
+  const segs = 140;
+  const geo = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, segs, segs);
+  geo.rotateX(-Math.PI / 2);
+
+  const pos = geo.attributes.position;
+  const colors = new Float32Array(pos.count * 3);
+
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i);
+    pos.setY(i, terrainHeight(x, z));
+
+    const n = noise2D(x * 2.1, z * 2.1);
+    const t = (n + 1) * 0.5;
+    // grass → dry grass → dirt gradient
+    const r = 0.20 + t * 0.22;
+    const g = 0.36 + t * 0.46;
+    const b = 0.12 + t * 0.14;
+    colors[i * 3] = r;
+    colors[i * 3 + 1] = g;
+    colors[i * 3 + 2] = b;
+  }
+
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+
+  const mat = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.96,
+    metalness: 0.0,
+  });
+
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+
+  // Add a second higher-res patch over the farm area for shadows
+  return mesh;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TREES
+// ═══════════════════════════════════════════════════════════════
+export function createTrees(scene, HALF_GRID, HALF_WORLD, terrainHeight) {
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const trunkGeo = new THREE.CylinderGeometry(0.3, 0.48, 1, 8);
+  const trunkMats = [
+    new THREE.MeshStandardMaterial({ map: makeBarkTexture(), roughness: 0.96 }),
+    new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.95 }),
+  ];
+
+  const leafMats = [
+    new THREE.MeshStandardMaterial({ color: 0x4a8b3a, roughness: 0.88, flatShading: true }),
+    new THREE.MeshStandardMaterial({ color: 0x5fa54a, roughness: 0.88, flatShading: true }),
+    new THREE.MeshStandardMaterial({ color: 0x3d7a2e, roughness: 0.88, flatShading: true }),
+    new THREE.MeshStandardMaterial({ color: 0x6ab04a, roughness: 0.9, flatShading: true }),
+  ];
+
+  const trees = [];
+  const TREE_COUNT = 110;
+
+  for (let i = 0; i < TREE_COUNT; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const dist = HALF_GRID + 6 + Math.random() * 34;
+    const x = Math.cos(a) * dist;
+    const z = Math.sin(a) * dist;
+    if (Math.abs(x) > HALF_WORLD - 8 || Math.abs(z) > HALF_WORLD - 8) continue;
+
+    const scale = 0.7 + Math.random() * 1.0;
+    const h = (3.4 + Math.random() * 2.4) * scale;
+
+    const g = new THREE.Group();
+
+    const trunkMat = trunkMats[Math.floor(Math.random() * trunkMats.length)];
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.scale.set(scale, h, scale);
+    trunk.position.y = h / 2;
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    g.add(trunk);
+
+    const leafMat = leafMats[Math.floor(Math.random() * leafMats.length)];
+    const layers = 3 + (Math.random() * 3 | 0);
+    for (let j = 0; j < layers; j++) {
+      const r = (1.6 - j * 0.28) * scale;
+      const leaf = new THREE.Mesh(new THREE.ConeGeometry(r, r * 1.4, 7), leafMat);
+      leaf.position.y = h * 0.72 + j * 0.9 * scale;
+      leaf.castShadow = true;
+      leaf.receiveShadow = true;
+      leaf.rotation.y = Math.random() * Math.PI * 2;
+      g.add(leaf);
+    }
+
+    g.position.set(x, terrainHeight(x, z), z);
+    g.userData = {
+      sway: Math.random() * Math.PI * 2,
+      swaySpeed: 0.4 + Math.random() * 0.6,
+      swayAmp: 0.018 + Math.random() * 0.012,
+      baseX: x, baseZ: z,
+    };
+    group.add(g);
+    trees.push(g);
+  }
+
+  return { group, trees };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GRASS  (instanced, swaying)
+// ═══════════════════════════════════════════════════════════════
+export function createGrass(scene, WORLD_SIZE, HALF_GRID, terrainHeight) {
+  const COUNT = 4000;
+  const geo = new THREE.ConeGeometry(0.1, 0.9, 3);
+  geo.translate(0, 0.45, 0);
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x5fa54a, roughness: 1, flatShading: true,
+  });
+
+  const mesh = new THREE.InstancedMesh(geo, mat, COUNT);
+  mesh.receiveShadow = true;
+
+  const data = [];
+  const dummy = new THREE.Object3D();
+
+  for (let i = 0; i < COUNT; i++) {
+    let x, z;
+    let attempts = 0;
+    do {
+      x = (Math.random() - 0.5) * WORLD_SIZE * 0.94;
+      z = (Math.random() - 0.5) * WORLD_SIZE * 0.94;
+      attempts++;
+    } while ((Math.abs(x) < HALF_GRID + 2 && Math.abs(z) < HALF_GRID + 2) && attempts < 20);
+
+    const y = terrainHeight(x, z);
+    dummy.position.set(x, y, z);
+    dummy.rotation.y = Math.random() * Math.PI;
+    const s = 0.6 + Math.random() * 1.1;
+    dummy.scale.set(s, s, s);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+
+    data.push({
+      x, y, z,
+      baseRot: dummy.rotation.y,
+      phase: Math.random() * Math.PI * 2,
+      s,
+    });
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  scene.add(mesh);
+
+  return { mesh, data, dummy };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FLOWERS
+// ═══════════════════════════════════════════════════════════════
+export function createFlowers(scene, WORLD_SIZE, HALF_GRID, terrainHeight) {
+  const COUNT = 220;
+  const geo = new THREE.IcosahedronGeometry(0.15, 0);
+
+  // per-instance color
+  const colors = new Float32Array(COUNT * 3);
+  const palette = [0xff88aa, 0xffdd66, 0xff9966, 0xdd88ff, 0xffffff, 0xff6688, 0xffaa44, 0x88aaff];
+  for (let i = 0; i < COUNT; i++) {
+    const c = new THREE.Color(palette[Math.floor(Math.random() * palette.length)]);
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const mat = new THREE.MeshStandardMaterial({
+    roughness: 0.7, emissive: 0x220000, emissiveIntensity: 0.15,
+    vertexColors: true, flatShading: true,
+  });
+  const mesh = new THREE.InstancedMesh(geo, mat, COUNT);
+  mesh.castShadow = false;
+
+  const data = [];
+  const dummy = new THREE.Object3D();
+
+  for (let i = 0; i < COUNT; i++) {
+    let x, z;
+    do {
+      x = (Math.random() - 0.5) * WORLD_SIZE * 0.88;
+      z = (Math.random() - 0.5) * WORLD_SIZE * 0.88;
+    } while (Math.abs(x) < HALF_GRID + 3 && Math.abs(z) < HALF_GRID + 3);
+
+    const y = terrainHeight(x, z) + 0.42;
+    dummy.position.set(x, y, z);
+    dummy.rotation.set(Math.random() * 0.3, Math.random() * Math.PI * 2, Math.random() * 0.3);
+    dummy.scale.setScalar(0.6 + Math.random() * 0.7);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+
+    data.push({ x, z, baseY: y, phase: Math.random() * Math.PI * 2 });
+  }
+  mesh.instanceMatrix.needsUpdate = true;
+  scene.add(mesh);
+
+  return { mesh, data, dummy };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BUSHES + ROCKS (instanced)
+// ═══════════════════════════════════════════════════════════════
+export function createBushesAndRocks(scene, HALF_GRID, terrainHeight) {
+  const bushGroup = new THREE.Group();
+  const rockGroup = new THREE.Group();
+  scene.add(bushGroup, rockGroup);
+
+  const bushGeo = new THREE.IcosahedronGeometry(0.85, 1);
+  const bushMat = new THREE.MeshStandardMaterial({
+    color: 0x4a8b3a, roughness: 0.9, flatShading: true,
+  });
+
+  const dummy = new THREE.Object3D();
+
+  for (let i = 0; i < 40; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const dist = HALF_GRID + 2 + Math.random() * 18;
+    const x = Math.cos(a) * dist;
+    const z = Math.sin(a) * dist;
+    const bush = new THREE.Mesh(bushGeo, bushMat);
+    bush.position.set(x, terrainHeight(x, z) + 0.35, z);
+    bush.rotation.y = Math.random() * Math.PI * 2;
+    bush.scale.setScalar(0.6 + Math.random() * 0.7);
+    bush.castShadow = true;
+    bush.receiveShadow = true;
+    bushGroup.add(bush);
+  }
+
+  const rockGeo = new THREE.DodecahedronGeometry(0.5, 0);
+  const rockMat = new THREE.MeshStandardMaterial({
+    color: 0x8a8a80, roughness: 0.92, flatShading: true,
+  });
+  for (let i = 0; i < 32; i++) {
+    const x = (Math.random() - 0.5) * 70;
+    const z = (Math.random() - 0.5) * 70;
+    if (Math.abs(x) < HALF_GRID + 3 && Math.abs(z) < HALF_GRID + 3) continue;
+    const rock = new THREE.Mesh(rockGeo, rockMat);
+    rock.position.set(x, terrainHeight(x, z) + 0.18, z);
+    rock.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+    rock.scale.setScalar(0.5 + Math.random() * 0.8);
+    rock.castShadow = true;
+    rock.receiveShadow = true;
+    rockGroup.add(rock);
+  }
+
+  return { bushGroup, rockGroup };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  POND + LILIES
+// ═══════════════════════════════════════════════════════════════
+export function createPond(scene, x, z, terrainHeight) {
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const y = terrainHeight(x, z);
+
+  const waterGeo = new THREE.CircleGeometry(5.5, 40);
+  waterGeo.rotateX(-Math.PI / 2);
+  const waterMat = new THREE.MeshStandardMaterial({
+    color: 0x3a7a9a, roughness: 0.06, metalness: 0.75,
+    transparent: true, opacity: 0.88,
+  });
+  const water = new THREE.Mesh(waterGeo, waterMat);
+  water.position.set(x, y + 0.1, z);
+  group.add(water);
+
+  // Bank ring
+  const bankGeo = new THREE.RingGeometry(5.3, 6.2, 40);
+  bankGeo.rotateX(-Math.PI / 2);
+  const bankMat = new THREE.MeshStandardMaterial({ color: 0x6a5a3a, roughness: 0.95 });
+  const bank = new THREE.Mesh(bankGeo, bankMat);
+  bank.position.set(x, y + 0.08, z);
+  group.add(bank);
+
+  // Lily pads
+  const lilyGeo = new THREE.CircleGeometry(0.5, 8);
+  lilyGeo.rotateX(-Math.PI / 2);
+  const lilyMat = new THREE.MeshStandardMaterial({ color: 0x4a8a3a, roughness: 0.8, side: THREE.DoubleSide });
+  const lilies = [];
+  for (let i = 0; i < 8; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 1.5 + Math.random() * 3;
+    const lily = new THREE.Mesh(lilyGeo, lilyMat);
+    lily.position.set(x + Math.cos(a) * r, y + 0.12, z + Math.sin(a) * r);
+    lily.rotation.y = Math.random() * Math.PI * 2;
+    lily.scale.setScalar(0.5 + Math.random() * 0.6);
+    group.add(lily);
+    lilies.push({ mesh: lily, phase: Math.random() * Math.PI * 2 });
+  }
+
+  // Reeds around the edge
+  const reedGeo = new THREE.ConeGeometry(0.06, 1.2, 4);
+  const reedMat = new THREE.MeshStandardMaterial({ color: 0x5a8a3a, roughness: 0.9, flatShading: true });
+  for (let i = 0; i < 24; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 5.4 + Math.random() * 0.6;
+    const reed = new THREE.Mesh(reedGeo, reedMat);
+    reed.position.set(x + Math.cos(a) * r, y + 0.6, z + Math.sin(a) * r);
+    reed.rotation.y = Math.random() * Math.PI;
+    reed.rotation.z = (Math.random() - 0.5) * 0.3;
+    group.add(reed);
+  }
+
+  return { group, water, waterMat, lilies, x, z, y };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PARTICLES — dust pool, rain, fireflies, pollen
+// ═══════════════════════════════════════════════════════════════
+function createParticlePool(scene, MAX = 250) {
+  const pool = [];
+  const geo = new THREE.SphereGeometry(0.07, 5, 4);
+  for (let i = 0; i < MAX; i++) {
+    const p = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0,
+    }));
+    p.visible = false;
+    p.userData = { active: false, vel: new THREE.Vector3(), life: 0, maxLife: 1, gravity: -4 };
+    scene.add(p);
+    pool.push(p);
+  }
+  let cursor = 0;
+  return {
+    spawn(pos, opts = {}) {
+      const n = opts.count || 8;
+      for (let k = 0; k < n; k++) {
+        const p = pool[cursor];
+        cursor = (cursor + 1) % MAX;
+        p.position.copy(pos);
+        p.material.color.setHex(opts.color || 0xffe27a);
+        p.material.opacity = 1;
+        p.visible = true;
+        const d = p.userData;
+        d.active = true;
+        d.life = opts.life || 1.2;
+        d.maxLife = d.life;
+        d.gravity = opts.gravity ?? -4;
+        const sp = opts.spread || 2;
+        d.vel.set(
+          (Math.random() - 0.5) * sp,
+          Math.random() * (opts.up || 2) + 0.3,
+          (Math.random() - 0.5) * sp
+        );
+      }
+    },
+    update(dt) {
+      for (let i = 0; i < MAX; i++) {
+        const p = pool[i], d = p.userData;
+        if (!d.active) continue;
+        d.life -= dt;
+        if (d.life <= 0) { d.active = false; p.visible = false; continue; }
+        d.vel.y += d.gravity * dt;
+        p.position.addScaledVector(d.vel, dt);
+        p.material.opacity = d.life / d.maxLife;
+      }
+    },
+  };
+}
+
+// ── Rain system ─────────────────────────────────────────────
+function createRain(scene) {
+  const COUNT = 1400;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(COUNT * 3);
+  const vel = new Float32Array(COUNT);
+  for (let i = 0; i < COUNT; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 60;
+    pos[i * 3 + 1] = Math.random() * 40;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 60;
+    vel[i] = 18 + Math.random() * 12;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+  const mat = new THREE.PointsMaterial({
+    color: 0x99ccee, size: 0.15, transparent: true, opacity: 0,
+    depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+
+  return {
+    points, geo, mat, vel,
+    update(dt, intensity, center) {
+      mat.opacity = intensity * 0.7;
+      if (intensity <= 0.01) { points.visible = false; return; }
+      points.visible = true;
+      const arr = geo.attributes.position.array;
+      for (let i = 0; i < COUNT; i++) {
+        arr[i * 3 + 1] -= vel[i] * dt;
+        arr[i * 3] += 2 * dt;
+        if (arr[i * 3 + 1] < 0) {
+          arr[i * 3] = center.x + (Math.random() - 0.5) * 50;
+          arr[i * 3 + 1] = 30 + Math.random() * 10;
+          arr[i * 3 + 2] = center.z + (Math.random() - 0.5) * 50;
+        }
+      }
+      geo.attributes.position.needsUpdate = true;
+      points.position.set(center.x, 0, center.z);
+      points.position.x = 0; points.position.z = 0;
+    },
+  };
+}
+
+// ── Snow system ─────────────────────────────────────────────
+function createSnow(scene) {
+  const COUNT = 900;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(COUNT * 3);
+  const phase = new Float32Array(COUNT);
+  for (let i = 0; i < COUNT; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 60;
+    pos[i * 3 + 1] = Math.random() * 40;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 60;
+    phase[i] = Math.random() * Math.PI * 2;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+  const mat = new THREE.PointsMaterial({
+    color: 0xffffff, size: 0.22, transparent: true, opacity: 0, depthWrite: false,
+  });
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+
+  return {
+    points, geo, mat, phase,
+    update(dt, intensity, t, center) {
+      mat.opacity = intensity * 0.9;
+      if (intensity <= 0.01) { points.visible = false; return; }
+      points.visible = true;
+      const arr = geo.attributes.position.array;
+      for (let i = 0; i < COUNT; i++) {
+        arr[i * 3 + 1] -= 1.5 * dt;
+        arr[i * 3] += Math.sin(t * 0.5 + phase[i]) * 0.3 * dt;
+        if (arr[i * 3 + 1] < 0) {
+          arr[i * 3] = (Math.random() - 0.5) * 50;
+          arr[i * 3 + 1] = 30 + Math.random() * 10;
+          arr[i * 3 + 2] = (Math.random() - 0.5) * 50;
+        }
+      }
+      geo.attributes.position.needsUpdate = true;
+      points.position.set(center.x, 0, center.z);
+      points.position.x = 0; points.position.z = 0;
+    },
+  };
+}
+
+// ── Fireflies ───────────────────────────────────────────────
+function createFireflies(scene) {
+  const COUNT = 100;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(COUNT * 3);
+  const phase = new Float32Array(COUNT);
+  const speed = new Float32Array(COUNT);
+  for (let i = 0; i < COUNT; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 55;
+    pos[i * 3 + 1] = 0.5 + Math.random() * 3.5;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 55;
+    phase[i] = Math.random() * Math.PI * 2;
+    speed[i] = 0.4 + Math.random() * 0.8;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+
+  const mat = new THREE.PointsMaterial({
+    color: 0xffff88, size: 0.36, transparent: true, opacity: 0,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+
+  return {
+    points, geo, mat, phase, speed,
+    update(dt, nightAmount, t) {
+      mat.opacity = Math.max(0, nightAmount) * 0.9;
+      if (nightAmount < 0.05) return;
+      const arr = geo.attributes.position.array;
+      for (let i = 0; i < COUNT; i++) {
+        arr[i * 3] += Math.sin(t * speed[i] + phase[i]) * 0.02;
+        arr[i * 3 + 1] += Math.cos(t * speed[i] * 1.3 + phase[i]) * 0.015;
+        arr[i * 3 + 2] += Math.cos(t * speed[i] * 0.8 + phase[i]) * 0.02;
+      }
+      geo.attributes.position.needsUpdate = true;
+    },
+  };
+}
+
+// ── Pollen (day) ────────────────────────────────────────────
+function createPollen(scene) {
+  const COUNT = 300;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(COUNT * 3);
+  const phase = new Float32Array(COUNT);
+  for (let i = 0; i < COUNT; i++) {
+    pos[i * 3] = (Math.random() - 0.5) * 70;
+    pos[i * 3 + 1] = 1 + Math.random() * 14;
+    pos[i * 3 + 2] = (Math.random() - 0.5) * 70;
+    phase[i] = Math.random() * Math.PI * 2;
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({
+    color: 0xffffcc, size: 0.13, transparent: true, opacity: 0.6,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  });
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+
+  return {
+    points, geo, mat, phase,
+    update(dt, dayAmount, t, windDir) {
+      mat.opacity = Math.max(0, dayAmount) * 0.55;
+      if (dayAmount < 0.05) return;
+      const arr = geo.attributes.position.array;
+      const wx = Math.cos(windDir) * 0.4;
+      const wz = Math.sin(windDir) * 0.4;
+      for (let i = 0; i < COUNT; i++) {
+        arr[i * 3] += wx * dt + Math.sin(t * 0.7 + phase[i]) * 0.004;
+        arr[i * 3 + 1] += Math.cos(t * 0.9 + phase[i]) * 0.003;
+        arr[i * 3 + 2] += wz * dt + Math.cos(t * 0.6 + phase[i]) * 0.004;
+        if (arr[i * 3 + 1] > 15) arr[i * 3 + 1] = 1;
+        if (arr[i * 3 + 1] < 0.5) arr[i * 3 + 1] = 1;
+      }
+      geo.attributes.position.needsUpdate = true;
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MASTER WORLD FACTORY
+// ═══════════════════════════════════════════════════════════════
+export async function createWorld(scene, renderer, camera, opts = {}) {
+  const report = opts.progress || (() => {});
+  const { WORLD_SIZE, HALF_GRID, HALF_WORLD, terrainHeight } = opts;
+
+  // ── Lights ──────────────────────────────────────────────
+  report(24, 'placing sun');
+  const sunLight = new THREE.DirectionalLight(0xfff2d0, 1.7);
+  sunLight.position.set(30, 50, 20);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.set(2048, 2048);
+  sunLight.shadow.camera.left = -60;
+  sunLight.shadow.camera.right = 60;
+  sunLight.shadow.camera.top = 60;
+  sunLight.shadow.camera.bottom = -60;
+  sunLight.shadow.camera.near = 1;
+  sunLight.shadow.camera.far = 180;
+  sunLight.shadow.bias = -0.0004;
+  sunLight.shadow.normalBias = 0.03;
+  sunLight.shadow.autoUpdate = false;
+  scene.add(sunLight);
+  scene.add(sunLight.target);
+
+  const hemiLight = new THREE.HemisphereLight(0xa0c8e8, 0x4a6b3a, 1.0);
+  scene.add(hemiLight);
+
+  const ambient = new THREE.AmbientLight(0xfff0d0, 0.22);
+  scene.add(ambient);
+
+  // ── Sky ─────────────────────────────────────────────────
+  report(30, 'painting sky');
+  const sky = createSky(scene);
+
+  // ── Celestial bodies ────────────────────────────────────
+  const celestial = createCelestialBodies(scene);
+
+  // ── Clouds ──────────────────────────────────────────────
+  const clouds = createClouds(scene);
+
+  // ── Terrain ─────────────────────────────────────────────
+  report(40, 'raising hills');
+  const terrain = createTerrain(scene, WORLD_SIZE, HALF_GRID, terrainHeight);
+
+  // ── Trees ───────────────────────────────────────────────
+  report(50, 'planting forest');
+  const trees = createTrees(scene, HALF_GRID, HALF_WORLD, terrainHeight);
+
+  // ── Grass ───────────────────────────────────────────────
+  report(58, 'growing grass');
+  const grass = createGrass(scene, WORLD_SIZE, HALF_GRID, terrainHeight);
+
+  // ── Flowers ─────────────────────────────────────────────
+  report(64, 'scattering flowers');
+  const flowers = createFlowers(scene, WORLD_SIZE, HALF_GRID, terrainHeight);
+
+  // ── Bushes + rocks ──────────────────────────────────────
+  report(70, 'placing stones');
+  const bushesRocks = createBushesAndRocks(scene, HALF_GRID, terrainHeight);
+
+  // ── Pond ────────────────────────────────────────────────
+  report(74, 'filling pond');
+  const pond = createPond(scene, HALF_GRID + 11, -HALF_GRID - 9, terrainHeight);
+
+  // ── Particles / FX ──────────────────────────────────────
+  report(80, 'adding atmosphere');
+  const particlePool = createParticlePool(scene, 250);
+  const rain = createRain(scene);
+  const snow = createSnow(scene);
+  const fireflies = createFireflies(scene);
+  const pollen = createPollen(scene);
+
+  // Expose dust spawner globally
+  window.__spawnDust = (x, z, color, count = 12, up = 1.8) => {
+    const y = terrainHeight(x, z) + 0.5;
+    particlePool.spawn(new THREE.Vector3(x, y, z), {
+      color, count, spread: 1.6, up: up * 1.5, life: 1.0, gravity: -6,
+    });
+  };
+
+  // ── Weather ─────────────────────────────────────────────
+  const weather = createWeather();
+
+  // ── Time of day state ───────────────────────────────────
+  const timeState = {
+    t: 0.28,              // 0 = midnight, 0.5 = noon, 1 = midnight
+    dayLength: 300,       // seconds for full day
+    dayCount: 1,
+  };
+
+  // ── Update: time of day + weather applied ───────────────
+  let elapsedLocal = 0;
+  let lastSunAngle = 0;
+
+  function updateTime(dt, extTime) {
+    elapsedLocal += dt;
+
+    // Update weather
+    weather.update(dt);
+    const w = weather.get();
+
+    // Time of day progresses (unless overridden)
+    if (typeof extTime === 'number') {
+      timeState.t = extTime;
+    } else {
+      timeState.t = (timeState.t + dt / timeState.dayLength) % 1;
+    }
+    if (extTime === undefined) {
+      // day rolls over
+      if (timeState.t < 0.01 && dt > 0) {
+        // (handled elsewhere)
+      }
+    }
+
+    const t = timeState.t;
+    const angle = (t - 0.25) * Math.PI * 2;
+
+    // Sun position
+    const sunX = Math.cos(angle) * 100;
+    const sunY = Math.sin(angle) * 70;
+    const sunZ = -Math.cos(angle) * 30;
+    celestial.sun.position.set(sunX, sunY, sunZ);
+    celestial.sunGlow.position.copy(celestial.sun.position);
+    celestial.sunGlow.scale.setScalar(1 + Math.sin(elapsedLocal * 2) * 0.05);
+
+    // Moon — opposite side
+    celestial.moon.position.set(-sunX, -sunY + 10, -sunZ);
+
+    // Light position
+    sunLight.position.set(sunX * 0.5, Math.max(6, sunY), sunZ * 0.5);
+    sunLight.target.position.set(0, 0, 0);
+    sunLight.target.updateMatrixWorld();
+
+    // Sky uniforms
+    sky.mat.uniforms.sunPos.value.copy(celestial.sun.position).normalize();
+    sky.mat.uniforms.moonPos.value.copy(celestial.moon.position).normalize();
+    sky.mat.uniforms.time.value = elapsedLocal;
+    sky.mat.uniforms.cloudAmount.value = w.cloud;
+
+    // Shadow update
+    if (Math.abs(angle - lastSunAngle) > 0.035) {
+      sunLight.shadow.needsUpdate = true;
+      lastSunAngle = angle;
+    }
+
+    // Colors by time
+    const night = new THREE.Color(0x0a1530);
+    const dawn = new THREE.Color(0xffb070);
+    const dusk = new THREE.Color(0xff8850);
+    const noon = new THREE.Color(0x5a9bd8);
+    const skyLo = new THREE.Color(0xd8e8f0);
+
+    let skyTop, skyBot, sunCol, sunInt, hemiInt, fogCol;
+
+    if (t < 0.2) {
+      skyTop = night.clone();
+      skyBot = new THREE.Color(0x1a2a50);
+      sunCol = new THREE.Color(0x4a6a9a);
+      sunInt = 0.18;
+      hemiInt = 0.32;
+      fogCol = night.clone();
+    } else if (t < 0.28) {
+      const k = (t - 0.2) / 0.08;
+      skyTop = night.clone().lerp(dawn, k);
+      skyBot = new THREE.Color(0x1a2a50).lerp(dawn, k);
+      sunCol = new THREE.Color(0x4a6a9a).lerp(dawn, k);
+      sunInt = 0.18 + k * 1.3;
+      hemiInt = 0.32 + k * 0.75;
+      fogCol = night.clone().lerp(dawn, k);
+    } else if (t < 0.72) {
+      const k = Math.abs(t - 0.5) / 0.22;
+      skyTop = noon.clone().lerp(new THREE.Color(0x4a8bc8), k * 0.3);
+      skyBot = skyLo.clone();
+      sunCol = new THREE.Color(0xfff2d0);
+      sunInt = 1.6 - k * 0.2;
+      hemiInt = 1.08;
+      fogCol = new THREE.Color(0xa8d8e8);
+    } else if (t < 0.82) {
+      const k = (t - 0.72) / 0.10;
+      skyTop = new THREE.Color(0x5a9bd8).lerp(dusk, k);
+      skyBot = new THREE.Color(0xd8e8f0).lerp(dusk, k);
+      sunCol = new THREE.Color(0xfff2d0).lerp(dusk, k);
+      sunInt = 1.4 - k * 0.9;
+      hemiInt = 1.08 - k * 0.55;
+      fogCol = new THREE.Color(0xa8d8e8).lerp(dusk, k);
+    } else {
+      const k = (t - 0.82) / 0.18;
+      skyTop = dusk.clone().lerp(night, k);
+      skyBot = dusk.clone().lerp(new THREE.Color(0x1a2a50), k);
+      sunCol = dusk.clone().lerp(new THREE.Color(0x4a6a9a), k);
+      sunInt = 0.45 - k * 0.3;
+      hemiInt = 0.52 - k * 0.22;
+      fogCol = dusk.clone().lerp(night, k);
+    }
+
+    // Apply weather tint
+    const rainDarken = 1 - w.rain * 0.35;
+    skyTop.multiplyScalar(rainDarken);
+    skyBot.multiplyScalar(rainDarken);
+    fogCol.multiplyScalar(rainDarken);
+    sunInt *= (0.4 + w.sun * 0.6);
+    hemiInt *= (0.5 + w.sun * 0.5);
+
+    sky.mat.uniforms.topColor.value.copy(skyTop);
+    sky.mat.uniforms.bottomColor.value.copy(skyBot);
+    sky.mat.uniforms.sunColor.value.copy(sunCol);
+    sky.mat.uniforms.cloudTint.value.setRGB(0.9 - w.rain * 0.5, 0.9 - w.rain * 0.5, 0.95 - w.rain * 0.4);
+
+    sunLight.color.copy(sunCol);
+    sunLight.intensity = sunInt;
+    hemiLight.intensity = hemiInt;
+    ambient.intensity = 0.18 + w.sun * 0.1;
+
+    scene.fog.color.copy(fogCol);
+    scene.background.copy(fogCol);
+
+    // Sun/moon visibility
+    celestial.sun.material.color.copy(
+      t < 0.25 || t > 0.75 ? new THREE.Color(0xdde8ff) : new THREE.Color(0xffe8a0)
+    );
+    celestial.sunGlow.material.opacity = 0.18 * Math.max(0, Math.sin(angle));
+    celestial.moon.visible = t < 0.25 || t > 0.75;
+
+    // Cloud tint
+    clouds.mat.color.copy(new THREE.Color(0xffffff).lerp(new THREE.Color(0x8888aa), w.cloud * 0.5));
+
+    // Weather intensity
+    const rainIntensity = w.rain;
+    const snowIntensity = w.text === 'Snow' ? 0.8 : 0;
+    const dayness = Math.max(0, 1 - Math.abs(t - 0.5) * 3);
+    const nightAmount = 1 - dayness;
+
+    // Rain & snow follow camera
+    rain.update(dt, rainIntensity, camera.position);
+    snow.update(dt, snowIntensity, elapsedLocal, camera.position);
+    fireflies.update(dt, nightAmount, elapsedLocal);
+    pollen.update(dt, dayness, elapsedLocal, weather.state.windDir);
+
+    return {
+      t,
+      w,
+      sunInt,
+      hemiInt,
+      dayness,
+      nightAmount,
+    };
+  }
+
+  // ── Update: ambient world animation ─────────────────────
+  function update(dt) {
+    // Tree sway
+    for (const tr of trees.trees) {
+      const d = tr.userData;
+      const dx = d.baseX - camera.position.x;
+      const dz = d.baseZ - camera.position.z;
+      if (dx * dx + dz * dz < 2800) {
+        const sway = Math.sin(elapsedLocal * d.swaySpeed + d.sway) * d.swayAmp;
+        tr.rotation.z = sway;
+        tr.rotation.x = sway * 0.55;
+      }
+    }
+
+    // Grass sway (every other frame to save CPU)
+    if ((elapsedLocal * 60 | 0) % 2 === 0) {
+      const dummy = grass.dummy;
+      const mesh = grass.mesh;
+      for (let i = 0; i < grass.data.length; i++) {
+        const d = grass.data[i];
+        const sway = Math.sin(elapsedLocal * 1.8 + d.phase + d.x * 0.3) * 0.16;
+        dummy.position.set(d.x, d.y, d.z);
+        dummy.rotation.set(sway, d.baseRot, sway * 0.7);
+        dummy.scale.set(d.s, d.s, d.s);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // Flower sway
+    const fd = flowers.dummy;
+    const fm = flowers.mesh;
+    for (let i = 0; i < flowers.data.length; i++) {
+      const d = flowers.data[i];
+      const bob = Math.sin(elapsedLocal * 2 + d.phase) * 0.04;
+      fd.position.set(d.x, d.baseY + bob, d.z);
+      fd.rotation.set(
+        Math.sin(elapsedLocal * 1.4 + d.phase) * 0.2,
+        d.phase,
+        Math.cos(elapsedLocal * 1.2 + d.phase) * 0.15
+      );
+      fd.scale.setScalar(0.7 + Math.sin(d.phase) * 0.1);
+      fd.updateMatrix();
+      fm.setMatrixAt(i, fd.matrix);
+    }
+    fm.instanceMatrix.needsUpdate = true;
+
+    // Clouds drift
+    for (const c of clouds.clouds) {
+      c.position.x += c.userData.speed * dt;
+      if (c.position.x > 100) c.position.x = -100;
+      c.position.y = c.userData.baseY + Math.sin(elapsedLocal * 0.3 + c.userData.sway) * 0.4;
+    }
+
+    // Pond shimmer
+    pond.waterMat.color.setHSL(0.55, 0.4, 0.42 + Math.sin(elapsedLocal) * 0.03);
+    for (const lily of pond.lilies) {
+      lily.mesh.rotation.y = Math.sin(elapsedLocal * 0.6 + lily.phase) * 0.1;
+    }
+
+    // Particles
+    particlePool.update(dt);
+  }
+
+  // Return everything the game needs
+  return {
+    scene, sunLight, hemiLight, ambient,
+    sky, celestial, clouds, terrain,
+    trees, grass, flowers, bushesRocks, pond,
+    particlePool, rain, snow, fireflies, pollen,
+    weather,
+    timeState,
+    updateTime,
+    update,
+    // Expose context for game.js
+    ctx: {
+      WORLD_SIZE, HALF_GRID, HALF_WORLD, terrainHeight,
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CLOCK FORMAT HELPER
+// ═══════════════════════════════════════════════════════════════
+export function formatClock(t) {
+  // t in [0, 1], 0 = midnight
+  const totalMin = t * 24 * 60;
+  const h = Math.floor(totalMin / 60);
+  const m = Math.floor(totalMin % 60);
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
