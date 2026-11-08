@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
 <title>Verdant Vale</title>
 
-<!-- Use esm.sh to reliably serve Three.js modules as single files -->
 <script type="importmap">
 {
   "imports": {
@@ -20,7 +19,6 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#0a1a12;font-family:Georgia,serif;color:#f7f3e6}
 canvas{display:block}
 
-/* LOADER */
 #loader{position:fixed;inset:0;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#3a6b4a 0%,#1a3028 70%,#0a1a12 100%);transition:opacity 0.8s ease,visibility 0.8s}
 #loader.hide{opacity:0;visibility:hidden}
 #loader .leaf{font-size:56px;margin-bottom:24px;animation:leafSpin 3s ease-in-out infinite;filter:drop-shadow(0 0 20px rgba(200,255,180,0.6))}
@@ -30,7 +28,6 @@ canvas{display:block}
 #loader .bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#4a9a5a,#a8e08c,#d8ffb8);border-radius:2px;box-shadow:0 0 20px rgba(200,255,180,0.8);transition:width 0.3s ease}
 #loader .status{font-size:11px;letter-spacing:3px;opacity:0.6;text-transform:uppercase;text-align:center;padding:0 20px}
 
-/* LANDING */
 #landing{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:transparent;text-align:center;padding:20px;transition:opacity 1.1s cubic-bezier(0.6,0,0.4,1),visibility 1.1s;overflow:hidden}
 #landing::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%,transparent 20%,rgba(10,26,18,0.55) 85%)}
 #landing.hide{opacity:0;visibility:hidden}
@@ -55,7 +52,6 @@ canvas{display:block}
 #landing .controls{position:absolute;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);left:50%;transform:translateX(-50%);display:grid;grid-template-columns:repeat(2,auto);gap:6px 22px;font-size:clamp(9px,1.9vw,12px);letter-spacing:1.5px;opacity:0;text-align:left;animation:fadeUp 1s ease 2.4s forwards;padding:10px 18px;background:rgba(10,26,18,0.35);border-radius:12px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);max-width:92vw}
 #landing .controls .key{display:inline-block;background:rgba(255,255,255,0.14);padding:1px 7px;border-radius:4px;font-family:monospace;color:#d8ffb8;min-width:32px;text-align:center;font-size:0.95em}
 
-/* UI */
 #ui{position:fixed;inset:0;pointer-events:none;z-index:10;opacity:0;transition:opacity 1.2s ease 0.4s}
 #ui.show{opacity:1}
 #hud{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);left:50%;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto;max-width:96vw;flex-wrap:wrap;justify-content:center}
@@ -141,7 +137,6 @@ canvas{display:block}
 
 <div id="vignette"></div>
 
-<!-- FORCE START: If the main script fails to load in 4 seconds, force reveal the landing screen. -->
 <script>
   window.forceStart = function() {
     const loader = document.getElementById('loader');
@@ -167,9 +162,10 @@ canvas{display:block}
 // VERDANT VALE — SINGLE FILE BUILD
 // ═══════════════════════════════════════════════════════════════
 import * as THREE from 'three';
-import { EffectComposer } from 'three/three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 
 const $bar = document.getElementById('barFill');
 const $status = document.getElementById('loadStatus');
@@ -255,6 +251,23 @@ async function initGame() {
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.32, 0.7, 0.9);
   composer.addPass(bloom);
+  const chromaPass = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, amount: { value: 0 } },
+    vertexShader: `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader: `
+      uniform sampler2D tDiffuse; uniform float amount; varying vec2 vUv;
+      void main(){
+        vec2 c = vUv - 0.5; float d = length(c) * amount;
+        vec2 dir = normalize(c + 0.0001);
+        vec4 col;
+        col.r = texture2D(tDiffuse, vUv + dir * d).r;
+        col.g = texture2D(tDiffuse, vUv).g;
+        col.b = texture2D(tDiffuse, vUv - dir * d).b;
+        col.a = 1.0;
+        gl_FragColor = col;
+      }`,
+  });
+  composer.addPass(chromaPass);
 
   progress(30, 'adding light');
 
@@ -268,7 +281,7 @@ async function initGame() {
   sunLight.shadow.bias = -0.0004; sunLight.shadow.normalBias = 0.02;
   sunLight.shadow.autoUpdate = false;
   scene.add(sunLight, sunLight.target);
-  
+
   const hemiLight = new THREE.HemisphereLight(0x9ec9e8, 0x4a6b3a, 1.0);
   scene.add(hemiLight);
   scene.add(new THREE.AmbientLight(0xfff0d0, 0.22));
@@ -392,7 +405,7 @@ async function initGame() {
     dummy.updateMatrix(); postMesh.setMatrixAt(i, dummy.matrix);
   });
   postMesh.instanceMatrix.needsUpdate = true; postMesh.castShadow = true; scene.add(postMesh);
-  
+
   const railMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL, 0.1, 0.1), woodMat, rails.length);
   rails.forEach((r, i) => {
     dummy.position.set(r.x, r.y, r.z); dummy.rotation.set(0, r.rot, 0);
@@ -450,6 +463,70 @@ async function initGame() {
     grassData.push({ x, z, y, baseRot: gDummy.rotation.y, phase: Math.random() * Math.PI * 2, s });
   }
   grassMesh.instanceMatrix.needsUpdate = true; scene.add(grassMesh);
+
+  // Flowers
+  const flowerCount = 140;
+  const flowerGeo = new THREE.IcosahedronGeometry(0.15, 0);
+  const flowerMat = new THREE.MeshStandardMaterial({ roughness: 0.7, emissive: 0x220000, emissiveIntensity: 0.15, vertexColors: true });
+  const flowerMesh = new THREE.InstancedMesh(flowerGeo, flowerMat, flowerCount);
+  const flowerData = [];
+  const fDummy = new THREE.Object3D();
+  const palette = [0xff88aa, 0xffdd66, 0xff9966, 0xdd88ff, 0xffffff, 0xff6688];
+  const colorAttr = new THREE.InstancedBufferAttribute(new Float32Array(flowerCount * 3), 3);
+  for (let i = 0; i < flowerCount; i++) {
+    let x, z;
+    do {
+      x = (Math.random() - 0.5) * WORLD_SIZE * 0.85;
+      z = (Math.random() - 0.5) * WORLD_SIZE * 0.85;
+    } while (Math.abs(x) < HALF_GRID + 2 && Math.abs(z) < HALF_GRID + 2);
+    const y = terrainHeight(x, z) + 0.45;
+    fDummy.position.set(x, y, z);
+    fDummy.rotation.set(Math.random() * 0.3, Math.random() * Math.PI * 2, Math.random() * 0.3);
+    fDummy.scale.setScalar(0.7 + Math.random() * 0.6);
+    fDummy.updateMatrix();
+    flowerMesh.setMatrixAt(i, fDummy.matrix);
+    const c = new THREE.Color(palette[Math.floor(Math.random() * palette.length)]);
+    colorAttr.setXYZ(i, c.r, c.g, c.b);
+    flowerData.push({ x, z, baseY: y, phase: Math.random() * Math.PI * 2 });
+  }
+  flowerGeo.setAttribute('color', colorAttr);
+  flowerMesh.instanceMatrix.needsUpdate = true;
+  scene.add(flowerMesh);
+
+  // Bushes + rocks
+  const bushMesh = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.85, 1), leafMats[0], 26);
+  for (let i = 0; i < 26; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const dist = HALF_GRID + 2 + Math.random() * 12;
+    const x = Math.cos(a) * dist, z = Math.sin(a) * dist;
+    dummy.position.set(x, terrainHeight(x, z) + 0.4, z);
+    dummy.rotation.set(0, Math.random() * Math.PI * 2, 0);
+    dummy.scale.setScalar(0.8 + Math.random() * 0.5);
+    dummy.updateMatrix();
+    bushMesh.setMatrixAt(i, dummy.matrix);
+  }
+  bushMesh.instanceMatrix.needsUpdate = true;
+  bushMesh.castShadow = true;
+  scene.add(bushMesh);
+
+  const rockMesh = new THREE.InstancedMesh(
+    new THREE.DodecahedronGeometry(0.5, 0),
+    new THREE.MeshStandardMaterial({ color: 0x8a8a80, roughness: 0.92, flatShading: true }),
+    20
+  );
+  for (let i = 0; i < 20; i++) {
+    const x = (Math.random() - 0.5) * WORLD_SIZE * 0.85;
+    const z = (Math.random() - 0.5) * WORLD_SIZE * 0.85;
+    if (Math.abs(x) < HALF_GRID + 2 && Math.abs(z) < HALF_GRID + 2) continue;
+    dummy.position.set(x, terrainHeight(x, z) + 0.2, z);
+    dummy.rotation.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+    dummy.scale.setScalar(0.6 + Math.random() * 0.6);
+    dummy.updateMatrix();
+    rockMesh.setMatrixAt(i, dummy.matrix);
+  }
+  rockMesh.instanceMatrix.needsUpdate = true;
+  rockMesh.castShadow = true;
+  scene.add(rockMesh);
 
   progress(74, 'filling pond');
 
@@ -678,7 +755,7 @@ async function initGame() {
   const $questList = document.getElementById('quest-list');
   const $shop = document.getElementById('shop');
   const toolDefs = [{ icon: '⛏️', label: 'Hoe' }, { icon: '💧', label: 'Water' }, { icon: '🌱', label: 'Seed' }, { icon: '🧺', label: 'Pick' }, { icon: '🏪', label: 'Shop' }];
-  
+
   function buildHotbar() {
     $hotbar.innerHTML = '';
     toolDefs.forEach((t, i) => {
@@ -709,7 +786,7 @@ async function initGame() {
   let toastTimer = null;
   function toast(msg) { $toast.textContent = msg; $toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $toast.classList.remove('show'), 2200); playChime(880, 0.22, 'sine', 0.04); }
   function toggleShop(force) { if (force === true) $shop.classList.add('open'); else if (force === false) $shop.classList.remove('open'); else $shop.classList.toggle('open'); }
-  
+
   document.querySelectorAll('.shop-item').forEach(item => {
     item.onclick = () => {
       const buy = item.dataset.buy;
@@ -807,7 +884,7 @@ async function initGame() {
   const velocity = new THREE.Vector3(); const wishDir = new THREE.Vector3();
   const _forward = new THREE.Vector3(); const _right = new THREE.Vector3();
   function lerpAngle(a, b, t) { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * t; }
-  
+
   function updatePlayer(dt, elapsed) {
     const mv = state.movement; const speed = mv.shift ? 7.5 : 4.0;
     _forward.set(-Math.sin(state.cameraYaw), 0, -Math.cos(state.cameraYaw));
@@ -890,7 +967,7 @@ async function initGame() {
     sunLight.target.position.copy(player.position); sunLight.target.updateMatrixWorld();
     skyMat.uniforms.sunPos.value.copy(sunMesh.position).normalize();
     if (Math.abs(angle - lastSunAngle) > 0.035) { sunLight.shadow.needsUpdate = true; lastSunAngle = angle; }
-    
+
     const night = new THREE.Color(0x0a1530), dawn = new THREE.Color(0xffb070);
     const dusk = new THREE.Color(0xff8850), noon = new THREE.Color(0x5a9bd8); const skyLo = new THREE.Color(0xd8e8f0);
     let skyTop, skyBot, sunCol, sunInt, hemiInt, fogCol;
@@ -936,23 +1013,33 @@ async function initGame() {
       }
       grassMesh.instanceMatrix.needsUpdate = true;
     }
+    for (let i = 0; i < flowerData.length; i++) {
+      const d = flowerData[i];
+      const bob = Math.sin(elapsed * 2 + d.phase) * 0.04;
+      fDummy.position.set(d.x, d.baseY + bob, d.z);
+      fDummy.rotation.set(Math.sin(elapsed * 1.4 + d.phase) * 0.2, d.phase, Math.cos(elapsed * 1.2 + d.phase) * 0.15);
+      fDummy.scale.setScalar(0.7 + Math.sin(d.phase) * 0.1);
+      fDummy.updateMatrix(); flowerMesh.setMatrixAt(i, fDummy.matrix);
+    }
+    flowerMesh.instanceMatrix.needsUpdate = true;
+
     for (const c of clouds) { c.position.x += c.userData.speed * dt; if (c.position.x > 90) c.position.x = -90; }
     pondMat.color.setHSL(0.55, 0.4, 0.42 + Math.sin(elapsed) * 0.03);
-    
+
     const pp = pollen.geometry.attributes.position;
     for (let i = 0; i < pollenCount; i++) {
       const v = pollenVel[i]; pp.array[i * 3] += v.x * dt; pp.array[i * 3 + 1] += v.y * dt + Math.cos(elapsed * 0.7 + v.phase) * 0.002; pp.array[i * 3 + 2] += v.z * dt;
       if (pp.array[i * 3 + 1] > 14) pp.array[i * 3 + 1] = 1; if (pp.array[i * 3 + 1] < 0.5) pp.array[i * 3 + 1] = 1;
     }
     pp.needsUpdate = true;
-    
+
     const fp = fireflies.geometry.attributes.position;
     for (let i = 0; i < fireflyCount; i++) {
       const d = fireflyData[i]; fp.array[i * 3] += Math.sin(elapsed * d.speed + d.phase) * 0.01;
       fp.array[i * 3 + 1] += Math.cos(elapsed * d.speed * 1.3 + d.phase) * 0.008; fp.array[i * 3 + 2] += Math.cos(elapsed * d.speed * 0.8 + d.phase) * 0.01;
     }
     fp.needsUpdate = true;
-    
+
     for (const cell of farmCells) {
       if (cell.mesh) {
         const sway = Math.sin(elapsed * 1.5 + cell.gx * 0.3 + cell.gz * 0.4) * 0.05;
@@ -1021,6 +1108,11 @@ async function initGame() {
   function animate() {
     requestAnimationFrame(animate);
     const dt = Math.min(clock.getDelta(), 1 / 30); elapsed += dt;
+
+    if (chromaPass.uniforms.amount.value > 0) {
+      chromaPass.uniforms.amount.value = Math.max(0, chromaPass.uniforms.amount.value - dt * 3.5);
+    }
+
     if (state.hitStop > 0) { state.hitStop -= dt; updateParticles(dt); composer.render(); return; }
     if (state.started) {
       updateTimeOfDay(dt); updatePlayer(dt, elapsed); updateCamera(dt); updateWorldAnimations(dt); updateFarmLogic(dt);
@@ -1035,13 +1127,13 @@ async function initGame() {
   animate(); progress(100, 'ready');
 }
 
-// Start
 (async function boot() {
   try {
     await initGame();
   } catch (err) {
     console.error("Boot error:", err);
-    document.getElementById('loadStatus').textContent = 'error: ' + err.message.slice(0, 50);
+    const status = document.getElementById('loadStatus');
+    if (status) status.textContent = 'error: ' + err.message.slice(0, 50);
   }
 })();
 </script>
