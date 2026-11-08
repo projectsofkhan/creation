@@ -3,103 +3,144 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <title>Apex Drive</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; touch-action:none; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; }
-  html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif; color:#fff; }
+  html, body { width:100%; height:100%; overflow:hidden; background:#000; color:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,sans-serif; }
   #app { position:fixed; inset:0; }
   #app canvas { display:block; }
 
-  /* PORTRAIT OVERLAY */
-  #portrait { position:fixed; inset:0; background:#07070b; display:none; flex-direction:column; align-items:center; justify-content:center; gap:28px; z-index:9999; }
-  #portrait svg { width:56px; height:56px; opacity:.6; animation:rot 2.4s ease-in-out infinite; }
-  #portrait p { font-size:13px; letter-spacing:4px; font-weight:500; opacity:.5; }
-  @keyframes rot { 0%,100%{transform:rotate(0)} 50%{transform:rotate(90deg)} }
-  @media (orientation:portrait) { #portrait { display:flex; } }
+  /* PORTRAIT BLOCKER */
+  #rotate { position:fixed; inset:0; background:#07070b; display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:24px; z-index:9999; }
+  #rotate.show { display:flex; }
+  #rotate svg { width:56px; height:56px; opacity:.5; }
+  #rotate p { font-size:12px; letter-spacing:5px; opacity:.5; }
 
   /* LOADER */
-  #loader { position:fixed; inset:0; background:#07070b; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; z-index:10000; transition:opacity .6s ease; }
+  #loader { position:fixed; inset:0; background:#07070b; display:flex;
+    flex-direction:column; align-items:center; justify-content:center; gap:20px;
+    z-index:9000; transition:opacity .4s; }
   #loader.hide { opacity:0; pointer-events:none; }
-  #loader .brand { font-size:11px; letter-spacing:10px; font-weight:600; opacity:.4; }
-  #loader .bar { width:180px; height:1px; background:rgba(255,255,255,.08); border-radius:1px; overflow:hidden; }
-  #loader .fill { height:100%; width:0%; background:linear-gradient(90deg,#fff,#888); transition:width .3s ease; }
+  #loader .t { font-size:10px; letter-spacing:10px; opacity:.4; }
+  #loader .b { width:160px; height:1px; background:rgba(255,255,255,.1); }
+  #loader .f { height:100%; width:0%; background:#fff; transition:width .3s; }
 
-  /* CAR SELECT SCREEN */
-  #carSelect { position:fixed; inset:0; background:linear-gradient(180deg,#07070b 0%,#101018 100%); z-index:5000; display:flex; flex-direction:column; padding:calc(24px + env(safe-area-inset-top)) calc(32px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(32px + env(safe-area-inset-left)); transition:opacity .5s ease, transform .5s ease; }
-  #carSelect.hide { opacity:0; pointer-events:none; transform:scale(1.04); }
-  #carSelect .head { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
-  #carSelect .title { font-size:10px; letter-spacing:8px; font-weight:600; opacity:.4; }
-  #carSelect .title b { display:block; font-size:22px; letter-spacing:1px; font-weight:300; opacity:1; margin-top:4px; color:#fff; }
-  #carSelect .hint { font-size:9px; letter-spacing:3px; opacity:.3; }
+  /* SELECT */
+  #select { position:fixed; inset:0; z-index:8000;
+    background:linear-gradient(180deg,#07070b,#0e0e16);
+    display:flex; flex-direction:column;
+    padding:calc(20px + env(safe-area-inset-top)) calc(28px + env(safe-area-inset-right))
+            calc(20px + env(safe-area-inset-bottom)) calc(28px + env(safe-area-inset-left));
+    transition:opacity .4s, transform .4s; }
+  #select.hide { opacity:0; pointer-events:none; transform:scale(1.03); }
+  #select .hd { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:16px; }
+  #select .hd .lbl { font-size:9px; letter-spacing:7px; opacity:.35; }
+  #select .hd .ttl { font-size:26px; font-weight:200; margin-top:6px; letter-spacing:.5px; }
+  #select .hd .tag { font-size:9px; letter-spacing:3px; opacity:.3; }
 
-  .carGrid { flex:1; display:flex; gap:14px; align-items:stretch; }
-  .carCard { flex:1; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:18px; padding:18px 14px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer; transition:all .25s ease; position:relative; overflow:hidden; }
-  .carCard::before { content:''; position:absolute; inset:0; background:radial-gradient(circle at 50% 0%,rgba(255,255,255,.06),transparent 70%); opacity:0; transition:opacity .3s; }
-  .carCard.active { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.22); }
-  .carCard.active::before { opacity:1; }
-  .carCard:active { transform:scale(.98); }
-  .carCard .silhouette { width:100%; height:70px; display:flex; align-items:center; justify-content:center; }
-  .carCard .silhouette svg { width:100%; height:100%; max-width:180px; }
-  .carCard .silhouette svg path, .carCard .silhouette svg circle { stroke:rgba(255,255,255,.35); fill:none; stroke-width:1.2; transition:stroke .3s; }
-  .carCard.active .silhouette svg path, .carCard.active .silhouette svg circle { stroke:rgba(255,255,255,.95); }
-  .carCard .name { font-size:12px; font-weight:600; letter-spacing:.5px; margin-bottom:6px; }
-  .carCard .specs { display:flex; flex-direction:column; gap:4px; }
-  .carCard .spec { display:flex; justify-content:space-between; font-size:8.5px; letter-spacing:.5px; opacity:.4; }
-  .carCard .spec span:last-child { opacity:.9; font-weight:600; }
+  .grid { flex:1; display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+    border-radius:16px; padding:14px; display:flex; flex-direction:column;
+    justify-content:space-between; cursor:pointer; transition:all .2s; }
+  .card:active { transform:scale(.97); }
+  .card.on { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.3); }
+  .card .sil { height:56px; display:flex; align-items:center; justify-content:center; }
+  .card .sil svg { width:100%; height:100%; max-width:140px; }
+  .card .sil svg path, .card .sil svg circle {
+    stroke:rgba(255,255,255,.3); fill:none; stroke-width:1.3; transition:stroke .2s; }
+  .card.on .sil svg path, .card.on .sil svg circle { stroke:rgba(255,255,255,.95); }
+  .card .nm { font-size:11px; font-weight:600; margin-bottom:8px; letter-spacing:.3px; }
+  .card .sp { display:flex; justify-content:space-between; font-size:8px;
+    letter-spacing:.5px; opacity:.4; margin-top:3px; }
+  .card .sp b { font-weight:600; opacity:.9; }
 
-  #startBtn { margin-top:18px; padding:16px; border-radius:16px; background:#fff; color:#000; font-size:12px; letter-spacing:5px; font-weight:700; text-align:center; cursor:pointer; transition:transform .15s ease, opacity .15s; }
-  #startBtn:active { transform:scale(.97); opacity:.85; }
+  #go { margin-top:14px; padding:15px; border-radius:14px; background:#fff;
+    color:#000; font-size:11px; letter-spacing:5px; font-weight:700;
+    text-align:center; cursor:pointer; }
+  #go:active { transform:scale(.98); opacity:.9; }
 
-  /* GAME HUD */
-  #hud { position:fixed; inset:0; pointer-events:none; z-index:100; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); opacity:0; transition:opacity .6s ease; }
+  /* HUD */
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:100;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right)
+            env(safe-area-inset-bottom) env(safe-area-inset-left);
+    opacity:0; transition:opacity .4s; }
   #hud.on { opacity:1; }
   #hud > * { pointer-events:auto; }
 
   /* SPEEDO */
-  #speedo { position:absolute; bottom:calc(16px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:190px; height:108px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
-  #speedo svg { position:absolute; bottom:0; width:190px; height:108px; overflow:visible; }
-  #speedo .kmh { font-size:30px; font-weight:200; font-variant-numeric:tabular-nums; letter-spacing:1px; line-height:1; text-shadow:0 2px 20px rgba(0,0,0,.6); }
-  #speedo .unit { font-size:8px; letter-spacing:4px; opacity:.4; margin-top:2px; }
-  #speedo .gear { position:absolute; right:8px; top:2px; font-size:11px; font-weight:700; letter-spacing:1px; padding:4px 8px; border-radius:6px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); }
+  #spd { position:absolute; bottom:calc(14px + env(safe-area-inset-bottom));
+    left:50%; transform:translateX(-50%); width:180px; height:100px;
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
+  #spd svg { position:absolute; bottom:0; width:180px; height:100px; overflow:visible; }
+  #spd .v { font-size:28px; font-weight:200; font-variant-numeric:tabular-nums;
+    line-height:1; text-shadow:0 2px 20px rgba(0,0,0,.6); }
+  #spd .u { font-size:8px; letter-spacing:4px; opacity:.4; margin-top:2px; }
+  #spd .g { position:absolute; right:0; top:6px; font-size:11px; font-weight:700;
+    padding:3px 8px; border-radius:5px; background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.15); }
 
   /* STEER */
-  #steer { position:absolute; bottom:calc(28px + env(safe-area-inset-bottom)); left:calc(24px + env(safe-area-inset-left)); display:flex; gap:14px; }
-  .steerBtn { width:66px; height:66px; border-radius:50%; background:rgba(255,255,255,.05); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; transition:background .1s, transform .1s; }
-  .steerBtn:active, .steerBtn.on { background:rgba(255,255,255,.16); transform:scale(.94); }
-  .steerBtn svg { width:26px; height:26px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  #steer { position:absolute; bottom:calc(28px + env(safe-area-inset-bottom));
+    left:calc(22px + env(safe-area-inset-left)); display:flex; gap:14px; }
+  .sb { width:64px; height:64px; border-radius:50%;
+    background:rgba(255,255,255,.06); backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .1s, transform .1s; }
+  .sb.on { background:rgba(255,255,255,.2); transform:scale(.94); }
+  .sb svg { width:24px; height:24px; fill:none; stroke:#fff;
+    stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
 
   /* PEDALS */
-  #pedals { position:absolute; bottom:calc(28px + env(safe-area-inset-bottom)); right:calc(24px + env(safe-area-inset-right)); display:flex; gap:14px; align-items:flex-end; }
-  .pedalBtn { width:70px; height:70px; border-radius:50%; background:rgba(255,255,255,.05); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; transition:background .1s, transform .1s; }
-  .pedalBtn.gas { width:82px; height:82px; }
-  .pedalBtn:active, .pedalBtn.on { background:rgba(255,255,255,.16); transform:scale(.94); }
-  .pedalBtn svg { width:26px; height:26px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-  .pedalBtn.gas svg { width:30px; height:30px; }
+  #ped { position:absolute; bottom:calc(28px + env(safe-area-inset-bottom));
+    right:calc(22px + env(safe-area-inset-right)); display:flex;
+    gap:14px; align-items:flex-end; }
+  .pb { width:66px; height:66px; border-radius:50%;
+    background:rgba(255,255,255,.06); backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .1s, transform .1s; }
+  .pb.g { width:80px; height:80px; }
+  .pb.on { background:rgba(255,255,255,.2); transform:scale(.94); }
+  .pb svg { width:26px; height:26px; fill:none; stroke:#fff;
+    stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  .pb.g svg { width:30px; height:30px; }
 
-  /* PADDLES */
-  #paddles { position:absolute; top:calc(16px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%); display:flex; gap:10px; }
-  .paddle { height:42px; padding:0 18px; border-radius:21px; background:rgba(255,255,255,.05); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; gap:7px; transition:background .1s, transform .1s; }
-  .paddle:active { background:rgba(255,255,255,.16); transform:scale(.95); }
-  .paddle svg { width:14px; height:14px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-  .paddle span { font-size:9px; letter-spacing:2px; font-weight:600; opacity:.7; }
+  /* GEAR BUTTONS TOP */
+  #gears { position:absolute; top:calc(14px + env(safe-area-inset-top));
+    left:50%; transform:translateX(-50%); display:flex; gap:10px; }
+  .gb { height:40px; padding:0 16px; border-radius:20px;
+    background:rgba(255,255,255,.06); backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .1s, transform .1s; font-size:16px; font-weight:300; }
+  .gb.on { background:rgba(255,255,255,.2); transform:scale(.95); }
+  .gb span { font-size:10px; letter-spacing:2px; margin-left:6px; opacity:.6; font-weight:600; }
 
-  /* TOP-RIGHT INFO */
-  #info { position:absolute; top:calc(16px + env(safe-area-inset-top)); right:calc(20px + env(safe-area-inset-right)); display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
-  #info .carName { font-size:9px; letter-spacing:3px; opacity:.4; }
-  #info .trans { font-size:8px; letter-spacing:2px; opacity:.3; }
+  /* TOP RIGHT */
+  #tr { position:absolute; top:calc(14px + env(safe-area-inset-top));
+    right:calc(20px + env(safe-area-inset-right)); text-align:right; }
+  #tr .n { font-size:10px; letter-spacing:3px; opacity:.5; }
+  #tr .m { font-size:8px; letter-spacing:2px; opacity:.3; margin-top:3px; }
 
-  /* BACK BUTTON */
-  #backBtn { position:absolute; top:calc(16px + env(safe-area-inset-top)); left:calc(20px + env(safe-area-inset-left)); width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.05); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; }
-  #backBtn svg { width:16px; height:16px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-  #backBtn:active { background:rgba(255,255,255,.16); }
+  /* BACK */
+  #bk { position:absolute; top:calc(14px + env(safe-area-inset-top));
+    left:calc(20px + env(safe-area-inset-left)); width:36px; height:36px;
+    border-radius:50%; background:rgba(255,255,255,.06);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center; }
+  #bk:active { background:rgba(255,255,255,.2); }
+  #bk svg { width:16px; height:16px; fill:none; stroke:#fff;
+    stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 </style>
 </head>
 <body>
 <div id="app"></div>
 
-<div id="portrait">
+<div id="rotate">
   <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <rect x="6" y="2" width="12" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>
   </svg>
@@ -107,56 +148,57 @@
 </div>
 
 <div id="loader">
-  <div class="brand">APEX DRIVE</div>
-  <div class="bar"><div class="fill" id="loadFill"></div></div>
+  <div class="t">APEX DRIVE</div>
+  <div class="b"><div class="f" id="lf"></div></div>
 </div>
 
-<!-- CAR SELECT -->
-<div id="carSelect">
-  <div class="head">
-    <div class="title">SELECT VEHICLE<b>Choose your machine</b></div>
-    <div class="hint">LIVE PHYSICS</div>
+<div id="select">
+  <div class="hd">
+    <div>
+      <div class="lbl">APEX DRIVE</div>
+      <div class="ttl">Select Vehicle</div>
+    </div>
+    <div class="tag">REAL PHYSICS</div>
   </div>
-  <div class="carGrid" id="carGrid"></div>
-  <div id="startBtn">START ENGINE</div>
+  <div class="grid" id="grid"></div>
+  <div id="go">START ENGINE</div>
 </div>
 
-<!-- HUD -->
 <div id="hud">
-  <div id="backBtn">
-    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+  <div id="bk"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+  <div id="tr">
+    <div class="n" id="cn">BMW M5</div>
+    <div class="m" id="tm">AUTOMATIC</div>
   </div>
-  <div id="info">
-    <div class="carName" id="hudCarName">BMW M5</div>
-    <div class="trans" id="hudTrans">AUTOMATIC</div>
+  <div id="gears">
+    <div class="gb" id="gdown"><span>DOWN</span></div>
+    <div class="gb" id="gup"><span>UP</span></div>
   </div>
-  <div id="paddles">
-    <div class="paddle" id="padDown"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg><span>DOWN</span></div>
-    <div class="paddle" id="padUp"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg><span>UP</span></div>
-  </div>
-  <div id="speedo">
-    <div class="kmh" id="kmh">0</div>
-    <div class="unit">KM/H</div>
-    <div class="gear" id="gearBox">N</div>
-    <svg viewBox="0 0 190 108">
+  <div id="spd">
+    <div class="v" id="kmh">0</div>
+    <div class="u">KM/H</div>
+    <div class="g" id="gr">1</div>
+    <svg viewBox="0 0 180 100">
       <defs>
-        <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+        <linearGradient id="gg" x1="0" y1="1" x2="1" y2="0">
           <stop offset="0%" stop-color="#3ee07a"/>
           <stop offset="55%" stop-color="#ffcc33"/>
           <stop offset="100%" stop-color="#ff3355"/>
         </linearGradient>
       </defs>
-      <path d="M 12 96 A 83 83 0 0 1 178 96" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="5" stroke-linecap="round"/>
-      <path id="arc" d="M 12 96 A 83 83 0 0 1 178 96" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 260"/>
+      <path d="M 12 92 A 78 78 0 0 1 168 92" fill="none"
+        stroke="rgba(255,255,255,.08)" stroke-width="5" stroke-linecap="round"/>
+      <path id="arc" d="M 12 92 A 78 78 0 0 1 168 92" fill="none"
+        stroke="url(#gg)" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 250"/>
     </svg>
   </div>
   <div id="steer">
-    <div class="steerBtn" id="steerL"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
-    <div class="steerBtn" id="steerR"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+    <div class="sb" id="sL"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div class="sb" id="sR"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
   </div>
-  <div id="pedals">
-    <div class="pedalBtn" id="brakeBtn"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-    <div class="pedalBtn gas" id="gasBtn"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+  <div id="ped">
+    <div class="pb" id="brk"><svg viewBox="0 0 24 24"><line x1="6" y1="12" x2="18" y2="12"/></svg></div>
+    <div class="pb g" id="gas"><svg viewBox="0 0 24 24"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></div>
   </div>
 </div>
 
@@ -164,7 +206,6 @@
 {
   "imports": {
     "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
     "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"
   }
 }
