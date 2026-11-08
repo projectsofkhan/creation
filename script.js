@@ -13,6 +13,8 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const cl  = (x, a, b) => Math.max(a, Math.min(b, x));
 const lerp = (a, b, t) => a + (b - a) * t;
 const es  = k => k * k * (3 - 2 * k);
+const eIn = k => k * k * k;
+const eOut = k => 1 - Math.pow(1 - k, 3);
 const $   = i => document.getElementById(i);
 const rd  = () => { const u = rnd(-1, 1), a = rnd(0, 2*PI), s = Math.sqrt(1-u*u); return new V(s*Math.cos(a), u, s*Math.sin(a)); };
 const alerp = (a, b, t) => {
@@ -20,6 +22,56 @@ const alerp = (a, b, t) => {
   if (d < -PI) d += 2*PI;
   return a + d * t;
 };
+
+/* ============================================================
+   AUDIO FILES — loaded from your URLs
+   ============================================================ */
+const AUDIO_URLS = {
+  explode:     'https://www.myinstants.com/media/sounds/exploded_zfp5Xgm.mp3',
+  hollowPurple:'https://www.myinstants.com/media/sounds/hollow-purple.mp3',
+  nuke:        'https://www.myinstants.com/media/sounds/nuke-bomb.mp3',
+  gojoDomain:  'https://www.myinstants.com/media/sounds/rpreplay_final1623689697_mov.mp3',
+  sukunaDomain:'https://www.myinstants.com/media/sounds/domain-expansion-sukuna.mp3',
+  sukunaLaugh: 'https://www.myinstants.com/media/sounds/sukuna-laugh.mp3',
+  blackslash:  'https://www.myinstants.com/media/sounds/bascklash.mp3'
+};
+const AUDIO = {};
+let audioLoaded = 0, audioTotal = Object.keys(AUDIO_URLS).length;
+
+function preloadAudio() {
+  return new Promise(resolve => {
+    const ld = $('ld');
+    for (const [key, url] of Object.entries(AUDIO_URLS)) {
+      const a = new Audio();
+      a.crossOrigin = 'anonymous';
+      a.preload = 'auto';
+      a.src = url;
+      a.volume = key === 'sukunaLaugh' ? .7 : 1.0;
+      a.addEventListener('canplaythrough', () => {
+        audioLoaded++;
+        if (ld) ld.textContent = `Loading audio… ${audioLoaded}/${audioTotal}`;
+        if (audioLoaded === audioTotal) resolve();
+      }, { once: true });
+      a.addEventListener('error', () => {
+        audioLoaded++;
+        console.warn('[audio] failed to load', key);
+        if (audioLoaded === audioTotal) resolve();
+      }, { once: true });
+      AUDIO[key] = a;
+    }
+  });
+}
+
+function playSound(name, volScale = 1) {
+  const a = AUDIO[name];
+  if (!a) return;
+  try {
+    a.currentTime = 0;
+    a.volume = Math.min(1, (name === 'sukunaLaugh' ? .7 : 1.0) * volScale);
+    const p = a.play();
+    if (p && p.catch) p.catch(e => {});
+  } catch (e) {}
+}
 
 /* ============================================================
    STAGE / RENDERER / POST
@@ -30,7 +82,7 @@ let W = innerWidth, H = innerHeight;
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.35;
+renderer.toneMappingExposure = 1.3;
 stage.insertBefore(renderer.domElement, stage.firstChild);
 
 const scene = new THREE.Scene();
@@ -40,7 +92,7 @@ let composer = null, caPass = null;
 try {
   composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, cam));
-  composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 1.15, .7, .35));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 1.2, .75, .35));
   const CAShader = {
     uniforms: { tDiffuse: { value: null }, amount: { value: 0 }, time: { value: 0 } },
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`,
@@ -53,7 +105,7 @@ try {
         float b = texture2D(tDiffuse, vUv + d*amount).b;
         vec3 col = vec3(r,g,b);
         float vig = smoothstep(.9,.25,length(d));
-        col *= mix(.62,1.,vig);
+        col *= mix(.6,1.,vig);
         col += .015 * sin(vUv.y*800. + time*30.) * amount * 6.;
         gl_FragColor = vec4(col,1.);
       }`
@@ -99,10 +151,10 @@ const winTex = (() => {
 /* ============================================================
    LIGHTING
    ============================================================ */
-scene.add(new THREE.AmbientLight(0x8899cc, 1.4));
-const hemi = new THREE.HemisphereLight(0xaabbff, 0x221122, 1.8);
+scene.add(new THREE.AmbientLight(0x8899cc, 1.3));
+const hemi = new THREE.HemisphereLight(0xaabbff, 0x221122, 1.7);
 scene.add(hemi);
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.6);
 keyLight.position.set(5, 12, 8);
 scene.add(keyLight);
 const rimLight = new THREE.DirectionalLight(0xaa66ff, 1.8);
@@ -176,7 +228,7 @@ stars.visible = false;
 scene.add(stars);
 
 /* ============================================================
-   SHRINE
+   MALEVOLENT SHRINE — towering, layered, skeletal
    ============================================================ */
 const shrine = new THREE.Group();
 const boneMat   = new THREE.MeshStandardMaterial({ color: 0xefe4d0, emissive: 0x330808, emissiveIntensity: .5, roughness: .55 });
@@ -184,117 +236,149 @@ const shrineRed = new THREE.MeshStandardMaterial({ color: 0x2a0202, emissive: 0x
 const shrineDark= new THREE.MeshStandardMaterial({ color: 0x0a0101, emissive: 0x770014, emissiveIntensity: 1.1, roughness: .5 });
 const goldMat   = new THREE.MeshStandardMaterial({ color: 0xc0a030, emissive: 0x664400, emissiveIntensity: .8, roughness: .3, metalness: .85 });
 
-for (let i = 0; i < 4; i++) {
-  const step = new THREE.Mesh(new THREE.BoxGeometry(14 - i * 2, .5, 10 - i * 1.5), shrineDark);
-  step.position.y = .25 + i * .5;
-  step.position.z = -2 + i * .5;
+// massive stepped base
+for (let i = 0; i < 6; i++) {
+  const step = new THREE.Mesh(new THREE.BoxGeometry(20 - i * 2.5, .6, 14 - i * 2), shrineDark);
+  step.position.y = .3 + i * .6;
+  step.position.z = -2 + i * .3;
   shrine.add(step);
 }
-for (let i = 0; i < 4; i++) {
-  const x = i < 2 ? -5 : 5;
-  const z = i % 2 === 0 ? -4 : 2;
-  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(.6, .7, 10, 8), shrineRed);
-  pillar.position.set(x, 7, z);
+
+// giant pillar columns with ribbed detail
+for (let i = 0; i < 6; i++) {
+  const a = (i / 6) * PI * 2;
+  const x = Math.cos(a) * 6;
+  const z = Math.sin(a) * 4 - 1;
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(.7, .9, 18, 10), shrineRed);
+  pillar.position.set(x, 11, z);
   shrine.add(pillar);
-  const cap = new THREE.Mesh(new THREE.BoxGeometry(1.6, .4, 1.6), goldMat);
-  cap.position.set(x, 12, z);
+  // gold rings
+  for (let r = 0; r < 4; r++) {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(.75, .04, 6, 16), goldMat);
+    ring.position.set(x, 3 + r * 4, z);
+    ring.rotation.x = PI / 2;
+    shrine.add(ring);
+  }
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(2, .5, 2), goldMat);
+  cap.position.set(x, 20, z);
   shrine.add(cap);
 }
+
+// layered temple roof
 const roofGroup = new THREE.Group();
-roofGroup.position.y = 12.5;
+roofGroup.position.y = 20.5;
 roofGroup.position.z = -1;
-roofGroup.add(new THREE.Mesh(new THREE.BoxGeometry(13, .5, 11), shrineDark));
+roofGroup.add(new THREE.Mesh(new THREE.BoxGeometry(18, .6, 14), shrineDark));
 for (let i = 0; i < 2; i++) {
-  const slope = new THREE.Mesh(new THREE.BoxGeometry(13, .5, 8), shrineDark);
-  slope.position.z = i === 0 ? -3.5 : 3.5;
-  slope.rotation.x = i === 0 ? PI * 0.15 : -PI * 0.15;
-  slope.position.y = 1.5;
+  const slope = new THREE.Mesh(new THREE.BoxGeometry(18, .6, 10), shrineDark);
+  slope.position.z = i === 0 ? -4.5 : 4.5;
+  slope.rotation.x = i === 0 ? PI * 0.18 : -PI * 0.18;
+  slope.position.y = 2;
   roofGroup.add(slope);
 }
-const trim = new THREE.Mesh(new THREE.BoxGeometry(14, .2, 12), goldMat);
-trim.position.y = 0.2;
+const trim = new THREE.Mesh(new THREE.BoxGeometry(19, .25, 15), goldMat);
+trim.position.y = .35;
 roofGroup.add(trim);
 shrine.add(roofGroup);
 
-const giantSkull = new THREE.Mesh(new THREE.SphereGeometry(2.0, 22, 18), boneMat);
-giantSkull.position.y = 15.5; giantSkull.scale.set(1, 1.2, .95); shrine.add(giantSkull);
+// giant demon skull on roof
+const giantSkull = new THREE.Mesh(new THREE.SphereGeometry(2.6, 26, 20), boneMat);
+giantSkull.position.y = 24.5; giantSkull.scale.set(1, 1.2, .95); shrine.add(giantSkull);
 for (const s of [-1, 1]) {
-  const e = new THREE.Mesh(new THREE.SphereGeometry(.5, 12, 10), new THREE.MeshBasicMaterial({ color: 0xff0018 }));
-  e.position.set(s * .7, 15.8, 1.5); shrine.add(e);
-  const horn = new THREE.Mesh(new THREE.ConeGeometry(.3, 3.0, 7), boneMat);
-  horn.position.set(s * 1.2, 17.5, .5); horn.rotation.z = s * .55; shrine.add(horn);
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(.65, 14, 12), new THREE.MeshBasicMaterial({ color: 0xff0018 }));
+  eye.position.set(s * .9, 24.8, 2.1); shrine.add(eye);
+  const horn = new THREE.Mesh(new THREE.ConeGeometry(.4, 4.0, 7), boneMat);
+  horn.position.set(s * 1.5, 27.5, .8); horn.rotation.z = s * .6; shrine.add(horn);
 }
+
+// giant skeletal ribs protruding from shrine sides
+for (let i = 0; i < 6; i++) {
+  for (const s of [-1, 1]) {
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(3, .15, 6, 12, PI * .6), boneMat);
+    rib.position.set(s * 8, 6 + i * 3, -1);
+    rib.rotation.z = s * PI * .3;
+    shrine.add(rib);
+  }
+}
+
+// throne of Sukuna
 const throne = new THREE.Group();
 const throneDarkMat = new THREE.MeshStandardMaterial({ color: 0x080101, emissive: 0xbb0018, emissiveIntensity: 1.3, roughness: .4 });
 const throneBoneMat = new THREE.MeshStandardMaterial({ color: 0xe8d8c0, emissive: 0x220000, emissiveIntensity: .5, roughness: .6 });
-throne.add(new THREE.Mesh(new THREE.BoxGeometry(2.5, .5, 2.0), throneDarkMat)).position.y = 3.0;
-const back = new THREE.Mesh(new THREE.BoxGeometry(2.5, 4.0, .4), throneDarkMat);
-back.position.set(0, 5.0, -.8); throne.add(back);
-const tSkull = new THREE.Mesh(new THREE.SphereGeometry(1.0, 16, 12), throneBoneMat);
-tSkull.position.set(0, 7.2, -.8); throne.add(tSkull);
-throne.position.set(0, 1.5, -3);
+throne.add(new THREE.Mesh(new THREE.BoxGeometry(3, .6, 2.4), throneDarkMat)).position.y = 3.0;
+const back = new THREE.Mesh(new THREE.BoxGeometry(3, 4.5, .5), throneDarkMat);
+back.position.set(0, 5.5, -.9); throne.add(back);
+const tSkull = new THREE.Mesh(new THREE.SphereGeometry(1.2, 18, 14), throneBoneMat);
+tSkull.position.set(0, 8.2, -.9); throne.add(tSkull);
+for (const s of [-1, 1]) {
+  const e = new THREE.Mesh(new THREE.SphereGeometry(.18, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2030 }));
+  e.position.set(s * .35, 8.2, -.1); throne.add(e);
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(.4, 1.2, .4), throneDarkMat);
+  arm.position.set(s * 1.6, 3.5, .4); throne.add(arm);
+}
+throne.position.set(0, 1.5, -3.5);
 throne.visible = false;
 shrine.add(throne);
 shrine.visible = false;
 scene.add(shrine);
 
-/* shrine domain walls — tall glowing pillars around the arena */
+// domain pillars around the field
 const domainWalls = new THREE.Group();
-for (let i = 0; i < 20; i++) {
-  const a = (i / 20) * PI * 2;
-  const wall = new THREE.Mesh(
-    new THREE.BoxGeometry(6, 44, 1),
-    new THREE.MeshStandardMaterial({ color: 0x1a0202, emissive: 0xcc0018, emissiveIntensity: 1.2, roughness: .6 })
+for (let i = 0; i < 24; i++) {
+  const a = (i / 24) * PI * 2;
+  const pillar = new THREE.Mesh(
+    new THREE.CylinderGeometry(1, 1.3, 60, 8),
+    new THREE.MeshStandardMaterial({ color: 0x1a0202, emissive: 0xcc0018, emissiveIntensity: 1.4, roughness: .5 })
   );
-  wall.position.set(Math.cos(a) * 26, 22, Math.sin(a) * 26);
-  wall.rotation.y = -a + PI / 2;
-  domainWalls.add(wall);
+  pillar.position.set(Math.cos(a) * 30, 30, Math.sin(a) * 30);
+  domainWalls.add(pillar);
 }
 domainWalls.visible = false;
 scene.add(domainWalls);
 
 /* ============================================================
-   UNLIMITED VOID — tunnel of light
+   UNLIMITED VOID
    ============================================================ */
 const voidGroup = new THREE.Group();
 voidGroup.visible = false;
 scene.add(voidGroup);
 
-// tunnel rings receding into infinity
+// tunnel rings — recede infinitely
 const voidRings = [];
-for (let i = 0; i < 18; i++) {
+for (let i = 0; i < 24; i++) {
   const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(3 + i * .2, .04, 6, 48),
-    new THREE.MeshBasicMaterial({ color: i % 2 ? 0x88ddff : 0xffffff, transparent: true, opacity: .55, blending: AD, depthWrite: false })
+    new THREE.TorusGeometry(4 + i * .15, .05, 6, 64),
+    new THREE.MeshBasicMaterial({ color: i % 3 === 0 ? 0xffffff : 0x88ddff, transparent: true, opacity: .55, blending: AD, depthWrite: false })
   );
-  ring.userData = { z: -i * 4, base: i };
+  ring.userData = { z: -i * 5, base: 4 + i * .15 };
   voidGroup.add(ring);
   voidRings.push(ring);
 }
 
-// floating shards (info-particles of the void)
+// floating shards — information particles
 const voidShards = [];
-for (let i = 0; i < 40; i++) {
+for (let i = 0; i < 60; i++) {
   const shard = new THREE.Mesh(
-    new THREE.OctahedronGeometry(rnd(.15, .5), 0),
-    new THREE.MeshBasicMaterial({ color: Math.random() < .5 ? 0x9fd8ff : 0xffffff, transparent: true, opacity: .8, blending: AD, depthWrite: false })
+    new THREE.OctahedronGeometry(rnd(.15, .55), 0),
+    new THREE.MeshBasicMaterial({ color: Math.random() < .6 ? 0x9fd8ff : 0xffffff, transparent: true, opacity: .85, blending: AD, depthWrite: false })
   );
   shard.userData = {
-    a: rnd(0, PI * 2), r: rnd(4, 22), y: rnd(-6, 10),
-    sp: rnd(.2, 1.4), rot: rd().multiplyScalar(rnd(.5, 2))
+    a: rnd(0, PI * 2), r: rnd(3, 26), y: rnd(-8, 14),
+    sp: rnd(.2, 1.6), rot: rd().multiplyScalar(rnd(.5, 2.5))
   };
   voidGroup.add(shard);
   voidShards.push(shard);
 }
 
 // bright center light
-const voidCore = new THREE.PointLight(0xaaddff, 0, 200, 2);
+const voidCore = new THREE.PointLight(0xaaddff, 0, 250, 2);
+voidCore.position.set(0, 3, 0);
 voidGroup.add(voidCore);
 
-// ground disc for void
+// glowing floor for void
 const voidFloor = new THREE.Mesh(
-  new THREE.CircleGeometry(60, 48),
-  new THREE.MeshBasicMaterial({ color: 0x0a1830, transparent: true, opacity: .85, side: THREE.DoubleSide })
+  new THREE.CircleGeometry(80, 64),
+  new THREE.MeshBasicMaterial({ color: 0x1a3a60, transparent: true, opacity: .9, side: THREE.DoubleSide })
 );
 voidFloor.rotation.x = -PI / 2;
 voidFloor.position.y = -.02;
@@ -305,8 +389,8 @@ voidGroup.add(voidFloor);
    ============================================================ */
 const ENV = {
   city:   { bg: 0x1a1030, fog: 0x302050, density: .008, hemi: 0x8899cc, floor: 0x2a2a38 },
-  shrine: { bg: 0x1a0000, fog: 0x400810, density: .06, hemi: 0xcc4444, floor: 0x300606 },
-  void:   { bg: 0x020510, fog: 0x0a2040, density: .045, hemi: 0x88bbff, floor: 0x0a1830 }
+  shrine: { bg: 0x1a0000, fog: 0x400810, density: .07, hemi: 0xcc4444, floor: 0x300606 },
+  void:   { bg: 0x020510, fog: 0x0a2040, density: .05, hemi: 0x88bbff, floor: 0x0a1830 }
 };
 function setEnv(name) {
   const e = ENV[name];
@@ -319,10 +403,10 @@ function setEnv(name) {
   shrine.visible = name === 'shrine';
   domainWalls.visible = name === 'shrine';
   voidGroup.visible = name === 'void';
-  voidCore.intensity = name === 'void' ? 400 : 0;
+  voidCore.intensity = name === 'void' ? 500 : 0;
   stars.visible = name === 'void';
   moonSprite.visible = name === 'city';
-  $('voidUI').style.opacity = name === 'void' ? .9 : 0;
+  $('voidUI').style.opacity = name === 'void' ? .95 : 0;
 }
 
 /* ============================================================
@@ -428,8 +512,7 @@ function impact(p, pw, c = [1.3, .7, .5]) {
   lightFlash(p, 0xffa070, 300 * pw);
   shake = Math.max(shake, .6 * pw);
   if (caPass) caPass.uniforms.amount.value = Math.max(caPass.uniforms.amount.value, .008 + pw * .003);
-  impactAudio(pw);
-  sfx('explode');
+  playSound('explode', .8 * pw);
 }
 function flashScreen(c, o, t = .7) {
   const e = $('fl'); e.style.transition = 'none'; e.style.background = c; e.style.opacity = o;
@@ -448,7 +531,7 @@ function say(name, text, d = 2.4) {
 function freeze(t) { hitStop = Math.max(hitStop, t); }
 
 /* ============================================================
-   POSE SYSTEM
+   POSE SYSTEM — with anticipation + follow-through
    ============================================================ */
 const POSE = {
   idle:      { hy:0,   tx:0,   ty:0,   hdx:0,   lsx:-.15, lsz:.15, lel:-.35, rsx:-.15, rsz:-.15, rel:-.35, lhx:0,   lkn:.1,  rhx:0,   rkn:.1  },
@@ -468,6 +551,7 @@ const POSE = {
 };
 const KEYS = ['hy','tx','ty','hdx','lsx','lsz','lel','rsx','rsz','rel','lhx','lkn','rhx','rkn'];
 
+/* Character builder — layered clothing, proper proportions */
 function makeCharacter(opts) {
   const g = new THREE.Group();
   const M = (c, o = {}) => new THREE.MeshStandardMaterial({
@@ -483,47 +567,73 @@ function makeCharacter(opts) {
 
   const hips = grp(g, 0, 1.0, 0);
   const torso = grp(hips, 0, .1, 0);
-  const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(.20, .26, .55, 10), topM);
-  torsoMesh.position.y = .36; torso.add(torsoMesh);
+
+  // layered torso — narrower waist, broader chest
+  const lowerTorso = new THREE.Mesh(new THREE.CylinderGeometry(.22, .26, .28, 10), topM);
+  lowerTorso.position.y = .14; torso.add(lowerTorso);
+  const upperTorso = new THREE.Mesh(new THREE.CylinderGeometry(.28, .22, .30, 10), topM);
+  upperTorso.position.y = .42; torso.add(upperTorso);
+  // chest detail
+  const chest = new THREE.Mesh(new THREE.BoxGeometry(.32, .08, .04), topM);
+  chest.position.set(0, .48, .18); torso.add(chest);
 
   const clothMat = M(opts.top, {r:.5, side: THREE.DoubleSide});
   if (opts.hairStyle === 'gojo') {
+    // Gojo dark jacket tail — two panels
     for (const s of [1, -1]) {
-      const tail = new THREE.Mesh(new THREE.PlaneGeometry(.28, .55, 1, 3), clothMat);
-      tail.position.set(s * .13, -.28, .02); tail.rotation.x = .2; torso.add(tail);
+      const tail = new THREE.Mesh(new THREE.PlaneGeometry(.30, .60, 1, 3), clothMat);
+      tail.position.set(s * .14, -.30, .02); tail.rotation.x = .25; torso.add(tail);
     }
   } else {
-    const hakama = new THREE.Mesh(new THREE.CylinderGeometry(.30, .42, .55, 8, 1, true), clothMat);
-    hakama.position.y = -.15; hips.add(hakama);
+    // Sukuna hakama — wide flowing
+    const hakama = new THREE.Mesh(new THREE.CylinderGeometry(.30, .46, .65, 10, 1, true), clothMat);
+    hakama.position.y = -.20; hips.add(hakama);
+    // shoulder pads — rounded top
     for (const s of [1, -1]) {
-      const pad = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6, 0, PI*2, 0, PI*.6), topM);
-      pad.position.set(s * .32, .60, 0); pad.scale.y = .55; torso.add(pad);
+      const pad = new THREE.Mesh(new THREE.SphereGeometry(.16, 10, 8, 0, PI*2, 0, PI*.7), topM);
+      pad.position.set(s * .34, .62, 0); pad.scale.y = .6; torso.add(pad);
     }
+    // collar kimono
+    const collar = new THREE.Mesh(new THREE.TorusGeometry(.20, .04, 6, 20, PI * 1.3), M(0x0a0202, {r:.4}));
+    collar.position.set(0, .60, 0); collar.rotation.x = PI / 2; collar.rotation.z = PI * .15; torso.add(collar);
   }
 
+  // neck
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.07, .08, .12, 8), skinM);
+  neck.position.y = .65; torso.add(neck);
+
   const head = grp(torso, 0, .88, 0);
+  // skull with slight jaw taper
   const skull = new THREE.Mesh(new THREE.SphereGeometry(.16, 20, 16), skinM);
-  skull.position.y = .1; skull.scale.set(.95, 1.05, .95); head.add(skull);
+  skull.position.y = .10; skull.scale.set(.95, 1.05, .95); head.add(skull);
   const jaw = new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 10, 0, PI*2, PI*.55, PI*.45), skinM);
   jaw.position.y = .04; head.add(jaw);
-  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(.17, 20, 15, 0, PI*2, 0, PI*.58), hairM);
-  hairCap.position.y = .1; head.add(hairCap);
+  // nose
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(.03, .04, .03), skinM);
+  nose.position.set(0, .11, .16); head.add(nose);
 
+  // hair cap
+  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(.17, 20, 15, 0, PI*2, 0, PI*.58), hairM);
+  hairCap.position.y = .10; head.add(hairCap);
+
+  // hair tufts
   if (opts.hairStyle === 'gojo') {
-    for (let i = 0; i < 9; i++) {
-      const a = -PI*.55 + (i/8)*PI*1.1;
-      const len = .14 + Math.random()*.06;
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(.04, len, 5), hairM);
-      cone.position.set(Math.cos(a)*.12, .20, Math.sin(a)*.10 + .02);
-      cone.rotation.z = -Math.cos(a)*.4; cone.rotation.x = Math.sin(a)*.3;
+    // white spiky hair — swept up
+    for (let i = 0; i < 11; i++) {
+      const a = -PI*.6 + (i/10)*PI*1.2;
+      const len = .16 + Math.random()*.10;
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(.045, len, 5), hairM);
+      cone.position.set(Math.cos(a)*.12, .22, Math.sin(a)*.10 + .02);
+      cone.rotation.z = -Math.cos(a)*.5; cone.rotation.x = Math.sin(a)*.4;
       head.add(cone);
     }
   } else {
-    for (let i = 0; i < 7; i++) {
-      const a = -PI*.45 + (i/6)*PI*.9;
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(.05, .16, 5), hairM);
-      cone.position.set(Math.cos(a)*.11, .16, Math.sin(a)*.07 - .03);
-      cone.rotation.z = -Math.cos(a)*.3;
+    // red spiky hair — swept back
+    for (let i = 0; i < 9; i++) {
+      const a = -PI*.5 + (i/8)*PI*1.0;
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(.055, .18, 5), hairM);
+      cone.position.set(Math.cos(a)*.11, .17, Math.sin(a)*.08 - .04);
+      cone.rotation.z = -Math.cos(a)*.4; cone.rotation.x = -.2;
       head.add(cone);
     }
   }
@@ -536,29 +646,40 @@ function makeCharacter(opts) {
     const brow = new THREE.Mesh(new THREE.BoxGeometry(.05, .012, .01), hairM);
     brow.position.set(s*.062, .165, .152); brow.rotation.z = -s*.15; head.add(brow);
   }
-  const mouth = new THREE.Mesh(new THREE.BoxGeometry(.07, .01, .01), new THREE.MeshBasicMaterial({color: 0x331111}));
+  const mouth = new THREE.Mesh(new THREE.BoxGeometry(.07, .012, .01), new THREE.MeshBasicMaterial({color: 0x331111}));
   mouth.position.set(0, .045, .152); head.add(mouth);
 
+  // arms — layered
   const arm = s => {
     const sh = grp(torso, s*.34, .62, 0);
-    sh.add(new THREE.Mesh(new THREE.SphereGeometry(.11, 10, 8), topM));
+    sh.add(new THREE.Mesh(new THREE.SphereGeometry(.12, 10, 8), topM)); // shoulder
+    // upper arm
+    const upper = new THREE.Mesh(new THREE.CapsuleGeometry(.07, .22, 4, 8), topM);
+    upper.position.y = -.18; sh.add(upper);
     const el = grp(sh, 0, -.35, 0);
+    // forearm skin
     el.add(new THREE.Mesh(new THREE.CapsuleGeometry(.06, .24, 4, 8), skinM)).position.y = -.18;
+    // cuff
+    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(.10, .08, .16, 8), topM);
+    cuff.position.y = -.08; el.add(cuff);
     const hand = grp(el, 0, -.36, 0);
-    const fist = new THREE.Mesh(new THREE.SphereGeometry(.075, 8, 6), skinM);
-    fist.position.y = -.02; fist.scale.set(1, .9, 1.1); hand.add(fist);
-    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(.10, .09, .14, 8), topM);
-    cuff.position.y = -.10; el.add(cuff);
+    const fist = new THREE.Mesh(new THREE.SphereGeometry(.08, 10, 8), skinM);
+    fist.position.y = -.02; fist.scale.set(1, .85, 1.15); hand.add(fist);
     return { sh, el, hand };
   };
   const armL = arm(1), armR = arm(-1);
 
+  // legs — layered
   const leg = s => {
     const hp = grp(hips, s*.13, 0, 0);
+    // thigh
+    hp.add(new THREE.Mesh(new THREE.CapsuleGeometry(.09, .34, 4, 8), pantsM)).position.y = -.23;
     const kn = grp(hp, 0, -.46, 0);
-    kn.add(new THREE.Mesh(new THREE.CapsuleGeometry(.075, .30, 4, 8), pantsM)).position.y = -.23;
-    const boot = new THREE.Mesh(new THREE.BoxGeometry(.14, .14, .32), bootM);
-    boot.position.set(0, -.46, .07); kn.add(boot);
+    // shin
+    kn.add(new THREE.Mesh(new THREE.CapsuleGeometry(.075, .32, 4, 8), pantsM)).position.y = -.22;
+    // boot (higher, more defined)
+    const boot = new THREE.Mesh(new THREE.BoxGeometry(.15, .22, .34), bootM);
+    boot.position.set(0, -.42, .06); kn.add(boot);
     return { hp, kn };
   };
   const legL = leg(1), legR = leg(-1);
@@ -568,7 +689,8 @@ function makeCharacter(opts) {
     L: armL, R: armR, lL: legL, lR: legR, p: g.position,
     cur: { ...POSE.idle }, vel: {}, tgt: POSE.idle,
     ret: 0, yaw: 0, yawTgt: 0, pv: new V(), spd: 0,
-    hd: 0, tilt: 0, tiltTgt: 0, eyes
+    hd: 0, tilt: 0, tiltTgt: 0, eyes,
+    breathe: Math.random() * PI * 2
   };
   for (const k of KEYS) { if (c.cur[k] === undefined) c.cur[k] = 0; c.vel[k] = 0; }
   scene.add(g);
@@ -580,9 +702,20 @@ function setPose(c, name, hold = false) {
   c.ret = hold ? 0 : .3;
 }
 
+/* Fighter update — spring physics with momentum, breathing, land absorb */
 function updateFighter(f, trackArr, other, dt, time) {
   const t = track(trackArr, time);
+  const prevY = f.p.y;
   f.p.set(t[1], t[3], t[2]);
+
+  // detect landing
+  const landing = prevY > .3 && f.p.y < .1 && f.spd > .3;
+  if (landing) {
+    f.cur.hy -= .15;
+    f.vel.hy = Math.max(0, -2);
+    freeze(.04);
+    puff(new V(f.p.x, .1, f.p.z), 8, 3, 2, .6, [.35, .33, .32]);
+  }
 
   f.yawTgt = Math.atan2(other.p.x - f.p.x, other.p.z - f.p.z);
   f.yaw = alerp(f.yaw, f.yawTgt, 1 - Math.exp(-9 * dt));
@@ -601,7 +734,8 @@ function updateFighter(f, trackArr, other, dt, time) {
   if (f.ret > 0) { f.ret -= dt; if (f.ret <= 0) f.tgt = POSE.idle; }
 
   const c = f.cur, v = f.vel;
-  const stiffness = 180, damping = 22;
+  // spring physics per joint — anticipation comes from a higher stiffness on target change
+  const stiffness = 200, damping = 24;
   for (const k of KEYS) {
     const target = f.tgt[k] || 0;
     const acc = (target - c[k]) * stiffness - v[k] * damping;
@@ -609,6 +743,7 @@ function updateFighter(f, trackArr, other, dt, time) {
     c[k] += v[k] * dt;
   }
 
+  // anatomical clamps
   c.lkn = cl(c.lkn, 0, 2.4);
   c.rkn = cl(c.rkn, 0, 2.4);
   c.lel = cl(c.lel, -2.4, 0);
@@ -618,8 +753,12 @@ function updateFighter(f, trackArr, other, dt, time) {
   c.tx  = cl(c.tx, -1, 1);
   c.hdx = cl(c.hdx, -.6, .6);
 
+  // breathing when idle
+  f.breathe += dt * 1.5;
+  const breath = Math.sin(f.breathe) * .01 * (1 - f.spd);
+
   const sw = Math.sin(f.hd) * .7 * f.spd;
-  f.hips.position.y = 1 + c.hy + Math.sin(time * 2) * .015 - f.spd * .04;
+  f.hips.position.y = 1 + c.hy + breath + Math.sin(time * 2) * .01 - f.spd * .04;
   f.torso.rotation.set(c.tx, c.ty, 0);
   f.head.rotation.x = c.hdx;
   f.L.sh.rotation.set(c.lsx, 0, c.lsz); f.L.el.rotation.x = c.lel;
@@ -658,7 +797,7 @@ function strike(attacker, target, part, power, opts = {}) {
 /* ============================================================
    CHARACTERS
    ============================================================ */
-const gojo   = makeCharacter({ skin: 0xf2d3bd, top: 0x0c0c18, pants: 0x0c0c18, hair: 0xf0f4ff, boots: 0x0a0a0e, eye: 0x9fe0ff, hairStyle: 'gojo' });
+const gojo   = makeCharacter({ skin: 0xf2d3bd, top: 0x0a0a14, pants: 0x0a0a14, hair: 0xf0f4ff, boots: 0x08080c, eye: 0x9fe0ff, hairStyle: 'gojo' });
 const sukuna = makeCharacter({ skin: 0xe6b898, top: 0xe8e0d0, pants: 0x16121c, hair: 0xd04a2a, boots: 0x0a0202, eye: 0xff3030, hairStyle: 'sukuna' });
 
 const blindfold = new THREE.Mesh(new THREE.TorusGeometry(.16, .03, 8, 24), new THREE.MeshStandardMaterial({ color: 0x050508 }));
@@ -668,6 +807,9 @@ gojo.eyes.forEach(e => e.visible = false);
 for (const s of [1, -1]) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(.035, .1, .012), new THREE.MeshBasicMaterial({ color: 0x000000 }));
   m.position.set(s * .09, .06, .14); m.rotation.z = -s * .3; sukuna.head.add(m);
+  const armMark = new THREE.Mesh(new THREE.BoxGeometry(.03, .08, .012), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  armMark.position.set(s * .08, -.15, .05); armMark.rotation.z = -s * .2;
+  sukuna.armL.sh.add(armMark);
 }
 
 /* ============================================================
@@ -683,18 +825,8 @@ infinityGroup.visible = false;
 scene.add(infinityGroup);
 
 /* ============================================================
-   TRACKS — restructured for extended domains
+   TRACKS
    ============================================================ */
-/* Timeline:
-   0-9     intro + clash
-   9-13    cross-slash + black flash
-   13-15   camera breather, Sukuna taunt
-   15-32   MALEVOLENT SHRINE — Sukuna's domain attacks Gojo
-   32-42   UNLIMITED VOID   — Gojo's domain overwhelms Sukuna
-   42-50   aftermath
-   50-60   HOLLOW PURPLE
-   60-64   final
-*/
 const p3 = (t, x, z = 0, y = 0) => [t, x, z, y];
 const gojoTrack = [
   p3(0,-12), p3(5,-9), p3(8.4,-7), p3(9,-1.2), p3(10,-3), p3(12,-1.4), p3(14,-6.5),
@@ -751,7 +883,7 @@ const collapseBuildings = (filterFn, count) => {
 };
 
 function blackFlash(p) {
-  sfx('explode');
+  playSound('blackslash');
   freeze(.14);
   sphereFX(p, 0x000000, 2.4, .55, false);
   sphereFX(p, 0xff1030, 3.2, .4);
@@ -763,139 +895,20 @@ function blackFlash(p) {
 }
 
 /* ============================================================
-   AUDIO — with retry-until-running logic for stubborn browsers
-   ============================================================ */
-let AC = null, masterGain = null, noiseBuf = null, musicNode = null;
-let audioRetry = null;
-
-async function initAudio() {
-  try {
-    AC = new (window.AudioContext || window.webkitAudioContext)();
-    if (AC.state === 'suspended') { try { await AC.resume(); } catch (e) {} }
-    masterGain = AC.createGain();
-    masterGain.gain.value = .6;
-    masterGain.connect(AC.destination);
-    noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    console.log('[audio] created · state:', AC.state, '· sampleRate:', AC.sampleRate);
-
-    // Retry loop — some browsers stay suspended even after resume() until a real gesture fires
-    let attempts = 0;
-    audioRetry = setInterval(() => {
-      if (!AC) { clearInterval(audioRetry); return; }
-      if (AC.state === 'running') { clearInterval(audioRetry); audioRetry = null; console.log('[audio] running'); return; }
-      attempts++;
-      if (attempts > 20) { clearInterval(audioRetry); console.warn('[audio] gave up — state still', AC.state); return; }
-      AC.resume().catch(() => {});
-    }, 500);
-  } catch (e) {
-    console.warn('[audio] init failed:', e);
-    AC = null;
-  }
-}
-
-function startMusic() {
-  if (!AC || musicNode) return;
-  if (AC.state === 'suspended') AC.resume().catch(()=>{});
-  const droneOsc  = AC.createOscillator();
-  const droneOsc2 = AC.createOscillator();
-  const droneGain = AC.createGain();
-  const filter    = AC.createBiquadFilter();
-  droneOsc.type  = 'sawtooth'; droneOsc.frequency.value  = 55;
-  droneOsc2.type = 'sawtooth'; droneOsc2.frequency.value = 82.5;
-  droneGain.gain.value = 0;
-  filter.type = 'lowpass'; filter.frequency.value = 220;
-  droneOsc.connect(droneGain); droneOsc2.connect(droneGain);
-  droneGain.connect(filter).connect(masterGain);
-  const t = AC.currentTime;
-  droneGain.gain.linearRampToValueAtTime(.06, t + 4);
-  filter.frequency.linearRampToValueAtTime(900, t + 22);
-  droneOsc.start(); droneOsc2.start();
-  musicNode = { droneOsc, droneOsc2, droneGain, filter };
-  console.log('[audio] music started');
-}
-
-function noise(type, f0, f1, dur, vol, q = 1) {
-  if (!AC || AC.state !== 'running') return;
-  try {
-    const s = AC.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
-    const f = AC.createBiquadFilter(); f.type = type; f.Q.value = q;
-    const t = AC.currentTime;
-    f.frequency.setValueAtTime(f0, t);
-    f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-    const g = AC.createGain();
-    g.gain.setValueAtTime(.0001, t);
-    g.gain.linearRampToValueAtTime(vol, t + dur * .15);
-    g.gain.exponentialRampToValueAtTime(.001, t + dur);
-    s.connect(f); f.connect(g); g.connect(masterGain);
-    s.start(t); s.stop(t + dur + .05);
-  } catch (e) {}
-}
-
-function tone(type, f0, f1, dur, vol, delay = 0) {
-  if (!AC || AC.state !== 'running') return;
-  try {
-    const o = AC.createOscillator(), g = AC.createGain();
-    const t = AC.currentTime + delay;
-    o.type = type;
-    o.frequency.setValueAtTime(f0, t);
-    o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(.001, t + dur);
-    o.connect(g); g.connect(masterGain);
-    o.start(t); o.stop(t + dur + .05);
-  } catch (e) {}
-}
-
-function impactAudio(power) {
-  if (!AC || AC.state !== 'running') return;
-  tone('sine', 90, 30, .3, .35 * power);
-  noise('bandpass', 1500, 400, .08, .3 * power, 2);
-  tone('triangle', 2400, 1200, .15, .1 * power);
-}
-
-function sfx(n) {
-  if (!AC || AC.state !== 'running') return;
-  try {
-    switch (n) {
-      case 'gojoDomain':   tone('sine',180,120,.8,.25); tone('sine',270,180,.8,.18,.15); tone('sine',400,260,1,.15,.3); noise('lowpass',400,80,2.4,.35); break;
-      case 'sukunaDomain': noise('lowpass',150,40,2.5,.7); tone('sawtooth',55,110,2.4,.2); tone('sine',40,60,2.6,.5); break;
-      case 'malevolentShrine': noise('lowpass',1200,30,2.5,.9); tone('sine',90,20,2.2,1); tone('triangle',55,22,2.4,.7); break;
-      case 'voidHum':      tone('sine', 60, 90, 6, .25); tone('sine', 90, 135, 6, .15); noise('lowpass', 200, 80, 6, .2); break;
-      case 'hollowPurple': tone('sine',80,220,1.2,.35); tone('sawtooth',60,180,1.2,.15); noise('bandpass',800,3000,1.2,.25,2); break;
-      case 'purpleLaunch': noise('bandpass',400,4000,1.4,.55,1.5); tone('sawtooth',60,900,1.4,.3); break;
-      case 'sukunaLaugh':  for (let i=0;i<3;i++){ tone('sawtooth',280-i*20,220-i*20,.12,.35,i*.18); noise('bandpass',800+i*100,1200,.1,.25,3);} tone('sine',100,60,.6,.4); break;
-      case 'explode':      noise('lowpass',2800,200,.18,.9); tone('sine',150,40,.22,.8); break;
-      case 'nuke':         noise('lowpass',1500,25,2.4,1); noise('lowpass',600,40,3,.8); tone('sine',90,18,2,1.2); tone('triangle',55,22,2.4,.9); tone('sine',35,15,2.8,1); break;
-      case 'whoosh':       noise('bandpass',400,2600,.28,.5,1.2); break;
-      case 'boom':         noise('lowpass',700,40,1.4,1); tone('sine',85,20,1.5,1); break;
-      case 'heavyBoom':    noise('lowpass',1200,30,2,1); tone('sine',90,18,1.8,1.2); break;
-      case 'shing':        noise('highpass',4000,9000,.25,.35); tone('sine',2600,3400,.2,.07); break;
-      case 'riser':        tone('sawtooth',60,900,2.2,.12); noise('highpass',300,6000,2.2,.25); break;
-      case 'charge':       tone('sawtooth',70,520,1,.1); noise('highpass',500,4000,1,.15); break;
-      case 'beat':         tone('sine',60,30,.25,.9); tone('sine',60,30,.25,.9,.35); break;
-    }
-  } catch (e) {}
-}
-
-/* ============================================================
    TIMELINE
    ============================================================ */
 const EVENTS = [];
 const at = (t, fn) => EVENTS.push([t, fn]);
 const midPoint = () => new V((gojo.p.x + sukuna.p.x) / 2, 1.4, 0);
 
-/* --- INTRO & CLASH --- */
+/* INTRO & CLASH */
 at(0, () => {
   showBanner('JUJUTSU KAISEN', 'GOJO  vs  SUKUNA', 4.4);
   flashScreen('#000', 1, 1.6);
-  sfx('riser');
-  if (AC) tone('sine', 440, 440, .15, .15);
 });
 at(5.2, () => say('SUKUNA', '"Let me see what you are, sorcerer."', 1.6));
-at(6.9, () => { blindfold.position.y = .24; gojo.eyes.forEach(e => e.visible = true); sfx('shing'); say('GOJO', '"Don\'t worry. I\'m the strongest."', 2); });
-at(8.3, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); sfx('whoosh'); });
+at(6.9, () => { blindfold.position.y = .24; gojo.eyes.forEach(e => e.visible = true); say('GOJO', '"Don\'t worry. I\'m the strongest."', 2); });
+at(8.3, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); });
 
 at(9, () => {
   setPose(gojo, 'flyFwd', true); setPose(sukuna, 'flyFwd', true);
@@ -917,30 +930,29 @@ at(12.38, () => {
   blackFlash(contact);
   shake = 6;
 });
-at(13.2, () => { puff(new V(sukuna.p.x, .3, 0), 40, 12, 3.5, 2.2); shake = 2.5; sfx('boom'); });
+at(13.2, () => { puff(new V(sukuna.p.x, .3, 0), 40, 12, 3.5, 2.2); shake = 2.5; });
 
-/* --- BREATHER + SUKUNA TAUNT (13-15) --- */
+/* BREATHER + TAUNT */
 at(13.6, () => { setPose(gojo, 'idle'); setPose(sukuna, 'idle'); });
 at(13.9, () => say('SUKUNA', '"Good. Show me more."', 2));
-at(14.5, () => { setPose(sukuna, 'open', true); sfx('sukunaDomain'); });
+at(14.5, () => { setPose(sukuna, 'open', true); playSound('sukunaDomain'); });
 
-/* --- MALEVOLENT SHRINE (15-32) --- */
+/* MALEVOLENT SHRINE */
 at(15.0, () => {
   say('SUKUNA', '"Domain Expansion — Malevolent Shrine."', 2.6);
   setEnv('shrine'); shrine.scale.y = .01; shrine.visible = true; throne.visible = true;
-  flashScreen('#f00', .9, 1.2); sfx('malevolentShrine'); sfx('heavyBoom');
+  flashScreen('#f00', .9, 1.2);
   shake = 6; showBanner('MALEVOLENT SHRINE', '', 3);
 });
 at(16.0, () => { sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); shake = 3; });
 at(16.5, () => { setPose(gojo, 'kneel', true); say('GOJO', '"...tch."', 1.2); });
 
-/* --- SLASH BARRAGE — Gojo takes many hits --- */
+// slash barrage — Gojo gets hit many times
 for (let i = 0; i < 14; i++) {
   at(17.0 + i * 0.85, () => {
     setPose(gojo, 'hit', true);
     gojo.ret = .55;
     const p = worldOf(gojo, 'chest');
-    // slash effect: thin red lines, cross
     for (let s = 0; s < 2; s++) {
       const ang = rnd(0, PI);
       const a = p.clone().add(new V(Math.cos(ang), 0, Math.sin(ang)).multiplyScalar(2.2));
@@ -953,31 +965,28 @@ for (let i = 0; i < 14; i++) {
       fxList.push(dt => { lt += dt; line.material.opacity = 1 - lt / .25; if (lt > .25) { scene.remove(line); line.material.dispose(); return false; } return true; });
     }
     spark(p, 12, 8, .3, .5, [1.4, .3, .3], 3);
-    impactAudio(.5);
     shake = Math.max(shake, .8);
     if (caPass) caPass.uniforms.amount.value = Math.max(caPass.uniforms.amount.value, .015);
   });
 }
 at(29.5, () => { say('GOJO', '"...that all?"', 1.5); setPose(gojo, 'idle'); });
-at(30.5, () => { setPose(gojo, 'sign', true); say('GOJO', '"My turn."', 1.4); sfx('beat'); });
+at(30.5, () => { setPose(gojo, 'sign', true); say('GOJO', '"My turn."', 1.4); });
 
-/* --- UNLIMITED VOID (32-42) --- */
+/* UNLIMITED VOID */
 at(32.0, () => {
-  sfx('gojoDomain'); sfx('voidHum');
+  playSound('gojoDomain');
   setPose(sukuna, 'idle'); setPose(gojo, 'sign', true);
   say('GOJO', '"Domain Expansion — Unlimited Void."', 2.6);
 });
 at(33.0, () => {
   setEnv('void');
   shrine.visible = false; throne.visible = false;
-  // place Sukuna staggering in void
   sukuna.g.position.set(4, 0, 0);
   setPose(sukuna, 'hit', true);
-  flashScreen('#fff', 1, 1.4); sfx('heavyBoom');
+  flashScreen('#fff', 1, 1.4);
   showBanner('UNLIMITED VOID', '', 3);
   shake = 4;
 });
-// Sukuna is overwhelmed — many small frozen-stagger hits
 for (let i = 0; i < 8; i++) {
   at(33.5 + i * 0.9, () => {
     setPose(sukuna, 'hit', true);
@@ -987,31 +996,31 @@ for (let i = 0; i < 8; i++) {
     spark(p, 20, 6, .35, .6, [.6, 1.2, 2.0], 2);
     if (caPass) caPass.uniforms.amount.value = Math.max(caPass.uniforms.amount.value, .02);
     shake = Math.max(shake, 1.2);
-    impactAudio(.4);
   });
 }
 at(41.5, () => { say('GOJO', '"You feel it yet? Infinite information."', 2); });
 
-/* --- AFTERMATH (42-50) --- */
+/* AFTERMATH */
 at(42.5, () => { setEnv('city'); setPose(sukuna, 'kneel', true); setPose(gojo, 'idle'); sukuna.g.position.set(25, 0, 8); });
-
 at(43.5, () => say('SUKUNA', '"...impressive, Gojo Satoru."', 1.8));
-at(44.5, () => { setPose(gojo, 'cast', true); say('GOJO', '"Blue... and Red."', 1.6); sfx('charge'); });
+
+/* HOLLOW PURPLE SETUP */
+at(44.5, () => { setPose(gojo, 'cast', true); say('GOJO', '"Blue... and Red."', 1.6); });
 at(45.5, () => { orbBlue.visible = true; orbBlue.position.set(gojo.p.x + 1.2, 1.5, 1.2); orbBlue.scale.setScalar(.2); });
 at(46.3, () => { orbRed.visible = true; orbRed.position.set(gojo.p.x + 1.2, 1.5, -1.2); orbRed.scale.setScalar(.2); });
 at(47.0, () => {
   const mid = new V(gojo.p.x + 1.5, 1.5, 0);
   orbBlue.position.copy(mid); orbRed.position.copy(mid);
-  sphereFX(mid, 0xffffff, 3, .5); ringFX(mid, 0x9a40ff, 6, .5); sfx('charge');
+  sphereFX(mid, 0xffffff, 3, .5); ringFX(mid, 0x9a40ff, 6, .5);
 });
 at(47.5, () => {
   orbBlue.visible = false; orbRed.visible = false;
   orbPurple.visible = true; orbPurple.position.set(gojo.p.x + 1.5, 1.5, 0); orbPurple.scale.setScalar(.8);
   ringFX(orbPurple.position, 0x9a40ff, 12, 1); sphereFX(orbPurple.position, 0xb070ff, 4, .5);
-  sfx('hollowPurple'); say('GOJO', '"Hollow Purple."', 1.5);
+  playSound('hollowPurple'); say('GOJO', '"Hollow Purple."', 1.5);
 });
 
-/* --- HOLLOW PURPLE (50-60) --- */
+/* HOLLOW PURPLE GROWTH + LAUNCH */
 at(49.5, () => {
   const t0 = T;
   const grow = () => {
@@ -1022,7 +1031,7 @@ at(49.5, () => {
   };
   grow();
 });
-at(50.5, () => { setPose(gojo, 'point', true); sfx('purpleLaunch'); flashScreen('#a4f', .6, .6); shake = 3; });
+at(50.5, () => { setPose(gojo, 'point', true); playSound('hollowPurple'); flashScreen('#a4f', .6, .6); shake = 3; });
 at(50.6, () => {
   const startX = orbPurple.position.x, endX = sukuna.p.x;
   const startZ = orbPurple.position.z, endZ = sukuna.p.z;
@@ -1058,7 +1067,7 @@ at(50.6, () => {
     if (k >= 1) {
       const p = new V(endX, endY, endZ);
       orbPurple.visible = false; scene.remove(beam); beam.material.dispose();
-      sfx('nuke');
+      playSound('nuke');
       if (caPass) caPass.uniforms.amount.value = .06;
       freeze(.25);
       sphereFX(p, 0xffffff, 12, .7);
@@ -1085,14 +1094,14 @@ at(50.6, () => {
 });
 at(53.5, () => { setPose(gojo, 'idle'); puff(new V(10, .3, 0), 40, 10, 4, 3); });
 
-/* --- FINAL CLASH --- */
-at(59.0, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); sfx('whoosh'); sfx('riser'); });
-at(60.0, () => { setPose(gojo, 'punchR'); setPose(sukuna, 'punchR'); impact(new V(0, 1.4, 0), 4); ringFX(new V(0, .1, 0), 0xffffff, 30, 1); sfx('explode'); });
-at(60.5, () => { flashScreen('#fff', 1, .5); shake = 6; sfx('heavyBoom'); });
+/* FINAL CLASH */
+at(59.0, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); });
+at(60.0, () => { setPose(gojo, 'punchR'); setPose(sukuna, 'punchR'); impact(new V(0, 1.4, 0), 4); ringFX(new V(0, .1, 0), 0xffffff, 30, 1); });
+at(60.5, () => { flashScreen('#fff', 1, .5); shake = 6; playSound('explode'); });
 at(61.2, () => { const en = $('en'); en.style.display = 'flex'; requestAnimationFrame(() => en.style.opacity = 1); });
 
 /* ============================================================
-   CAMERA — one continuous shot everywhere, no gaps
+   CAMERA
    ============================================================ */
 const CAMERA_SHOTS = [];
 const addShot = (a, b, fn) => CAMERA_SHOTS.push([a, b, fn]);
@@ -1103,57 +1112,45 @@ function setCam(px, py, pz, lx, ly, lz, fov = 50) {
   if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
 }
 
-/* INTRO */
 addShot(0, 5, k => setCam(0, lerp(10, 2.4, es(k)), lerp(30, 12, es(k)), 0, 1.4, 0, 48));
 addShot(5, 8.5, k => setCam(gojo.p.x + 2, 1.7, gojo.p.z - 3, gojo.p.x, 1.6, 0, 42));
 addShot(8.5, 9, k => setCam(0, 2.4, 8, 0, 1.4, 0, 52));
-
-/* CLASH SPIN */
 addShot(9, 12.2, k => {
   const a = lerp(.15, 2.5, k);
   const mid = midPoint(); const h = 2.8 + Math.sin(k * PI) * 1.6;
   setCam(Math.sin(a) * 8, h, Math.cos(a) * 8, mid.x, 1.4, 0, 55);
 });
 addShot(12.2, 13, k => setCam(sukuna.p.x + 2, 1.7, 3, sukuna.p.x, 1.5, 0, 38));
-
-/* BREATHER + SUKUNA TAUNT (13-15) */
 addShot(13, 15, k => {
   const a = lerp(2.2, 3.0, k);
   const r = lerp(9, 7, k);
   setCam(Math.sin(a) * r, 2.0, Math.cos(a) * r, sukuna.p.x, 1.6, sukuna.p.z, 46);
 });
 
-/* MALEVOLENT SHRINE (15-32) — varied dramatic shots */
+/* SHRINE — dramatic angles */
 addShot(15, 18, k => {
-  // shrine rising — low, looking up
-  const r = lerp(20, 14, es(k));
+  const r = lerp(24, 16, es(k));
   const a = lerp(-.4, .3, k);
-  setCam(Math.sin(a) * r, lerp(1, 4, es(k)), Math.cos(a) * r + 3, 0, lerp(6, 12, k), -3, lerp(55, 45, k));
+  setCam(Math.sin(a) * r, lerp(1, 5, es(k)), Math.cos(a) * r + 4, 0, lerp(8, 14, k), -3, lerp(55, 42, k));
 });
 addShot(18, 24, k => {
-  // slash barrage — moving with Gojo
   const a = lerp(.4, 2.8, k);
   const r = 8;
   setCam(gojo.p.x + Math.sin(a) * r, 1.8 + Math.sin(k * PI * 3) * .8, gojo.p.z + Math.cos(a) * r, gojo.p.x, 1.4, 0, 52);
 });
 addShot(24, 28, k => {
-  // upward toward throne
-  const r = lerp(15, 10, es(k));
+  const r = lerp(18, 12, es(k));
   const a = lerp(1.4, .2, k);
-  setCam(Math.sin(a) * r, lerp(2, 8, es(k)), Math.cos(a) * r, 0, lerp(5, 7, k), -3, 48);
+  setCam(Math.sin(a) * r, lerp(3, 10, es(k)), Math.cos(a) * r, 0, lerp(6, 8, k), -3, 46);
 });
 addShot(28, 32, k => {
-  // circling Gojo as he says "My turn"
   const a = lerp(.3, 2.2, k);
   setCam(gojo.p.x + Math.sin(a) * 6, 2.0, gojo.p.z + Math.cos(a) * 6, gojo.p.x, 1.4, 0, 40);
 });
 
-/* UNLIMITED VOID (32-42) — tumble, disorienting, cinematic */
+/* VOID — tumble */
 let camRoll = 0;
-addShot(32, 33, k => {
-  // close on Gojo as he casts
-  setCam(gojo.p.x + 2.5, 1.8, gojo.p.z + 2.5, gojo.p.x, 1.6, 0, 38);
-});
+addShot(32, 33, k => setCam(gojo.p.x + 2.5, 1.8, gojo.p.z + 2.5, gojo.p.x, 1.6, 0, 38));
 addShot(33, 42, k => {
   const a = k * PI * 2.4;
   camRoll = Math.sin(k * PI * 1.5) * .5;
@@ -1165,16 +1162,13 @@ addShot(33, 42, k => {
 });
 addShot(42, 42.5, () => { cam.up.set(0, 1, 0); camRoll = 0; });
 
-/* AFTERMATH + HOLLOW PURPLE SETUP (42-50) */
+/* AFTERMATH + PURPLE */
 addShot(42.5, 45.5, k => {
-  // aftermath — pull back from kneel
   const r = lerp(10, 16, es(k));
   setCam(gojo.p.x + 2, 2.0, 3, 20, 1.4, 0, 46);
 });
 addShot(45.5, 47.5, k => setCam(gojo.p.x + 3, 1.8, 3, gojo.p.x + 1.5, 1.5, 0, 40));
 addShot(47.5, 49.5, k => setCam(gojo.p.x + 4, 2.1, 4, gojo.p.x + 1.5, 1.5, 0, 42));
-
-/* HOLLOW PURPLE FLIGHT (49.5-53) */
 addShot(49.5, 50.5, k => setCam(gojo.p.x + 3.5, 2.2, 4, gojo.p.x + 1.5, 1.5, 0, 40));
 addShot(50.5, 52, k => {
   const op = orbPurple.position;
@@ -1182,7 +1176,7 @@ addShot(50.5, 52, k => {
 });
 addShot(52, 55, k => setCam(lerp(25, 30, k), 10, 35, 20, 2, 0, 58));
 
-/* FINAL CLASH (55-61) */
+/* FINAL */
 addShot(55, 59, k => setCam(lerp(20, 6, es(k)), lerp(6, 2, k), lerp(20, 8, k), 0, 1.4, 0, 50));
 addShot(59, 61, k => setCam(lerp(0, 1.3, k), lerp(1.5, 2.8, k), 6, 0, 1.5, 0, 48));
 addShot(61, 999, k => setCam(0, 1.6, 6, 0, 1.4, 0, 40));
@@ -1224,16 +1218,15 @@ function frame(now) {
     swirlRing.rotation.z += rawDt * 3;
   }
 
-  /* void animation */
   if (voidGroup.visible) {
     for (let i = 0; i < voidRings.length; i++) {
       const r = voidRings[i];
-      r.userData.z += rawDt * 8;
-      if (r.userData.z > 20) r.userData.z = -70;
+      r.userData.z += rawDt * 10;
+      if (r.userData.z > 20) r.userData.z = -90;
       r.position.set(0, 2.5, r.userData.z);
-      const scale = 1 + Math.max(0, (r.userData.z + 70) / 90);
-      r.scale.setScalar(scale);
-      r.material.opacity = .55 * (1 - Math.abs(r.userData.z + 25) / 55);
+      const sc = 1 + Math.max(0, (r.userData.z + 90) / 110);
+      r.scale.setScalar(sc);
+      r.material.opacity = .55 * (1 - Math.abs(r.userData.z + 30) / 65);
     }
     for (const s of voidShards) {
       s.userData.a += rawDt * s.userData.sp;
@@ -1328,15 +1321,18 @@ function frame(now) {
 }
 
 /* ============================================================
-   START / REPLAY
+   START / REPLAY — with audio preload
    ============================================================ */
 setEnv('city');
 
 $('go').addEventListener('click', async () => {
-  $('st').style.display = 'none';
+  const btn = $('go');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
 
-  await initAudio();
-  startMusic();
+  await preloadAudio();
+
+  $('st').style.display = 'none';
 
   try { await document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch (e) {}
   try { await screen.orientation.lock('landscape'); } catch (e) {}
@@ -1364,10 +1360,6 @@ $('go').addEventListener('click', async () => {
     for (let i = 0; i < smokeParticles.max; i++) { smokeParticles.l[i] = 0; smokeParticles.s[i] = 0; }
   }, 350);
 });
-
-document.addEventListener('pointerdown', () => {
-  if (AC && AC.state === 'suspended') AC.resume().catch(()=>{});
-}, { passive: true });
 
 $('re').addEventListener('click', () => location.reload());
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
