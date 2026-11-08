@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/((?!creation/).*)", "destination": "/index.html" }
+  ]
+}
