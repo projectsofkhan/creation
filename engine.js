@@ -15,7 +15,7 @@ import {
 import { HorseManager } from './horse.js';
 
 /* ═══════════════════════════════════════════════════════════════
-   VERDANT VALE — engine.js  (FIXED + WIRED)
+   VERDANT VALE — engine.js  (FULLY FIXED)
    ═══════════════════════════════════════════════════════════════ */
 
 const $bar = document.getElementById('barFill');
@@ -317,14 +317,18 @@ function lerpAngle(a, b, t) {
 function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 
-let terrainHeightFn = function(x, z) {
-  return (
-    Math.sin(x * 0.06) * Math.cos(z * 0.05) * 2.2 +
-    Math.sin(x * 0.14 + 1.7) * Math.cos(z * 0.17 + 3.2) * 1.1
-  );
+// FIXED: Wrapped in an object to prevent circular initialization ReferenceError
+const terrainState = {
+  fn: function(x, z) {
+    return (
+      Math.sin(x * 0.06) * Math.cos(z * 0.05) * 2.2 +
+      Math.sin(x * 0.14 + 1.7) * Math.cos(z * 0.17 + 3.2) * 1.1
+    );
+  }
 };
-export function setTerrainHeightFn(fn) { terrainHeightFn = fn; }
-export function terrainHeight(x, z) { return terrainHeightFn(x, z); }
+
+export function setTerrainHeightFn(fn) { terrainState.fn = fn; }
+export function terrainHeight(x, z) { return terrainState.fn(x, z); }
 
 function updatePlayerController(dt) {
   const p = gameState.player;
@@ -779,7 +783,6 @@ async function boot() {
     world = await createWorld(scene, sunLight, hemiLight);
   } catch (e) {
     console.error('[engine] World creation failed:', e);
-    // Fallback flat terrain so game is still playable
     const fallbackGeo = new THREE.PlaneGeometry(200, 200, 40, 40);
     fallbackGeo.rotateX(-Math.PI / 2);
     const fallbackMesh = new THREE.Mesh(
@@ -801,7 +804,7 @@ async function boot() {
   gameState.player.position.y = terrainHeight(gameState.player.position.x, gameState.player.position.z);
 
   // ── Hands + tools ────────────────────────────────
-  scene.add(camera); // IMPORTANT: camera must be in scene for hand models to render
+  scene.add(camera);
   const handManager = new HandManager(camera);
   window.__handManager = handManager;
   initDirtParticles(scene);
@@ -943,7 +946,7 @@ async function boot() {
       try {
         world.update(dt, clock.elapsedTime, camera);
         world.updateTimeOfDay(gameState.world.timeOfDay, sunLight, hemiLight, camera);
-      } catch (e) { /* silent — world might not be fully initialized */ }
+      } catch (e) { /* silent */ }
 
       // ── Hands + tools ───────────────────────
       handManager.update(dt, clock.elapsedTime,
