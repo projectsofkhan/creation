@@ -33,7 +33,8 @@ const AUDIO_URLS = {
   gojoDomain:   './audio/gojo-domain.mp3',
   sukunaDomain: './audio/sukuna-domain.mp3',
   sukunaLaugh:  './audio/sukuna-laugh.mp3',
-  blackslash:   './audio/blackslash.mp3'
+  blackslash:   './audio/blackslash.mp3',
+  youcan:       './audio/youcan.mp3'
 };
 
 const AUDIO = {};
@@ -84,7 +85,7 @@ function playSound(name, volScale = 1) {
   } catch (e) {}
 }
 
-/* Synthesized layered SFX — kept from earlier version, layered on top of MP3s */
+/* Synthesized layered SFX */
 let AC = null, masterGain = null, noiseBuf = null;
 async function initSynthAudio() {
   try {
@@ -130,6 +131,7 @@ function synthWhoosh() { noise('bandpass', 400, 2600, .28, .35, 1.2); }
 function synthRiser()  { tone('sawtooth', 60, 900, 2.2, .1); noise('highpass', 300, 6000, 2.2, .18); }
 function synthBoom()   { noise('lowpass', 800, 40, 1.4, .7); tone('sine', 85, 20, 1.5, .7); }
 function synthImpact() { tone('sine', 90, 30, .3, .3); noise('bandpass', 1500, 400, .08, .25, 2); tone('triangle', 2400, 1200, .15, .08); }
+function synthChant()  { tone('sine', 220, 180, 1.4, .18); tone('sine', 330, 270, 1.4, .12, .1); noise('lowpass', 400, 120, 1.4, .12); }
 
 /* ============================================================
    STAGE / RENDERER / POST
@@ -235,7 +237,7 @@ floorMesh.position.y = -0.05;
 scene.add(floorMesh);
 
 /* ============================================================
-   CITY
+   CITY + BUILDINGS
    ============================================================ */
 const cityGroup = new THREE.Group();
 scene.add(cityGroup);
@@ -286,7 +288,7 @@ stars.visible = false;
 scene.add(stars);
 
 /* ============================================================
-   SHRINE
+   SHRINE — the full Malevolent Shrine
    ============================================================ */
 const shrine = new THREE.Group();
 const boneMat   = new THREE.MeshStandardMaterial({ color: 0xefe4d0, emissive: 0x330808, emissiveIntensity: .5, roughness: .55 });
@@ -383,38 +385,30 @@ domainWalls.visible = false;
 scene.add(domainWalls);
 
 /* ============================================================
-   MAHORAGA — giant bone-white shikigami
+   MAHORAGA
    ============================================================ */
 const mahoraga = new THREE.Group();
 const mahoBoneMat = new THREE.MeshStandardMaterial({ color: 0xf0e8d8, roughness: .4, metalness: .1, emissive: 0x334455, emissiveIntensity: .3 });
 const mahoDark = new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: .7 });
 
-// body
 const mahoBody = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.4, 3.2, 8), mahoBoneMat);
 mahoBody.position.y = 3.2; mahoraga.add(mahoBody);
-// head
 const mahoHead = new THREE.Mesh(new THREE.IcosahedronGeometry(.9, 0), mahoBoneMat);
 mahoHead.position.y = 5.4; mahoraga.add(mahoHead);
-// eyes
 for (const s of [-1, 1]) {
   const eye = new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffcc00 }));
   eye.position.set(s * .35, 5.4, .8); mahoraga.add(eye);
 }
-// giant blade arm (right)
 const mahoBlade = new THREE.Mesh(new THREE.BoxGeometry(.15, 2.6, .5), mahoDark);
 mahoBlade.position.set(-1.4, 3.4, 0); mahoraga.add(mahoBlade);
-// blade edge glow
 const mahoBladeGlow = new THREE.Mesh(new THREE.BoxGeometry(.05, 2.6, .55), new THREE.MeshBasicMaterial({ color: 0xffd000, transparent: true, opacity: .8, blending: AD, depthWrite: false }));
 mahoBladeGlow.position.set(-1.4, 3.4, .02); mahoraga.add(mahoBladeGlow);
-// left arm
 const mahoArm = new THREE.Mesh(new THREE.CylinderGeometry(.2, .25, 2.2, 6), mahoBoneMat);
 mahoArm.position.set(1.3, 3.4, 0); mahoArm.rotation.z = .3; mahoraga.add(mahoArm);
-// legs
 for (const s of [-1, 1]) {
   const leg = new THREE.Mesh(new THREE.CylinderGeometry(.3, .4, 2.4, 6), mahoBoneMat);
   leg.position.set(s * .6, 1.2, 0); mahoraga.add(leg);
 }
-// ADAPTATION WHEEL — the iconic turning wheel above head
 const mahoWheel = new THREE.Group();
 mahoWheel.position.y = 6.8;
 const wheelRing = new THREE.Mesh(new THREE.TorusGeometry(.9, .1, 6, 32), new THREE.MeshStandardMaterial({ color: 0x806030, metalness: .8, roughness: .3, emissive: 0x201000 }));
@@ -431,7 +425,7 @@ mahoraga.scale.setScalar(.7);
 scene.add(mahoraga);
 
 /* ============================================================
-   AGITO — fusion shikigami
+   AGITO
    ============================================================ */
 const agito = new THREE.Group();
 const agitoBody = new THREE.Mesh(new THREE.CapsuleGeometry(.9, 1.8, 4, 8), new THREE.MeshStandardMaterial({ color: 0x2a1a3a, roughness: .5, emissive: 0x6a2aa0, emissiveIntensity: .5 }));
@@ -445,6 +439,44 @@ for (const s of [-1, 1]) {
 agito.visible = false;
 agito.scale.setScalar(.7);
 scene.add(agito);
+
+/* ============================================================
+   ALLY CHARACTERS (Utahime, Ijichi, Gakuganji, Yaga)
+   ============================================================ */
+function makeSimpleCharacter(color, height = 1.7) {
+  const g = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: .6 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.2, .25, height * .55, 8), bodyMat);
+  body.position.y = height * .4; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.14, 12, 10), new THREE.MeshStandardMaterial({ color: 0xf2d3bd, roughness: .7 }));
+  head.position.y = height * .78; g.add(head);
+  return g;
+}
+
+const utahime = makeSimpleCharacter(0x9a2a2a, 1.65);
+utahime.position.set(-30, 0, -22);
+scene.add(utahime);
+utahime.visible = false;
+
+const ijichi = makeSimpleCharacter(0x2a2a4a, 1.70);
+ijichi.position.set(-34, 0, -22);
+scene.add(ijichi);
+ijichi.visible = false;
+
+const gakuganji = makeSimpleCharacter(0x4a3a1a, 1.60);
+gakuganji.position.set(-38, 0, -22);
+scene.add(gakuganji);
+gakuganji.visible = false;
+
+/* Utahime's dance circle — for the amp scene */
+const utahimeCircle = new THREE.Mesh(
+  new THREE.RingGeometry(1.5, 1.6, 32),
+  new THREE.MeshBasicMaterial({ color: 0xff3040, transparent: true, opacity: .8, side: THREE.DoubleSide, blending: AD, depthWrite: false })
+);
+utahimeCircle.rotation.x = -PI / 2;
+utahimeCircle.position.set(-30, .02, -22);
+utahimeCircle.visible = false;
+scene.add(utahimeCircle);
 
 /* ============================================================
    UNLIMITED VOID
@@ -491,9 +523,9 @@ voidGroup.add(voidFloor);
    ENVIRONMENTS
    ============================================================ */
 const ENV = {
-  city:   { bg: 0x1a1030, fog: 0x302050, density: .008, hemi: 0x8899cc, floor: 0x2a2a38 },
-  shrine: { bg: 0x1a0000, fog: 0x400810, density: .07, hemi: 0xcc4444, floor: 0x300606 },
-  void:   { bg: 0x020510, fog: 0x0a2040, density: .05, hemi: 0x88bbff, floor: 0x0a1830 },
+  city:    { bg: 0x1a1030, fog: 0x302050, density: .008, hemi: 0x8899cc, floor: 0x2a2a38 },
+  shrine:  { bg: 0x1a0000, fog: 0x400810, density: .07, hemi: 0xcc4444, floor: 0x300606 },
+  void:    { bg: 0x020510, fog: 0x0a2040, density: .05, hemi: 0x88bbff, floor: 0x0a1830 },
   airport: { bg: 0xdde4ec, fog: 0xe8eef4, density: .01, hemi: 0xffffff, floor: 0x8899aa }
 };
 function setEnv(name) {
@@ -502,7 +534,7 @@ function setEnv(name) {
   scene.fog = e.density ? new THREE.FogExp2(e.fog, e.density) : null;
   hemi.color.set(e.hemi);
   floorMat.color.set(e.floor);
-  cityGroup.visible = name === 'city';
+  cityGroup.visible = (name === 'city' || name === 'shrine');
   floorMesh.visible = name !== 'void';
   shrine.visible = name === 'shrine';
   domainWalls.visible = name === 'shrine';
@@ -617,7 +649,7 @@ function impact(p, pw, c = [1.3, .7, .5]) {
   shake = Math.max(shake, .6 * pw);
   if (caPass) caPass.uniforms.amount.value = Math.max(caPass.uniforms.amount.value, .008 + pw * .003);
   synthImpact();
-  playSound('explode', .6 * pw);
+  playSound('explode', .5 * pw);
 }
 function flashScreen(c, o, t = .7) {
   const e = $('fl'); e.style.transition = 'none'; e.style.background = c; e.style.opacity = o;
@@ -652,7 +684,8 @@ const POSE = {
   sign:      { hy:0,   tx:.05, ty:0,   hdx:0,   lsx:-1.2, lsz:-.1, lel:-1.9, rsx:-1.2, rsz:.1,   rel:-1.9, lhx:0,   lkn:.15, rhx:0,   rkn:.15 },
   kneel:     { hy:-.55,tx:.2,  ty:0,   hdx:0,   lsx:-.1,  lsz:.1,  lel:-.2,  rsx:-.1,  rsz:-.1,  rel:-.2,  lhx:-1.3,lkn:1.5, rhx:.2,  rkn:1.7 },
   open:      { hy:0,   tx:-.1, ty:0,   hdx:-.25,lsx:-.2,  lsz:1.3, lel:-.3,  rsx:-.2,  rsz:-1.3, rel:-.3,  lhx:0,   lkn:.15, rhx:0,   rkn:.15 },
-  sit:       { hy:-.55,tx:.2,  ty:0,   hdx:0,   lsx:-.3,  lsz:.1,  lel:-.5,  rsx:-.3,  rsz:-.1,  rel:-.5,  lhx:-1.4,lkn:1.4, rhx:-1.4,rkn:1.4 }
+  sit:       { hy:-.55,tx:.2,  ty:0,   hdx:0,   lsx:-.3,  lsz:.1,  lel:-.5,  rsx:-.3,  rsz:-.1,  rel:-.5,  lhx:-1.4,lkn:1.4, rhx:-1.4,rkn:1.4 },
+  dance:     { hy:-.1, tx:.15, ty:.3,  hdx:.1,  lsx:-2.2, lsz:1.1, lel:-.4,  rsx:-2.2, rsz:-1.1, rel:-.4,  lhx:0,   lkn:.4,  rhx:0,   rkn:.4 }
 };
 const KEYS = ['hy','tx','ty','hdx','lsx','lsz','lel','rsx','rsz','rel','lhx','lkn','rhx','rkn'];
 
@@ -903,23 +936,25 @@ infinityGroup.visible = false;
 scene.add(infinityGroup);
 
 /* ============================================================
-   TRACKS — new timeline for 75s accurate fight
+   TRACKS
    ============================================================ */
 const p3 = (t, x, z = 0, y = 0) => [t, x, z, y];
 
 const gojoTrack = [
-  p3(0,-16), p3(5,-14), p3(7,-14),
-  p3(8,-6), p3(9,-2), p3(11,-3), p3(13,-2),
-  p3(15,-4), p3(20,-4), p3(25,-4), p3(30,-4), p3(36,-4),
-  p3(40,-5), p3(45,-6), p3(50,-5), p3(56,-5),
-  p3(63,-5), p3(68,-4), p3(75,-4)
+  p3(0,-16), p3(8,-16), p3(14,-6), p3(18,-2),
+  p3(20,-3), p3(24,-2), p3(28,-3), p3(32,-4),
+  p3(34,-4), p3(50,-4), p3(52,-3), p3(68,-4),
+  p3(70,-4), p3(86,-4), p3(88,-3), p3(102,-4),
+  p3(104,-4), p3(118,-5), p3(140,-5), p3(158,-5),
+  p3(160,-5), p3(168,-5), p3(176,-4), p3(180,-4)
 ];
 const sukunaTrack = [
-  p3(0,14), p3(5,14), p3(7,10),
-  p3(8,4), p3(9,2), p3(11,3), p3(13,2),
-  p3(15,4), p3(20,4), p3(25,4), p3(30,4), p3(36,4),
-  p3(40,5), p3(45,6), p3(50,5), p3(56,5),
-  p3(63,5), p3(68,4), p3(75,4)
+  p3(0,14), p3(8,14), p3(14,6), p3(18,2),
+  p3(20,3), p3(24,2), p3(28,3), p3(32,4),
+  p3(34,4), p3(50,4), p3(52,3), p3(68,4),
+  p3(70,4), p3(86,4), p3(88,3), p3(102,4),
+  p3(104,4), p3(118,5), p3(140,5), p3(158,5),
+  p3(160,5), p3(168,5), p3(176,4), p3(180,4)
 ];
 
 function track(trackArr, t) {
@@ -975,139 +1010,210 @@ function blackFlash(p) {
 }
 
 /* ============================================================
-   TIMELINE — MANGA ACCURATE
+   TIMELINE — 180s FULL MANGA FIGHT
    ============================================================ */
 const EVENTS = [];
 const at = (t, fn) => EVENTS.push([t, fn]);
 const midPoint = () => new V((gojo.p.x + sukuna.p.x) / 2, 1.4, 0);
 
-/* --- 0–6: INTRO / 200% PURPLE SETUP --- */
+/* ============================================================
+   0-18s — COORDINATION + 200% HOLLOW PURPLE
+   ============================================================ */
 at(0, () => {
   showBanner('THE STRONGEST DUEL', 'CHAPTERS 223–236', 4.4);
   flashScreen('#000', 1, 1.6);
   synthRiser();
 });
-at(2.0, () => say('NARRATOR', 'Utahime amplifies. Ijichi conceals. Gojo fires from 3.5km.', 2.5));
-at(4.5, () => say('GOJO', '"200% output… Hollow Purple."', 2));
 
-/* --- 6–9: 200% HOLLOW PURPLE OPENING --- */
-at(6.0, () => {
+at(1.5, () => {
+  utahime.visible = true; ijichi.visible = true; gakuganji.visible = true;
+  utahimeCircle.visible = true;
+  say('NARRATOR', 'Before the fight — Utahime, Ijichi, and Gakuganji coordinate.', 2.5);
+});
+
+at(3.5, () => {
+  setPose(utahime, 'dance', true);
+  setPose(gakuganji, 'raise', true);
+  say('UTAHIME', '"Boost!"', 1.2);
+  synthChant();
+});
+
+at(5.5, () => {
+  say('IJICHI', '"Barrier set. Firing when ready, Gojo."', 2);
+  // barrier shimmer
+  const p = gojo.p.clone();
+  for (let i = 0; i < 8; i++) {
+    ringFX(p.clone().setY(i * .8), 0x88aaff, 4, .6, true);
+  }
+});
+
+at(7.0, () => {
+  say('GOJO', '"From 3.5 kilometers. 200% output."', 2);
+  setPose(gojo, 'cast', true);
   playSound('hollowPurple');
-  flashScreen('#a4f', .5, .8);
   orbPurple.visible = true;
   orbPurple.position.set(gojo.p.x, 1.5, gojo.p.z);
   orbPurple.scale.setScalar(.4);
 });
-at(6.1, () => {
+
+at(9.0, () => {
+  say('NARRATOR', 'Hollow Purple — 200% amplified.', 1.5);
   const p = orbPurple.position.clone();
   const aim = new V(sukuna.p.x - p.x, 1.5 - p.y, sukuna.p.z - p.z);
   const len = aim.length();
   const beam = new THREE.Mesh(
-    new THREE.CylinderGeometry(.7, .7, 1, 14, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xd080ff, transparent: true, opacity: .9, blending: AD, depthWrite: false })
+    new THREE.CylinderGeometry(.9, .9, 1, 16, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xd080ff, transparent: true, opacity: .95, blending: AD, depthWrite: false })
   );
   beam.position.copy(p).add(aim.clone().multiplyScalar(.5));
   beam.quaternion.setFromUnitVectors(new V(0, 1, 0), aim.clone().normalize());
-  beam.scale.set(2, len, 2);
+  beam.scale.set(2.5, len, 2.5);
   scene.add(beam);
   let t = 0;
-  fxList.push(dt => { t += dt; beam.material.opacity = Math.max(0, .9 - t * 1.2); if (t > .8) { scene.remove(beam); beam.material.dispose(); return false; } return true; });
+  fxList.push(dt => { t += dt; beam.material.opacity = Math.max(0, .95 - t * 1.2); if (t > 1) { scene.remove(beam); beam.material.dispose(); return false; } return true; });
+  flashScreen('#a4f', .7, 1);
 });
-at(6.4, () => {
-  const p = worldOf(sukuna, 'chest');
-  impact(p, 3.5, [1.4, .5, 1.8]);
-  setPose(sukuna, 'hit', true); sukuna.ret = .8;
-  say('SUKUNA', '"...hn."', 1.2);
-  shake = 8;
-});
-at(7.5, () => { orbPurple.visible = false; });
 
-/* --- 9–15: HAND-TO-HAND WITH DOMAIN AMPLIFICATION --- */
-at(8.3, () => say('NARRATOR', 'Sukuna uses Domain Amplification — neutralizing Infinity on contact.', 2.5));
-at(9.0, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); synthWhoosh(); });
-at(9.5, () => {
-  setPose(gojo, 'punchR');
-  setTimeout(() => strike(gojo, sukuna, 'chest', 1.5, { recover: .3 }), 100);
+at(9.6, () => {
+  const p = worldOf(sukuna, 'chest');
+  impact(p, 4.5, [1.4, .5, 1.8]);
+  setPose(sukuna, 'hit', true); sukuna.ret = 1.2;
+  shake = 10; freeze(.15);
+  say('SUKUNA', '"...hn."', 1.2);
 });
-at(10.4, () => {
-  setPose(sukuna, 'crossSlash');
-  setTimeout(() => strike(sukuna, gojo, 'chest', 1.6, { recover: .3 }), 100);
-});
-at(11.3, () => {
-  setPose(gojo, 'kick');
-  setTimeout(() => strike(gojo, sukuna, 'chest', 1.4, { recover: .3 }), 100);
-});
-at(12.2, () => { setPose(sukuna, 'punchR'); setTimeout(() => strike(sukuna, gojo, 'chest', 1.5, { recover: .3 }), 100); });
-at(13.1, () => {
+
+at(11.5, () => { orbPurple.visible = false; utahime.visible = false; ijichi.visible = false; gakuganji.visible = false; utahimeCircle.visible = false; });
+at(12.0, () => say('NARRATOR', 'Sukuna survives. The real fight begins.', 2));
+
+/* ============================================================
+   18-32s — ROUND 1: HAND-TO-HAND
+   ============================================================ */
+at(14.5, () => say('NARRATOR', 'Sukuna activates Domain Amplification — neutralizing Infinity on contact.', 2.5));
+at(17.0, () => { setPose(gojo, 'dash', true); setPose(sukuna, 'dash', true); synthWhoosh(); });
+at(18.0, () => { setPose(gojo, 'punchR'); setTimeout(() => strike(gojo, sukuna, 'chest', 1.5, { recover: .3 }), 100); });
+at(19.5, () => { setPose(sukuna, 'crossSlash'); setTimeout(() => strike(sukuna, gojo, 'chest', 1.6, { recover: .3 }), 100); });
+at(21.0, () => { setPose(gojo, 'kick'); setTimeout(() => strike(gojo, sukuna, 'chest', 1.4, { recover: .3 }), 100); });
+at(22.5, () => { setPose(sukuna, 'punchR'); setTimeout(() => strike(sukuna, gojo, 'chest', 1.5, { recover: .3 }), 100); });
+at(24.0, () => { setPose(gojo, 'crossSlash'); setTimeout(() => strike(gojo, sukuna, 'chest', 1.7, { recover: .3 }), 100); });
+at(25.5, () => { setPose(sukuna, 'kick'); setTimeout(() => strike(sukuna, gojo, 'chest', 1.4, { recover: .3 }), 100); });
+at(27.0, () => {
   setPose(gojo, 'crossSlash'); setPose(sukuna, 'crossSlash');
   setTimeout(() => {
-    const m = midPoint(); impact(m, 2.4);
-    flashScreen('#fff', .6, .4); shake = 4; freeze(.08);
+    const m = midPoint(); impact(m, 2.8);
+    flashScreen('#fff', .7, .4); shake = 5; freeze(.1);
   }, 200);
 });
-at(14.2, () => say('NARRATOR', 'Both fighters decide to end it — Domain Expansion.', 2));
 
-/* --- 15–20: 1st DOMAIN CLASH --- */
-at(15.0, () => { playSound('gojoDomain'); setPose(gojo, 'sign', true); say('GOJO', '"Domain Expansion — Unlimited Void."', 2.2); });
-at(15.8, () => { playSound('sukunaDomain'); setPose(sukuna, 'open', true); say('SUKUNA', '"Domain Expansion — Malevolent Shrine."', 2.2); });
-at(16.6, () => {
+/* ============================================================
+   32-50s — 1st DOMAIN CLASH
+   ============================================================ */
+at(29.0, () => say('NARRATOR', 'Both fighters — Domain Expansion.', 1.8));
+at(30.0, () => { playSound('gojoDomain'); setPose(gojo, 'sign', true); say('GOJO', '"Domain Expansion — Unlimited Void."', 2.2); });
+at(31.5, () => { playSound('sukunaDomain'); setPose(sukuna, 'open', true); say('SUKUNA', '"Domain Expansion — Malevolent Shrine."', 2.2); });
+at(33.0, () => {
   setEnv('void'); shrine.scale.y = .01; shrine.visible = true; throne.visible = true;
-  flashScreen('#fff', .7, .8); showBanner('DOMAIN CLASH · 1', 'UNLIMITED VOID vs MALEVOLENT SHRINE', 2.5);
+  flashScreen('#fff', .7, .8); showBanner('DOMAIN CLASH · 1', 'UNLIMITED VOID vs MALEVOLENT SHRINE', 3);
   shake = 6;
 });
-at(17.5, () => { sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); });
-at(18.5, () => say('NARRATOR', 'Open-barrier vs closed-barrier. Sukuna attacks the shell from outside.', 2.5));
-at(19.3, () => { setEnv('city'); shrine.visible = false; throne.visible = false; setPose(sukuna, 'idle'); say('GOJO', '"...tch. The barrier broke."', 1.8); });
+at(35.0, () => { sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); });
+at(37.0, () => say('NARRATOR', 'Open-barrier vs closed. Sukuna attacks the shell from outside.', 2.5));
+at(40.0, () => {
+  // barrier starts cracking
+  for (let i = 0; i < 6; i++) {
+    const p = new V(rnd(-6, 6), rnd(2, 6), rnd(-4, 4));
+    ringFX(p, 0xff2040, 5, .5, true);
+  }
+  shake = 4;
+});
+at(43.0, () => {
+  setEnv('city'); shrine.visible = false; throne.visible = false; setPose(sukuna, 'idle');
+  setPose(gojo, 'hit'); gojo.ret = 1;
+  say('GOJO', '"...tch. The barrier broke."', 2);
+  flashScreen('#f00', .5, .5); shake = 5;
+});
 
-/* --- 20–25: 2nd DOMAIN CLASH (Gojo changes barrier) --- */
-at(20.5, () => say('NARRATOR', 'Gojo hardens the shell — trades interior strength for exterior.', 2.5));
-at(21.0, () => { playSound('gojoDomain'); setPose(gojo, 'sign', true); });
-at(21.5, () => { playSound('sukunaDomain'); setPose(sukuna, 'open', true); });
-at(22.0, () => {
+/* ============================================================
+   50-68s — 2nd DOMAIN CLASH
+   ============================================================ */
+at(50.0, () => say('NARRATOR', 'Gojo hardens the shell — trades interior strength for exterior.', 2.5));
+at(52.0, () => { playSound('gojoDomain'); setPose(gojo, 'sign', true); });
+at(53.5, () => { playSound('sukunaDomain'); setPose(sukuna, 'open', true); });
+at(55.0, () => {
   setEnv('shrine'); shrine.scale.y = 1; shrine.visible = true; throne.visible = true;
   sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true);
-  flashScreen('#f00', .7, .6); showBanner('DOMAIN CLASH · 2', 'SHRINE DESTROYED', 2);
+  flashScreen('#f00', .7, .6); showBanner('DOMAIN CLASH · 2', '', 2.5);
   shake = 6;
 });
-at(23.5, () => {
-  puff(new V(0, 8, -3), 60, 20, 5, 3, [.3, .2, .2]);
+at(58.0, () => say('NARRATOR', 'For the first time — Malevolent Shrine is destroyed.', 2));
+at(59.5, () => {
+  puff(new V(0, 8, -3), 80, 25, 6, 3.5, [.3, .2, .2]);
   shrine.visible = false; throne.visible = false;
-  setEnv('city'); setPose(sukuna, 'hit', true);
-  impact(worldOf(sukuna, 'chest'), 2.5);
+  setEnv('city'); setPose(sukuna, 'hit', true); sukuna.ret = 1.2;
+  impact(worldOf(sukuna, 'chest'), 3);
+  flashScreen('#f00', .8, .8);
+  shake = 8;
 });
+at(62.0, () => say('SUKUNA', '"...Impressive, Gojo Satoru."', 2));
+at(65.0, () => say('NARRATOR', 'But Sukuna has a plan. Mahoraga\'s adaptation has begun.', 2.5));
 
-/* --- 25–30: 3rd DOMAIN CLASH (brain restore) --- */
-at(25.0, () => say('NARRATOR', 'Gojo damages and RCTs parts of his brain to reset his burnt-out technique.', 2.5));
-at(26.0, () => { setPose(gojo, 'kneel', true); say('GOJO', '"Reverse Cursed Technique… on my own brain."', 2.2); });
-at(27.5, () => {
-  // restore effect — blue pulse from Gojo
+/* ============================================================
+   68-86s — 3rd DOMAIN CLASH + BRAIN RCT
+   ============================================================ */
+at(68.0, () => say('NARRATOR', 'Gojo damages and RCTs parts of his brain to reset his burnt-out technique.', 2.5));
+at(70.0, () => { setPose(gojo, 'kneel', true); say('GOJO', '"Reverse Cursed Technique… on my own brain."', 2.2); });
+at(73.0, () => {
   const p = worldOf(gojo, 'head');
-  ringFX(p, 0x66ddff, 10, .8);
-  sphereFX(p, 0x88aaff, 4, .5);
-  lightFlash(p, 0x66aaff, 400);
-  setPose(gojo, 'sign', true);
+  ringFX(p, 0x66ddff, 12, .9);
+  sphereFX(p, 0x88aaff, 5, .6);
+  lightFlash(p, 0x66aaff, 500);
+  shake = 3;
 });
-at(28.5, () => { playSound('gojoDomain'); setPose(sukuna, 'open', true); flashScreen('#fff', .6, .5); });
+at(75.0, () => {
+  setPose(gojo, 'sign', true); playSound('gojoDomain');
+  say('GOJO', '"Unlimited Void."', 1.5);
+});
+at(76.5, () => { setPose(sukuna, 'open', true); playSound('sukunaDomain'); });
+at(78.0, () => {
+  setEnv('shrine'); shrine.scale.y = 1; shrine.visible = true; throne.visible = true;
+  sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true);
+  flashScreen('#fff', .7, .6); showBanner('DOMAIN CLASH · 3', '', 2.2);
+  shake = 6;
+});
+at(82.0, () => { setEnv('city'); shrine.visible = false; throne.visible = false; setPose(sukuna, 'idle'); });
 
-/* --- 30–36: 4th & 5th CLASHES (Mahoraga wheel) --- */
-at(30.0, () => { setEnv('shrine'); shrine.scale.y = 1; shrine.visible = true; throne.visible = true; sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); showBanner('DOMAIN CLASH · 4', '', 1.8); });
-at(32.0, () => {
-  setEnv('city'); shrine.visible = false; throne.visible = false;
-  say('GOJO', '"Something above Megumi\'s soul. A wheel?"', 2);
+/* ============================================================
+   86-102s — 4th & 5th DOMAIN CLASHES (wheel turns)
+   ============================================================ */
+at(86.0, () => {
+  say('NARRATOR', 'The wheel above Megumi\'s soul — Mahoraga\'s adaptation turns.', 2.5);
+  // wheel visible — small spinning above Sukuna
+  const w = new THREE.Mesh(
+    new THREE.TorusGeometry(.5, .06, 6, 24),
+    new THREE.MeshStandardMaterial({ color: 0x806030, metalness: .8, roughness: .3, emissive: 0x402000 })
+  );
+  w.position.set(sukuna.p.x, 4.5, sukuna.p.z);
+  scene.add(w);
+  let t = 0;
+  fxList.push(dt => { t += dt; w.rotation.y += dt * 4; w.position.y = 4.5 + Math.sin(t * 2) * .2; if (t > 14) { scene.remove(w); w.geometry.dispose(); w.material.dispose(); return false; } return true; });
 });
-at(33.0, () => { playSound('gojoDomain'); setPose(gojo, 'sign', true); showBanner('DOMAIN CLASH · 5', '', 1.8); });
-at(33.5, () => { playSound('sukunaDomain'); setPose(sukuna, 'open', true); setEnv('shrine'); shrine.scale.y = 1; shrine.visible = true; throne.visible = true; sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); });
-at(35.0, () => {
+at(89.0, () => { setPose(gojo, 'sign', true); playSound('gojoDomain'); showBanner('DOMAIN CLASH · 4', '', 1.8); });
+at(90.5, () => { setPose(sukuna, 'open', true); playSound('sukunaDomain'); setEnv('shrine'); shrine.scale.y = 1; shrine.visible = true; throne.visible = true; sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); });
+at(95.0, () => { setEnv('city'); shrine.visible = false; throne.visible = false; setPose(sukuna, 'idle'); });
+at(96.5, () => { playSound('gojoDomain'); setPose(gojo, 'sign', true); showBanner('DOMAIN CLASH · 5', '', 1.8); });
+at(98.0, () => { setPose(sukuna, 'open', true); playSound('sukunaDomain'); setEnv('shrine'); shrine.scale.y = 1; shrine.visible = true; throne.visible = true; sukuna.g.position.set(0, 4.5, -3); setPose(sukuna, 'sit', true); });
+
+/* ============================================================
+   102-118s — MAHORAGA APPEARS, BREAKS VOID, AGITO SUMMONED
+   ============================================================ */
+at(102.0, () => {
   say('NARRATOR', 'Unlimited Void finally catches Sukuna.', 2);
-  setPose(sukuna, 'hit', true); sukuna.ret = 1;
+  setPose(sukuna, 'hit', true); sukuna.ret = 1.5;
   shrine.visible = false; throne.visible = false;
   setEnv('void');
   flashScreen('#fff', .9, .8); shake = 8;
 });
-
-/* --- 36–40: MAHORAGA APPEARS, breaks Void; Agito summoned --- */
-at(36.5, () => {
-  say('NARRATOR', 'The wheel completes. Mahoraga has adapted to Unlimited Void.', 2.5);
+at(104.0, () => {
+  say('NARRATOR', 'But — Mahoraga has adapted. The wheel completes.', 2.5);
   voidGroup.visible = false;
   mahoraga.visible = true;
   mahoraga.position.set(0, 0, -6);
@@ -1115,68 +1221,136 @@ at(36.5, () => {
   flashScreen('#f88', .8, .6); shake = 10;
   playSound('sukunaDomain');
 });
-at(37.0, () => {
-  // Mahoraga grows in
+at(104.8, () => {
   const t0 = T;
   const grow = () => {
     if (!mahoraga.visible) return;
-    const k = cl((T - t0) / .8, 0, 1);
+    const k = cl((T - t0) / 1, 0, 1);
     mahoraga.scale.setScalar(.7 * es(k));
     if (k < 1) requestAnimationFrame(grow);
   };
   grow();
 });
-at(38.5, () => { setEnv('city'); setPose(gojo, 'idle'); });
-at(39.0, () => {
+at(107.0, () => { setEnv('city'); setPose(gojo, 'idle'); setPose(sukuna, 'idle'); sukuna.g.position.set(5, 0, 4); });
+at(110.0, () => {
   say('NARRATOR', 'Sukuna summons Agito — a fusion of Ten Shadows shikigami.', 2);
   agito.visible = true;
   agito.position.set(8, 0, -4);
   agito.scale.setScalar(.7);
 });
 
-/* --- 40–48: Gojo vs Mahoraga + Agito + Sukuna --- */
-at(40.5, () => say('GOJO', '"Three on one? Fine."', 1.8));
-at(41.0, () => {
-  // destroy Agito first
+/* ============================================================
+   118-140s — GOJO VS 3v1
+   ============================================================ */
+at(115.0, () => say('GOJO', '"Three on one? Fine."', 1.8));
+at(118.0, () => {
   setPose(gojo, 'crossSlash');
   setTimeout(() => {
     const p = agito.position.clone().add(new V(0, 2, 0));
-    sphereFX(p, 0xaa40ff, 8, .7);
-    ringFX(p, 0xaa40ff, 15, .6);
-    spark(p, 120, 20, .8, 1.2, [1.4, .5, 2], 4);
-    impact(p, 3);
+    sphereFX(p, 0xaa40ff, 10, .8);
+    ringFX(p, 0xaa40ff, 18, .7);
+    spark(p, 150, 25, .9, 1.4, [1.4, .5, 2], 4);
+    impact(p, 3.5);
     agito.visible = false;
     playSound('explode');
     shake = 6;
   }, 250);
 });
-at(42.5, () => say('NARRATOR', 'Agito destroyed. Only Mahoraga remains.', 2));
-at(43.5, () => {
-  // fight Mahoraga — Blue holds him
+at(121.0, () => say('NARRATOR', 'Agito destroyed. Only Mahoraga remains.', 2));
+at(123.0, () => {
   const p = mahoraga.position.clone().add(new V(0, 3, 0));
-  orbBlue.visible = true; orbBlue.position.copy(p); orbBlue.scale.setScalar(3);
-  ringFX(p, 0x4aa0ff, 12, .8);
+  orbBlue.visible = true; orbBlue.position.copy(p); orbBlue.scale.setScalar(4);
+  ringFX(p, 0x4aa0ff, 15, .9);
   say('GOJO', '"Blue."', 1.2);
 });
-at(45.0, () => {
-  // Red blasts
+at(125.0, () => {
   const p = mahoraga.position.clone().add(new V(0, 3, 0));
-  orbRed.visible = true; orbRed.position.copy(p); orbRed.scale.setScalar(2.5);
-  ringFX(p, 0xff4060, 15, .8);
-  impact(p, 2.5);
+  orbRed.visible = true; orbRed.position.copy(p); orbRed.scale.setScalar(3);
+  ringFX(p, 0xff4060, 18, .9);
+  impact(p, 3);
   say('GOJO', '"Red."', 1.2);
 });
-at(46.5, () => {
+at(127.0, () => {
   orbBlue.visible = false; orbRed.visible = false;
-  // Mahoraga staggers
-  mahoraga.rotation.z = .3;
-  shake = 4;
+  mahoraga.rotation.z = .4;
+  shake = 5;
+});
+at(129.0, () => { setPose(sukuna, 'dash', true); setTimeout(() => strike(sukuna, gojo, 'chest', 2, { recover: .5 }), 100); });
+
+/* ============================================================
+   140-158s — SUKUNA VS MAHORAGA FLASHBACK + "YOU CAN"
+   ============================================================ */
+at(140.0, () => {
+  say('NARRATOR', 'Earlier — Sukuna vs Mahoraga, the moment he learned adaptation.', 2.5);
+  // flashback tint
+  flashScreen('#a06030', .35, 1.5);
+  // hide Gojo briefly
+  gojo.g.visible = false;
+  sukuna.g.position.set(-3, 0, 0);
+  mahoraga.position.set(3, 0, 0);
+  mahoraga.scale.setScalar(.9);
+  setPose(sukuna, 'idle');
+  setEnv('shrine');
+  shrine.scale.y = 1; shrine.visible = true; throne.visible = true;
+});
+at(142.5, () => {
+  setPose(sukuna, 'crossSlash');
+  setTimeout(() => {
+    const p = mahoraga.position.clone().add(new V(0, 3, 0));
+    impact(p, 2);
+    mahoraga.rotation.z = -.3;
+    mahoraga.position.x -= 1;
+    shake = 4;
+  }, 150);
+});
+at(145.0, () => {
+  setPose(sukuna, 'kick');
+  setTimeout(() => {
+    const p = mahoraga.position.clone().add(new V(0, 2, 0));
+    impact(p, 1.8);
+    mahoraga.rotation.z = .3;
+    mahoraga.position.x += 1;
+  }, 150);
+});
+at(148.0, () => {
+  playSound('youcan');
+  say('SUKUNA', '"You can do it — Mahoraga. Adapt."', 3.5);
+  setPose(sukuna, 'point', true);
+  flashScreen('#f00', .4, 1);
+});
+at(152.0, () => {
+  // Mahoraga adapts — wheel spins fast, glows gold
+  const wheel = mahoWheel;
+  let t = 0;
+  fxList.push(dt => {
+    t += dt;
+    wheel.rotation.y += dt * 15;
+    if (t > 4) return false;
+    return true;
+  });
+  sphereFX(mahoraga.position.clone().add(new V(0, 6, 0)), 0xffd000, 8, 1.5);
+  shake = 6;
+});
+at(155.0, () => {
+  // return to present
+  flashScreen('#a06030', .4, 1);
+  gojo.g.visible = true;
+  mahoraga.position.set(-4, 0, -4);
+  mahoraga.scale.setScalar(.7);
+  sukuna.g.position.set(5, 0, 4);
+  setEnv('city');
+  shrine.visible = false; throne.visible = false;
 });
 
-/* --- 48–56: Gojo's BLACK FLASH VOLLEY, destroys Mahoraga --- */
-at(48.0, () => say('NARRATOR', 'Gojo enters a state of heightened cursed energy control. Black Flash.', 2.5));
+/* ============================================================
+   158-168s — GOJO'S BLACK FLASH VOLLEY → DESTROYS MAHORAGA
+   ============================================================ */
+at(158.0, () => {
+  say('NARRATOR', 'Gojo enters heightened cursed energy control. Black Flash.', 2.5);
+  setPose(gojo, 'idle');
+});
 for (let i = 0; i < 4; i++) {
-  at(49.0 + i * 1.2, () => {
+  at(160.0 + i * 1.2, () => {
     const p = mahoraga.position.clone().add(new V(rnd(-1, 1), 2 + rnd(-1, 1), rnd(-1, 1)));
     blackFlash(p);
     mahoraga.rotation.z = (Math.random() - .5) * .6;
@@ -1184,75 +1358,75 @@ for (let i = 0; i < 4; i++) {
     shake = 6;
   });
 }
-at(54.0, () => {
-  // Final BF destroys Mahoraga
+at(165.0, () => {
   const p = mahoraga.position.clone().add(new V(0, 3, 0));
   blackFlash(p);
-  sphereFX(p, 0x000000, 5, .8, false);
-  ringFX(p, 0xff2040, 25, 1);
-  spark(p, 300, 30, 1, 2, [1.4, .3, .5], 3);
+  sphereFX(p, 0x000000, 6, .9, false);
+  ringFX(p, 0xff2040, 30, 1.2);
+  spark(p, 350, 35, 1.2, 2.5, [1.4, .3, .5], 3);
   mahoraga.visible = false;
   flashScreen('#fff', 1, .8);
   playSound('nuke');
-  shake = 12;
+  shake = 14;
   say('NARRATOR', 'Mahoraga — destroyed.', 2);
 });
 
-/* --- 56–63: FINAL HOLLOW PURPLE --- */
-at(56.0, () => { setPose(gojo, 'cast', true); say('GOJO', '"Blue. Red. Hollow Purple."', 2.5); playSound('hollowPurple'); });
-at(56.5, () => { orbBlue.visible = true; orbBlue.position.set(gojo.p.x + 1.2, 1.5, 1.2); orbBlue.scale.setScalar(.4); });
-at(57.0, () => { orbRed.visible = true; orbRed.position.set(gojo.p.x + 1.2, 1.5, -1.2); orbRed.scale.setScalar(.4); });
-at(57.6, () => {
+/* ============================================================
+   168-176s — FINAL HOLLOW PURPLE
+   ============================================================ */
+at(168.0, () => { setPose(gojo, 'cast', true); say('GOJO', '"Blue. Red. Hollow Purple."', 2.5); playSound('hollowPurple'); });
+at(168.5, () => { orbBlue.visible = true; orbBlue.position.set(gojo.p.x + 1.2, 1.5, 1.2); orbBlue.scale.setScalar(.4); });
+at(169.0, () => { orbRed.visible = true; orbRed.position.set(gojo.p.x + 1.2, 1.5, -1.2); orbRed.scale.setScalar(.4); });
+at(169.6, () => {
   const mid = new V(gojo.p.x + 1.5, 1.5, 0);
   orbBlue.position.copy(mid); orbRed.position.copy(mid);
-  sphereFX(mid, 0xffffff, 4, .5); ringFX(mid, 0x9a40ff, 8, .6);
+  sphereFX(mid, 0xffffff, 5, .5); ringFX(mid, 0x9a40ff, 10, .7);
 });
-at(58.0, () => {
+at(170.0, () => {
   orbBlue.visible = false; orbRed.visible = false;
   orbPurple.visible = true; orbPurple.position.set(gojo.p.x + 1.5, 1.5, 0); orbPurple.scale.setScalar(1);
-  ringFX(orbPurple.position, 0x9a40ff, 15, 1); sphereFX(orbPurple.position, 0xb070ff, 5, .5);
+  ringFX(orbPurple.position, 0x9a40ff, 18, 1.2); sphereFX(orbPurple.position, 0xb070ff, 6, .6);
 });
-at(59.0, () => {
-  // launch
+at(171.0, () => {
   const startX = orbPurple.position.x, endX = sukuna.p.x;
   const startZ = orbPurple.position.z, endZ = sukuna.p.z;
   const startY = orbPurple.position.y, endY = 1.5;
   let pt = 0; const dur = 1.2;
   const beam = new THREE.Mesh(
-    new THREE.CylinderGeometry(.5, .5, 1, 12, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xd080ff, transparent: true, opacity: .7, blending: AD, depthWrite: false })
+    new THREE.CylinderGeometry(.6, .6, 1, 14, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xd080ff, transparent: true, opacity: .8, blending: AD, depthWrite: false })
   );
   scene.add(beam);
   fxList.push(dt => {
     pt += dt; const k = cl(pt / dur, 0, 1); const ease = k * k;
     const cx = lerp(startX, endX, ease), cy = lerp(startY, endY, ease), cz = lerp(startZ, endZ, ease);
     orbPurple.position.set(cx, cy, cz);
-    orbPurple.scale.setScalar(4 + 6 * k);
+    orbPurple.scale.setScalar(5 + 8 * k);
     const aim = new V(endX - cx, endY - cy, endZ - cz);
     const len = Math.max(.001, aim.length());
     beam.position.set(cx + aim.x / 2, cy + aim.y / 2, cz + aim.z / 2);
     beam.quaternion.setFromUnitVectors(new V(0, 1, 0), aim.clone().normalize());
-    beam.scale.set(2 + k * 3, len, 2 + k * 3);
+    beam.scale.set(3 + k * 4, len, 3 + k * 4);
     if (k >= 1) {
       const p = new V(endX, endY, endZ);
       orbPurple.visible = false; scene.remove(beam); beam.material.dispose();
       playSound('nuke');
       if (caPass) caPass.uniforms.amount.value = .07;
       freeze(.3);
-      sphereFX(p, 0xffffff, 15, .8);
-      sphereFX(p, 0xa040ff, 80, 2.2);
-      ringFX(p.clone().setY(.1), 0xb070ff, 120, 2.5);
-      ringFX(p, 0xb070ff, 40, 1.8, true);
-      spark(p, 1200, 80, 1.5, 3.5, [1.4, .5, 2], -1);
-      puff(p, 250, 40, 10, 6, [.22, .16, .28]);
-      flashScreen('#fff', 1, 2);
-      shake = 25; lightFlash(p, 0x9a40ff, 12000);
+      sphereFX(p, 0xffffff, 18, .9);
+      sphereFX(p, 0xa040ff, 90, 2.5);
+      ringFX(p.clone().setY(.1), 0xb070ff, 140, 3);
+      ringFX(p, 0xb070ff, 50, 2, true);
+      spark(p, 1400, 90, 1.8, 4, [1.4, .5, 2], -1);
+      puff(p, 280, 45, 12, 6, [.22, .16, .28]);
+      flashScreen('#fff', 1, 2.2);
+      shake = 28; lightFlash(p, 0x9a40ff, 14000);
       setPose(sukuna, 'hit', true); sukuna.ret = 2;
       collapseBuildings(q => q.x > -20, 140);
-      for (let i = 0; i < 40; i++) {
-        const rp = p.clone().add(rd().multiplyScalar(rnd(15, 60)));
-        sphereFX(rp, 0xff80ff, rnd(8, 18), rnd(1, 2.5));
-        ringFX(rp, 0xb070ff, rnd(20, 40), rnd(1, 2.5));
+      for (let i = 0; i < 45; i++) {
+        const rp = p.clone().add(rd().multiplyScalar(rnd(15, 70)));
+        sphereFX(rp, 0xff80ff, rnd(8, 20), rnd(1, 2.8));
+        ringFX(rp, 0xb070ff, rnd(22, 45), rnd(1, 2.8));
       }
       return false;
     }
@@ -1260,10 +1434,11 @@ at(59.0, () => {
   });
 });
 
-/* --- 63–68: SUKUNA'S WORLD-CUTTING SLASH --- */
-at(63.5, () => {
+/* ============================================================
+   176-180s — WORLD-CUTTING SLASH + AIRPORT
+   ============================================================ */
+at(174.5, () => {
   say('NARRATOR', 'But Sukuna has already learned from Mahoraga. The World-Cutting Slash.', 2.5);
-  // Sukuna regains posture
   setPose(sukuna, 'idle'); sukuna.ret = 0;
   sukuna.g.position.set(5, 0, 4);
   setPose(gojo, 'idle');
@@ -1271,12 +1446,11 @@ at(63.5, () => {
   flashScreen('#300', .7, 1);
   playSound('sukunaDomain');
 });
-at(65.0, () => {
+at(176.0, () => {
   say('SUKUNA', '"Cleave."', 1.5);
-  // massive vertical slash effect sweeping the field
   const p = worldOf(gojo, 'chest');
   const slash = new THREE.Mesh(
-    new THREE.BoxGeometry(.15, 40, .15),
+    new THREE.BoxGeometry(.2, 50, .2),
     new THREE.MeshBasicMaterial({ color: 0xff2040, transparent: true, opacity: 1, blending: AD, depthWrite: false })
   );
   slash.position.copy(p);
@@ -1284,20 +1458,18 @@ at(65.0, () => {
   scene.add(slash);
   let t = 0;
   fxList.push(dt => { t += dt; slash.material.opacity = Math.max(0, 1 - t * .7); if (t > 1.5) { scene.remove(slash); slash.material.dispose(); return false; } return true; });
-  ringFX(p, 0xff2040, 40, 1.5);
-  spark(p, 200, 30, 1, 2, [1.4, .2, .4], 1);
-  shake = 20;
+  ringFX(p, 0xff2040, 50, 1.8);
+  spark(p, 250, 35, 1.2, 2.5, [1.4, .2, .4], 1);
+  shake = 22;
   flashScreen('#fff', 1, 1.5);
   playSound('blackslash');
-  freeze(.35);
+  freeze(.4);
 });
-at(66.0, () => {
+at(177.5, () => {
   setPose(gojo, 'kneel', true);
-  // Gojo's body fades
   say('GOJO', '"...ah."', 2);
 });
-at(67.0, () => {
-  // fade out gojo
+at(178.0, () => {
   let t = 0;
   fxList.push(dt => {
     t += dt;
@@ -1306,21 +1478,13 @@ at(67.0, () => {
     return true;
   });
 });
-
-/* --- 68–75: AIRPORT AFTERLIFE + END --- */
-at(68.5, () => {
+at(178.5, () => {
   setEnv('airport');
   shrine.visible = false; throne.visible = false; domainWalls.visible = false;
   sukuna.g.visible = false;
   say('NARRATOR', 'The battle is over.', 2);
 });
-at(70.0, () => {
-  say('NARRATOR', 'Gojo Satoru — The Strongest Sorcerer of Today.', 2.5);
-});
-at(72.0, () => {
-  say('NARRATOR', 'Ryomen Sukuna — The Strongest Sorcerer in History.', 2.5);
-});
-at(74.0, () => {
+at(179.5, () => {
   const en = $('en'); en.style.display = 'flex'; requestAnimationFrame(() => en.style.opacity = 1);
   playSound('sukunaLaugh');
 });
@@ -1337,47 +1501,60 @@ function setCam(px, py, pz, lx, ly, lz, fov = 50) {
   if (cam.fov !== fov) { cam.fov = fov; cam.updateProjectionMatrix(); }
 }
 
-addShot(0, 6, k => setCam(0, lerp(12, 3, es(k)), lerp(35, 18, es(k)), 0, 1.4, 0, 48));
-addShot(6, 8.5, k => setCam(gojo.p.x + 4, 2, gojo.p.z + 4, sukuna.p.x, 1.5, sukuna.p.z, 40));
-addShot(8.5, 15, k => {
+addShot(0, 8, k => setCam(lerp(-25, -10, es(k)), lerp(3, 4, es(k)), lerp(5, 12, k), -30, 1.5, -22, 42));
+addShot(8, 12, k => setCam(gojo.p.x + 4, 2, gojo.p.z + 4, sukuna.p.x, 1.5, sukuna.p.z, 40));
+addShot(12, 18, k => {
   const a = lerp(.2, 2.6, k);
   const mid = midPoint();
   setCam(Math.sin(a) * 9, 2.6 + Math.sin(k * PI) * 1.2, Math.cos(a) * 9, mid.x, 1.4, 0, 55);
 });
-addShot(15, 20, k => {
+addShot(18, 28, k => {
+  const a = lerp(.3, 2.7, k);
+  const mid = midPoint();
+  setCam(Math.sin(a) * 7, 2.5 + Math.sin(k * PI * 2) * 1, Math.cos(a) * 7, mid.x, 1.4, 0, 55);
+});
+addShot(28, 33, k => setCam(gojo.p.x + 3, 1.8, gojo.p.z + 3, gojo.p.x, 1.4, 0, 40));
+addShot(33, 50, k => {
   const a = lerp(-.4, .4, k);
-  setCam(Math.sin(a) * 14, lerp(3, 7, k), Math.cos(a) * 14 + 4, 0, lerp(4, 8, k), 0, 55);
+  setCam(Math.sin(a) * 16, lerp(3, 8, k), Math.cos(a) * 16 + 5, 0, lerp(4, 8, k), 0, 55);
 });
-addShot(20, 25, k => {
+addShot(50, 68, k => {
   const a = lerp(.3, 2.2, k);
-  setCam(Math.sin(a) * 12, 4, Math.cos(a) * 12, 0, 4, 0, 55);
+  setCam(Math.sin(a) * 14, 5, Math.cos(a) * 14, 0, 5, 0, 55);
 });
-addShot(25, 30, k => setCam(gojo.p.x + 3, 1.8, gojo.p.z + 3, gojo.p.x, 1.4, 0, 40));
-addShot(30, 36, k => {
+addShot(68, 86, k => setCam(gojo.p.x + 3, 1.8, gojo.p.z + 3, gojo.p.x, 1.4, 0, 40));
+addShot(86, 102, k => {
   const a = lerp(.3, 2.2, k);
-  setCam(Math.sin(a) * 13, 5, Math.cos(a) * 13, 0, 5, 0, 55);
+  setCam(Math.sin(a) * 15, 5, Math.cos(a) * 15, 0, 5, 0, 55);
 });
-addShot(36, 40, k => {
-  const r = lerp(20, 10, es(k));
-  setCam(Math.sin(k * PI * 2) * r, 4 + k * 6, Math.cos(k * PI * 2) * r, 0, 4, -4, 55);
+addShot(102, 110, k => {
+  const r = lerp(22, 12, es(k));
+  setCam(Math.sin(k * PI * 2) * r, 4 + k * 8, Math.cos(k * PI * 2) * r, 0, 4, -4, 55);
 });
-addShot(40, 48, k => {
+addShot(110, 118, k => {
   const a = lerp(.3, 2.5, k);
-  setCam(Math.sin(a) * 10, 3, Math.cos(a) * 10, mahoraga.position.x * .3, 3, 0, 55);
+  setCam(Math.sin(a) * 12, 4, Math.cos(a) * 12, 0, 3, 0, 55);
 });
-addShot(48, 56, k => {
+addShot(118, 140, k => {
   const a = lerp(.3, 2.5, k);
-  setCam(mahoraga.position.x + Math.sin(a) * 6, 2.5, Math.cos(a) * 6, mahoraga.position.x, 3, 0, 45);
+  setCam(mahoraga.position.x * .3 + Math.sin(a) * 8, 3, Math.cos(a) * 8, mahoraga.position.x * .3, 3, 0, 45);
 });
-addShot(56, 59, k => setCam(gojo.p.x + 3, 2, gojo.p.z + 4, gojo.p.x + 1.5, 1.5, 0, 42));
-addShot(59, 62, k => {
+addShot(140, 158, k => {
+  const a = lerp(.3, 2.5, k);
+  setCam(Math.sin(a) * 10, 3 + Math.sin(k * PI) * 2, Math.cos(a) * 10, 0, 3, 0, 50);
+});
+addShot(158, 168, k => {
+  const a = lerp(.3, 2.5, k);
+  setCam(mahoraga.position.x + Math.sin(a) * 7, 2.5, Math.cos(a) * 7, mahoraga.position.x, 3, 0, 45);
+});
+addShot(168, 171, k => setCam(gojo.p.x + 3, 2, gojo.p.z + 4, gojo.p.x + 1.5, 1.5, 0, 42));
+addShot(171, 174, k => {
   const op = orbPurple.position;
-  setCam(op.x - 6, op.y + 4, op.z + 9, op.x + 5, op.y - 1, op.z, 60);
+  setCam(op.x - 7, op.y + 5, op.z + 10, op.x + 5, op.y - 1, op.z, 60);
 });
-addShot(62, 64, k => setCam(lerp(25, 30, k), 12, 40, 20, 2, 0, 58));
-addShot(64, 67, k => setCam(gojo.p.x + 6, 2.5, gojo.p.z + 6, gojo.p.x, 1.4, 0, 40));
-addShot(67, 69, k => setCam(0, 3, 12, 0, 1.5, 0, 42));
-addShot(69, 999, k => setCam(0, 4, 10, 0, 2, 0, 45));
+addShot(174, 176, k => setCam(lerp(30, 35, k), 14, 45, 20, 2, 0, 58));
+addShot(176, 178.5, k => setCam(gojo.p.x + 7, 2.5, gojo.p.z + 7, gojo.p.x, 1.4, 0, 40));
+addShot(178.5, 999, k => setCam(0, 4, 12, 0, 2, 0, 45));
 
 /* ============================================================
    MAIN LOOP
@@ -1404,12 +1581,11 @@ function frame(now) {
   }
 
   if (dt > 0) {
-    updateFighter(gojo, gojoTrack, sukuna, dt, T);
-    updateFighter(sukuna, sukunaTrack, gojo, dt, T);
+    if (gojo.g.visible) updateFighter(gojo, gojoTrack, sukuna, dt, T);
+    if (sukuna.g.visible) updateFighter(sukuna, sukunaTrack, gojo, dt, T);
   }
 
-  // Infinity visible during domain/lock states
-  const showInf = (T > 9 && T < 15) || (T > 20 && T < 24) || (T > 26 && T < 30);
+  const showInf = (T > 18 && T < 32) || (T > 50 && T < 68) || (T > 70 && T < 86);
   infinityGroup.visible = showInf;
   if (showInf) {
     infinityGroup.position.set(gojo.p.x, 1.2 + gojo.p.y, 0);
@@ -1417,7 +1593,6 @@ function frame(now) {
     swirlRing.rotation.z += rawDt * 3;
   }
 
-  // Void animation
   if (voidGroup.visible) {
     for (let i = 0; i < voidRings.length; i++) {
       const r = voidRings[i];
@@ -1437,21 +1612,17 @@ function frame(now) {
     }
   }
 
-  // Mahoraga wheel turns whenever visible
-  if (mahoraga.visible) {
-    mahoWheel.rotation.y += rawDt * 2;
-  }
-  if (agito.visible) {
-    agito.rotation.y += rawDt * .6;
+  if (mahoraga.visible) mahoWheel.rotation.y += rawDt * 2;
+  if (agito.visible) agito.rotation.y += rawDt * .6;
+
+  if (utahime.visible) {
+    utahimeCircle.rotation.z += rawDt * 2;
+    utahime.position.y = Math.sin(T * 3) * .05;
   }
 
   if (dt > 0) {
-    if (T >= 16.6 && T < 20) {
-      shrine.scale.y = Math.min(1, shrine.scale.y + dt * 1.2);
-    }
-    if (T >= 22 && T < 24) {
-      shrine.scale.y = Math.max(0, shrine.scale.y - dt * 3);
-    }
+    if (T >= 33 && T < 50) shrine.scale.y = Math.min(1, shrine.scale.y + dt * 1.2);
+    if (T >= 55 && T < 60) shrine.scale.y = Math.max(0, shrine.scale.y - dt * 3);
 
     for (const b of buildings) {
       const u = b.userData;
@@ -1536,6 +1707,7 @@ $('go').addEventListener('click', async () => {
     orbBlue.visible = orbRed.visible = orbPurple.visible = false;
     infinityGroup.visible = false;
     mahoraga.visible = false; agito.visible = false;
+    utahime.visible = false; ijichi.visible = false; gakuganji.visible = false; utahimeCircle.visible = false;
     for (const f of [gojo, sukuna]) {
       f.cur = { ...POSE.idle };
       f.tgt = POSE.idle;
