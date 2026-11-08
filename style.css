@@ -5,12 +5,12 @@ html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font-f
 canvas { display: block; position: absolute; inset: 0; }
 .o { position: absolute; inset: 0; pointer-events: none; }
 .lb { position: absolute; left: 0; right: 0; height: 9%; background: #000; z-index: 3; }
-#ban { top: 30%; text-align: center; opacity: 0; z-index: 5; text-shadow: 0 0 30px #7a2cff, 0 0 8px #000; }
-#ban b { display: block; font-size: min(9vw, 15vh); letter-spacing: .12em; }
-#ban i { font-size: min(3vw, 5vh); letter-spacing: .4em; color: #cdb8ff; font-style: normal; }
+#ban { top: 26%; text-align: center; opacity: 0; z-index: 5; text-shadow: 0 0 30px #7a2cff, 0 0 8px #000; }
+#ban b { display: block; font-size: min(8vw, 13vh); letter-spacing: .12em; }
+#ban i { font-size: min(2.8vw, 5vh); letter-spacing: .4em; color: #cdb8ff; font-style: normal; }
 #ban.s { animation: bn var(--d, 2s) ease both; }
 @keyframes bn { 0% { opacity: 0; transform: scale(1.5); } 12% { opacity: 1; transform: scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
-#sub { bottom: 13%; top: auto; text-align: center; font-size: min(3.4vw, 6vh); font-style: italic; z-index: 5; opacity: 0; transition: opacity .3s; text-shadow: 0 2px 8px #000; }
+#sub { bottom: 13%; top: auto; text-align: center; font-size: min(3.2vw, 5.5vh); font-style: italic; z-index: 5; opacity: 0; transition: opacity .3s; text-shadow: 0 2px 8px #000; padding: 0 6%; }
 #sub b { display: block; font-style: normal; font-size: .55em; letter-spacing: .3em; color: #9ad0ff; margin-bottom: .2em; }
 #fl { background: #fff; opacity: 0; z-index: 4; }
 #voidUI {
@@ -22,8 +22,8 @@ canvas { display: block; position: absolute; inset: 0; }
 }
 #st, #en { z-index: 9; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: radial-gradient(circle, #1a0a30, #000); pointer-events: auto; }
 #en { display: none; background: #000; opacity: 0; transition: opacity 1.2s; }
-h1 { font-size: min(8vw, 14vh); letter-spacing: .14em; margin: 0; text-shadow: 0 0 30px #7a2cff; }
-h2 { font-weight: 400; letter-spacing: .4em; color: #cdb8ff; font-size: min(2.6vw, 4.5vh); margin: .6em 0 2em; }
+h1 { font-size: min(7.5vw, 13vh); letter-spacing: .14em; margin: 0; text-shadow: 0 0 30px #7a2cff; }
+h2 { font-weight: 400; letter-spacing: .4em; color: #cdb8ff; font-size: min(2.4vw, 4.2vh); margin: .6em 0 2em; }
 button { font: inherit; font-size: min(4vw, 7vh); padding: .5em 1.8em; color: #fff; background: linear-gradient(#5a22b0, #220a50); border: 2px solid #b78cff; border-radius: 99px; box-shadow: 0 0 30px #7a2cff; letter-spacing: .15em; cursor: pointer; pointer-events: auto; }
 button:active { transform: scale(.95); }
 button:disabled { opacity: .4; cursor: wait; }
