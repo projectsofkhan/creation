@@ -1,1005 +1,702 @@
 import * as THREE from 'three';
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import * as CANNON from 'cannon-es';
 
+console.log('[BOOT] game.js loaded');
+
 // ============================================================
-// CAR DATA
+// CAR DATA — no confusing gears. Just power, grip, top speed.
 // ============================================================
 const CARS = [
   {
-    id: 'm5', name: 'BMW M5', short: 'M5',
-    mass: 1900, power: 4600, topSpeed: 250, drivetrain: 'AWD',
-    steer: 0.48, brake: 45, grip: 2.8, downforce: 0.35,
-    color: 0x16213e, accent: 0x4a7eb8, gearRatios: [3.3, 2.1, 1.5, 1.15, 0.9, 0.72],
-    wheelBase: 2.9, trackWidth: 1.7, bodyLen: 2.9, bodyWid: 1.15,
-    silhouette: 'm5'
+    id: 'm5', name: 'BMW M5',
+    mass: 1900, power: 4200, topSpeed: 72, // m/s (~260 km/h)
+    drivetrain: 'AWD', steer: 0.5, grip: 3.5, brake: 45,
+    color: 0x1a2338, accent: 0x4a7eb8,
+    wheelBase: 2.9, trackWidth: 1.65, bodyLen: 4.6, bodyWid: 1.9, bodyHt: 0.55,
+    sil: 'm5'
   },
   {
-    id: 'mustang', name: 'Mustang 1969', short: 'MUSTANG',
-    mass: 1550, power: 4200, topSpeed: 220, drivetrain: 'RWD',
-    steer: 0.52, brake: 40, grip: 2.4, downforce: 0.18,
-    color: 0x7a1c1c, accent: 0xd4af37, gearRatios: [2.9, 1.9, 1.35, 1.0, 0.78, 0.62],
-    wheelBase: 2.75, trackWidth: 1.65, bodyLen: 3.0, bodyWid: 1.15,
-    silhouette: 'mustang'
+    id: 'mustang', name: 'Mustang 1969',
+    mass: 1550, power: 3600, topSpeed: 62,
+    drivetrain: 'RWD', steer: 0.55, grip: 2.8, brake: 40,
+    color: 0x7a1c1c, accent: 0xd4af37,
+    wheelBase: 2.75, trackWidth: 1.6, bodyLen: 4.7, bodyWid: 1.9, bodyHt: 0.5,
+    sil: 'mustang'
   },
   {
-    id: 'porsche', name: 'Porsche 911', short: '911',
-    mass: 1420, power: 4500, topSpeed: 280, drivetrain: 'RWD',
-    steer: 0.5, brake: 42, grip: 2.9, downforce: 0.45,
-    color: 0x2c2c2c, accent: 0xcc0000, gearRatios: [3.1, 2.0, 1.45, 1.05, 0.82, 0.66],
-    wheelBase: 2.45, trackWidth: 1.55, bodyLen: 2.7, bodyWid: 1.1,
-    silhouette: 'porsche'
+    id: 'porsche', name: 'Porsche 911',
+    mass: 1420, power: 4000, topSpeed: 76,
+    drivetrain: 'RWD', steer: 0.52, grip: 3.4, brake: 45,
+    color: 0x2c2c2c, accent: 0xcc0000,
+    wheelBase: 2.45, trackWidth: 1.6, bodyLen: 4.4, bodyWid: 1.85, bodyHt: 0.52,
+    sil: 'porsche'
   },
   {
-    id: 'ferrari', name: 'LaFerrari', short: 'LAFERRARI',
-    mass: 1350, power: 6200, topSpeed: 340, drivetrain: 'RWD',
-    steer: 0.46, brake: 50, grip: 3.2, downforce: 0.7,
-    color: 0xb81414, accent: 0xffcc00, gearRatios: [3.6, 2.3, 1.65, 1.25, 0.95, 0.7],
-    wheelBase: 2.65, trackWidth: 1.65, bodyLen: 2.85, bodyWid: 1.15,
-    silhouette: 'ferrari'
+    id: 'ferrari', name: 'LaFerrari',
+    mass: 1350, power: 5200, topSpeed: 92,
+    drivetrain: 'RWD', steer: 0.48, grip: 3.8, brake: 50,
+    color: 0xb81414, accent: 0xffcc00,
+    wheelBase: 2.65, trackWidth: 1.7, bodyLen: 4.7, bodyWid: 1.95, bodyHt: 0.48,
+    sil: 'ferrari'
   }
 ];
 
 // ============================================================
 // STATE
 // ============================================================
-const state = {
-  selectedCar: 0,
+const S = {
+  carIndex: 0,
   running: false,
-  speed: 0,
-  gear: '1',
+  speed: 0,        // m/s
   rpm: 900,
+  gear: 1,
   throttle: 0,
   brake: 0,
-  steerInput: 0,
-  manual: false,
-  manualGear: 0,
-  autoGear: 1,
-  shiftCooldown: 0,
-  lastTime: performance.now(),
-  accumulator: 0,
-  wheelSpin: 0
+  steer: 0,
+  wheelSpin: 0,
+  lastT: performance.now(),
+  accum: 0
 };
 
-const input = { gas: false, brake: false, left: false, right: false };
-
-// ============================================================
-// AUDIO ENGINE
-// ============================================================
-class EngineAudio {
-  constructor() {
-    this.ctx = null;
-    this.started = false;
-  }
-  start() {
-    if (this.started) return;
-    try {
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      this.master = this.ctx.createGain();
-      this.master.gain.value = 0;
-      this.master.connect(this.ctx.destination);
-
-      this.filter = this.ctx.createBiquadFilter();
-      this.filter.type = 'lowpass';
-      this.filter.frequency.value = 600;
-      this.filter.Q.value = 4;
-      this.filter.connect(this.master);
-
-      this.osc1 = this.ctx.createOscillator();
-      this.osc1.type = 'sawtooth';
-      this.osc1.frequency.value = 50;
-      this.g1 = this.ctx.createGain();
-      this.g1.gain.value = 0.5;
-      this.osc1.connect(this.g1).connect(this.filter);
-
-      this.osc2 = this.ctx.createOscillator();
-      this.osc2.type = 'square';
-      this.osc2.frequency.value = 100;
-      this.g2 = this.ctx.createGain();
-      this.g2.gain.value = 0.25;
-      this.osc2.connect(this.g2).connect(this.filter);
-
-      this.osc3 = this.ctx.createOscillator();
-      this.osc3.type = 'sawtooth';
-      this.osc3.frequency.value = 25;
-      this.g3 = this.ctx.createGain();
-      this.g3.gain.value = 0.4;
-      this.osc3.connect(this.g3).connect(this.filter);
-
-      this.osc1.start(); this.osc2.start(); this.osc3.start();
-      this.started = true;
-    } catch(e) { console.warn('audio', e); }
-  }
-  update(rpm, throttle, speed) {
-    if (!this.started) return;
-    try {
-      const r = Math.max(0, Math.min(9000, isFinite(rpm) ? rpm : 900));
-      const th = Math.max(0, Math.min(1, isFinite(throttle) ? throttle : 0));
-      const sp = Math.max(0, Math.min(150, isFinite(speed) ? speed : 0));
-
-      const baseFreq = 35 + (r / 9000) * 160;
-      const now = this.ctx.currentTime;
-      this.osc1.frequency.setTargetAtTime(baseFreq, now, 0.06);
-      this.osc2.frequency.setTargetAtTime(baseFreq * 2.02, now, 0.06);
-      this.osc3.frequency.setTargetAtTime(baseFreq * 0.5, now, 0.06);
-
-      const filterF = 300 + th * 1800 + (r / 9000) * 900;
-      this.filter.frequency.setTargetAtTime(Math.min(5000, filterF), now, 0.08);
-
-      const vol = 0.06 + th * 0.14 + Math.min(sp / 300, 0.05);
-      this.master.gain.setTargetAtTime(Math.min(0.3, vol), now, 0.1);
-    } catch(e) {}
-  }
-  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
-}
-const audio = new EngineAudio();
+const IN = { gas: false, brake: false, left: false, right: false };
 
 // ============================================================
 // THREE SETUP
 // ============================================================
 const app = document.getElementById('app');
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x1a1a2e, 0.0022);
+scene.background = new THREE.Color(0x0a0a14);
+scene.fog = new THREE.Fog(0x0a0a14, 60, 400);
 
-const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 3000);
-camera.position.set(0, 7, 14);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 2000);
+camera.position.set(0, 5, 10);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-renderer.setSize(window.innerWidth, window.innerHeight);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 app.appendChild(renderer.domElement);
+console.log('[BOOT] WebGL renderer created');
 
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.55, 0.5, 0.85);
-composer.addPass(bloom);
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', resize);
+resize();
 
 // ============================================================
 // LIGHTS
 // ============================================================
-const sun = new THREE.DirectionalLight(0xffe4c4, 2.6);
-sun.position.set(60, 100, 40);
+const hemi = new THREE.HemisphereLight(0xaaccff, 0x223322, 0.9);
+scene.add(hemi);
+
+const sun = new THREE.DirectionalLight(0xfff0e0, 2.2);
+sun.position.set(30, 60, 20);
 sun.castShadow = true;
-sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.mapSize.set(1024, 1024);
 sun.shadow.camera.near = 1;
-sun.shadow.camera.far = 300;
-sun.shadow.camera.left = -60;
-sun.shadow.camera.right = 60;
-sun.shadow.camera.top = 60;
-sun.shadow.camera.bottom = -60;
+sun.shadow.camera.far = 200;
+sun.shadow.camera.left = -40;
+sun.shadow.camera.right = 40;
+sun.shadow.camera.top = 40;
+sun.shadow.camera.bottom = -40;
 sun.shadow.bias = -0.0005;
-sun.shadow.normalBias = 0.02;
-scene.add(sun, sun.target);
-
-scene.add(new THREE.HemisphereLight(0x88aaff, 0x223322, 0.55));
-scene.add(new THREE.AmbientLight(0x445566, 0.35));
+scene.add(sun);
+scene.add(sun.target);
 
 // ============================================================
-// SKY
-// ============================================================
-const skyGeo = new THREE.SphereGeometry(2000, 32, 16);
-const skyMat = new THREE.ShaderMaterial({
-  uniforms: {
-    top: { value: new THREE.Color(0x0a1530) },
-    bottom: { value: new THREE.Color(0xff8855) },
-    offset: { value: 200 },
-    exponent: { value: 0.7 }
-  },
-  vertexShader: `varying vec3 vP; void main(){ vP = (modelMatrix*vec4(position,1.0)).xyz; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
-  fragmentShader: `uniform vec3 top; uniform vec3 bottom; uniform float offset; uniform float exponent; varying vec3 vP;
-    void main(){ float h = normalize(vP + vec3(0.0,offset,0.0)).y; float t = max(pow(max(h,0.0),exponent),0.0); gl_FragColor = vec4(mix(bottom, top, t),1.0); }`,
-  side: THREE.BackSide, depthWrite: false
-});
-scene.add(new THREE.Mesh(skyGeo, skyMat));
-
-// ============================================================
-// GROUND + ROAD
+// GROUND + ROAD (simple, no textures)
 // ============================================================
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(3000, 3000),
-  new THREE.MeshStandardMaterial({ color: 0x1a2e1a, roughness: 0.95, metalness: 0.05 })
+  new THREE.PlaneGeometry(2000, 2000),
+  new THREE.MeshStandardMaterial({ color: 0x1a2e1a, roughness: 1 })
 );
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
 
-function makeRoadTexture() {
-  const c = document.createElement('canvas');
-  c.width = 512; c.height = 2048;
-  const x = c.getContext('2d');
-  // asphalt base
-  x.fillStyle = '#26262a'; x.fillRect(0, 0, 512, 2048);
-  // subtle grain
-  const img = x.getImageData(0, 0, 512, 2048);
-  for (let i = 0; i < img.data.length; i += 4) {
-    const n = (Math.random() - 0.5) * 20;
-    img.data[i] += n; img.data[i+1] += n; img.data[i+2] += n;
-  }
-  x.putImageData(img, 0, 0);
-  // edge lines
-  x.fillStyle = '#e8e8e8';
-  x.fillRect(30, 0, 8, 2048);
-  x.fillRect(512 - 38, 0, 8, 2048);
-  // center dashes
-  x.fillStyle = '#f0d54a';
-  for (let y = 0; y < 2048; y += 140) {
-    x.fillRect(252, y, 8, 80);
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(1, 40);
-  tex.anisotropy = 8;
-  return tex;
-}
-
-const roadTex = makeRoadTexture();
 const road = new THREE.Mesh(
-  new THREE.PlaneGeometry(16, 2000),
-  new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.85, metalness: 0.15 })
+  new THREE.PlaneGeometry(14, 2000),
+  new THREE.MeshStandardMaterial({ color: 0x2a2a2e, roughness: 0.85 })
 );
 road.rotation.x = -Math.PI / 2;
 road.position.y = 0.01;
 road.receiveShadow = true;
 scene.add(road);
 
-// ============================================================
-// SCENERY (INSTANCED)
-// ============================================================
-function buildScenery() {
-  const treeCount = 160;
-  const trunkG = new THREE.CylinderGeometry(0.25, 0.35, 3.5, 6);
-  const trunkM = new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 0.95 });
-  const foliageG = new THREE.SphereGeometry(2, 8, 6);
-  const foliageM = new THREE.MeshStandardMaterial({ color: 0x1a4a1f, roughness: 0.9 });
+// Center dashed line — instanced
+{
+  const dashGeo = new THREE.PlaneGeometry(0.25, 3);
+  const dashMat = new THREE.MeshBasicMaterial({ color: 0xf0d54a });
+  const n = 300;
+  const inst = new THREE.InstancedMesh(dashGeo, dashMat, n);
+  const m = new THREE.Matrix4();
+  for (let i = 0; i < n; i++) {
+    m.makeRotationX(-Math.PI / 2);
+    m.setPosition(0, 0.02, -900 + i * 6);
+    inst.setMatrixAt(i, m);
+  }
+  inst.instanceMatrix.needsUpdate = true;
+  scene.add(inst);
+}
 
-  const trunks = new THREE.InstancedMesh(trunkG, trunkM, treeCount);
-  const foliage = new THREE.InstancedMesh(foliageG, foliageM, treeCount);
-  trunks.castShadow = true; foliage.castShadow = true;
-  trunks.receiveShadow = true; foliage.receiveShadow = true;
+// Side edges
+{
+  const eMat = new THREE.MeshBasicMaterial({ color: 0xdddddd });
+  const eGeo = new THREE.PlaneGeometry(0.2, 2000);
+  const l = new THREE.Mesh(eGeo, eMat);
+  l.rotation.x = -Math.PI / 2;
+  l.position.set(-6.7, 0.02, 0);
+  scene.add(l);
+  const r = new THREE.Mesh(eGeo, eMat);
+  r.rotation.x = -Math.PI / 2;
+  r.position.set(6.7, 0.02, 0);
+  scene.add(r);
+}
 
-  const dummy = new THREE.Object3D();
-  for (let i = 0; i < treeCount; i++) {
-    const side = i % 2 === 0 ? 1 : -1;
-    const x = side * (10 + Math.random() * 45);
-    const z = (Math.random() - 0.5) * 800;
-    const s = 0.7 + Math.random() * 0.9;
+// Simple trees (instanced cones)
+{
+  const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 2, 5);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3a2818 });
+  const folGeo = new THREE.ConeGeometry(1.6, 4, 6);
+  const folMat = new THREE.MeshStandardMaterial({ color: 0x1a4a1f });
 
-    dummy.position.set(x, 1.75 * s, z);
-    dummy.scale.set(s, s, s);
-    dummy.rotation.y = Math.random() * Math.PI;
-    dummy.updateMatrix();
-    trunks.setMatrixAt(i, dummy.matrix);
+  const N = 100;
+  const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, N);
+  const fols = new THREE.InstancedMesh(folGeo, folMat, N);
+  trunks.castShadow = fols.castShadow = true;
 
-    dummy.position.set(x, 3.5 * s + 1, z);
-    dummy.scale.set(s * 1.4, s * 1.3, s * 1.4);
-    dummy.updateMatrix();
-    foliage.setMatrixAt(i, dummy.matrix);
+  const o = new THREE.Object3D();
+  for (let i = 0; i < N; i++) {
+    const side = i % 2 ? 1 : -1;
+    const x = side * (10 + Math.random() * 25);
+    const z = -600 + Math.random() * 1200;
+    o.position.set(x, 1, z);
+    o.updateMatrix();
+    trunks.setMatrixAt(i, o.matrix);
+    o.position.set(x, 4, z);
+    o.updateMatrix();
+    fols.setMatrixAt(i, o.matrix);
   }
   trunks.instanceMatrix.needsUpdate = true;
-  foliage.instanceMatrix.needsUpdate = true;
-  scene.add(trunks, foliage);
-
-  // Buildings on sides
-  const bCount = 40;
-  const bGeo = new THREE.BoxGeometry(1, 1, 1);
-  const bMat = new THREE.MeshStandardMaterial({ color: 0x2a2a38, roughness: 0.7, metalness: 0.4 });
-  const buildings = new THREE.InstancedMesh(bGeo, bMat, bCount);
-  buildings.castShadow = true; buildings.receiveShadow = true;
-
-  for (let i = 0; i < bCount; i++) {
-    const side = i % 2 === 0 ? 1 : -1;
-    const x = side * (40 + Math.random() * 80);
-    const z = (Math.random() - 0.5) * 900;
-    const w = 6 + Math.random() * 10;
-    const h = 8 + Math.random() * 30;
-    const d = 6 + Math.random() * 10;
-    dummy.position.set(x, h / 2, z);
-    dummy.scale.set(w, h, d);
-    dummy.rotation.set(0, 0, 0);
-    dummy.updateMatrix();
-    buildings.setMatrixAt(i, dummy.matrix);
-  }
-  buildings.instanceMatrix.needsUpdate = true;
-  scene.add(buildings);
+  fols.instanceMatrix.needsUpdate = true;
+  scene.add(trunks, fols);
 }
-buildScenery();
+
+console.log('[BOOT] Scene built');
 
 // ============================================================
-// HDR ENVIRONMENT
+// PHYSICS
 // ============================================================
-const pmrem = new THREE.PMREMGenerator(renderer);
-pmrem.compileEquirectangularShader();
-new RGBELoader().setDataType(THREE.HalfFloatType)
-  .load('https://threejs.org/examples/textures/equirectangular/venice_sunset_1k.hdr',
-    (tex) => {
-      const env = pmrem.fromEquirectangular(tex).texture;
-      scene.environment = env;
-      tex.dispose();
-      pmrem.dispose();
-      bumpLoad(40);
-    },
-    undefined,
-    () => { bumpLoad(40); }
-  );
-
-// ============================================================
-// PHYSICS WORLD
-// ============================================================
-const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -22, 0) });
+const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -20, 0) });
 world.broadphase = new CANNON.SAPBroadphase(world);
-world.defaultContactMaterial.friction = 0.4;
-world.defaultContactMaterial.restitution = 0.05;
+world.defaultContactMaterial.friction = 0.5;
 
-// Ground plane
 const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
 groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
 world.addBody(groundBody);
 
 // ============================================================
-// CAR VISUAL BUILDER
+// CAR VISUAL
 // ============================================================
-let carGroup = new THREE.Group();
-scene.add(carGroup);
-let wheelMeshes = []; // { mesh, isFront }
+const carRoot = new THREE.Group();
+scene.add(carRoot);
+let wheelGroups = [];
 
-function buildCarVisual(carIndex) {
-  // clear
-  while (carGroup.children.length) carGroup.remove(carGroup.children[0]);
-  wheelMeshes = [];
+function buildCarVisual(idx) {
+  while (carRoot.children.length) carRoot.remove(carRoot.children[0]);
+  wheelGroups = [];
 
-  const spec = CARS[carIndex];
+  const c = CARS[idx];
 
-  const paint = new THREE.MeshPhysicalMaterial({
-    color: spec.color,
-    metalness: 0.85,
-    roughness: 0.22,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.08,
-    envMapIntensity: 1.4
+  // Paint
+  const paint = new THREE.MeshStandardMaterial({
+    color: c.color, metalness: 0.85, roughness: 0.28
   });
-  const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x0a0a14,
-    metalness: 0.5,
-    roughness: 0.1,
-    transmission: 0.3,
-    transparent: true,
-    opacity: 0.9
+  const glass = new THREE.MeshStandardMaterial({
+    color: 0x111122, metalness: 0.4, roughness: 0.15
   });
-  const accent = new THREE.MeshStandardMaterial({ color: spec.accent, metalness: 0.7, roughness: 0.3 });
-  const black = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, metalness: 0.4, roughness: 0.6 });
-  const headMat = new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xfff2cc, emissiveIntensity: 3.5 });
-  const tailMat = new THREE.MeshStandardMaterial({ color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 3.5 });
+  const accent = new THREE.MeshStandardMaterial({ color: c.accent, metalness: 0.6, roughness: 0.3 });
+  const head = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfff2cc, emissiveIntensity: 2.5 });
+  const tail = new THREE.MeshStandardMaterial({ color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 2.5 });
 
-  // Main body — smooth lathe-based hull
-  const L = spec.bodyLen;
-  const W = spec.bodyWid;
-
-  // Lower hull — rounded capsule-like
-  const lowerPts = [];
-  for (let i = 0; i <= 24; i++) {
-    const t = i / 24;
-    // x represents cross-section radius profile along length
-    const lenT = (t - 0.5) * L;
-    const radius = W * Math.sqrt(Math.max(0.001, 1 - Math.pow((t - 0.5) * 1.9, 2)));
-    lowerPts.push(new THREE.Vector2(Math.max(0.05, radius), lenT));
+  // MAIN BODY — rounded box made from a BoxGeometry with segments
+  const bodyGeo = new THREE.BoxGeometry(c.bodyWid, c.bodyHt, c.bodyLen, 4, 3, 8);
+  // Round the edges by displacing vertices toward an ellipse
+  const pos = bodyGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const nx = x / (c.bodyWid / 2);
+    const ny = y / (c.bodyHt / 2);
+    const nz = z / (c.bodyLen / 2);
+    const d = Math.sqrt(nx*nx + ny*ny + nz*nz) || 1;
+    const shrink = 1 - Math.pow(Math.max(0, (d - 0.85) / 0.15), 2) * 0.15;
+    pos.setXYZ(i, x * shrink, y * shrink, z * shrink);
   }
-
-  // Build using lathe on Y-axis then rotate to align Z
-  const hullGeo = new THREE.LatheGeometry(lowerPts.map(p => new THREE.Vector2(p.x, p.x)), 20);
-  // Instead — use a custom extruded shape for cleaner look
-  const bodyShape = new THREE.Shape();
-  bodyShape.moveTo(-W, -L/2 + 0.3);
-  bodyShape.quadraticCurveTo(-W * 1.05, -L/2 + 0.1, -W * 0.85, -L/2);
-  bodyShape.quadraticCurveTo(0, -L/2 - 0.1, W * 0.85, -L/2);
-  bodyShape.quadraticCurveTo(W * 1.05, -L/2 + 0.1, W, -L/2 + 0.3);
-  bodyShape.lineTo(W, L/2 - 0.5);
-  bodyShape.quadraticCurveTo(W * 0.9, L/2, 0, L/2);
-  bodyShape.quadraticCurveTo(-W * 0.9, L/2, -W, L/2 - 0.5);
-  bodyShape.closePath();
-
-  const extrudeSettings = {
-    depth: 0.5, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.15, bevelSegments: 4, curveSegments: 12
-  };
-  const bodyGeo = new THREE.ExtrudeGeometry(bodyShape, extrudeSettings);
-  bodyGeo.rotateX(-Math.PI / 2);
-  bodyGeo.translate(0, 0.15, 0);
-
+  bodyGeo.computeVertexNormals();
   const body = new THREE.Mesh(bodyGeo, paint);
-  body.position.y = 0.35;
-  body.castShadow = true; body.receiveShadow = true;
-  carGroup.add(body);
+  body.position.y = 0.55;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  carRoot.add(body);
 
-  // Cabin / greenhouse
-  const cabinShape = new THREE.Shape();
-  const cW = W * 0.75;
-  const cL = L * 0.42;
-  cabinShape.moveTo(-cW, -cL/2);
-  cabinShape.quadraticCurveTo(-cW, cL/2, 0, cL/2 + 0.1);
-  cabinShape.quadraticCurveTo(cW, cL/2, cW, -cL/2);
-  cabinShape.quadraticCurveTo(0, -cL/2 - 0.05, -cW, -cL/2);
-  const cabinGeo = new THREE.ExtrudeGeometry(cabinShape, {
-    depth: 0.55, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.12, bevelSegments: 3, curveSegments: 10
-  });
-  cabinGeo.rotateX(-Math.PI / 2);
-  cabinGeo.translate(0, 0.1, -0.2);
+  // CABIN — smaller rounded box on top, glass
+  const cabinGeo = new THREE.BoxGeometry(c.bodyWid * 0.72, 0.45, c.bodyLen * 0.4, 3, 2, 4);
+  const cpos = cabinGeo.attributes.position;
+  for (let i = 0; i < cpos.count; i++) {
+    const x = cpos.getX(i), y = cpos.getY(i), z = cpos.getZ(i);
+    const nx = x / (c.bodyWid * 0.36);
+    const ny = y / 0.225;
+    const nz = z / (c.bodyLen * 0.2);
+    const d = Math.sqrt(nx*nx + ny*ny + nz*nz) || 1;
+    const shrink = 1 - Math.pow(Math.max(0, (d - 0.8) / 0.2), 2) * 0.2;
+    cpos.setXYZ(i, x * shrink, y * shrink, z * shrink);
+  }
+  cabinGeo.computeVertexNormals();
   const cabin = new THREE.Mesh(cabinGeo, glass);
-  cabin.position.y = 0.9;
+  cabin.position.set(0, 1.0, -0.15);
   cabin.castShadow = true;
-  carGroup.add(cabin);
-
-  // Hood accent stripe
-  const stripeGeo = new THREE.BoxGeometry(0.12, 0.02, L * 0.7);
-  const stripeL = new THREE.Mesh(stripeGeo, accent);
-  stripeL.position.set(-0.25, 0.82, 0);
-  carGroup.add(stripeL);
-  const stripeR = new THREE.Mesh(stripeGeo, accent);
-  stripeR.position.set(0.25, 0.82, 0);
-  carGroup.add(stripeR);
+  carRoot.add(cabin);
 
   // Headlights
-  const hlGeo = new THREE.SphereGeometry(0.1, 10, 8);
-  const hlL = new THREE.Mesh(hlGeo, headMat);
-  hlL.position.set(-0.7, 0.65, L/2 - 0.15);
-  hlL.scale.set(1.6, 1, 0.6);
-  carGroup.add(hlL);
-  const hlR = new THREE.Mesh(hlGeo, headMat);
-  hlR.position.set(0.7, 0.65, L/2 - 0.15);
-  hlR.scale.set(1.6, 1, 0.6);
-  carGroup.add(hlR);
+  const hlGeo = new THREE.BoxGeometry(0.35, 0.14, 0.08);
+  const hlL = new THREE.Mesh(hlGeo, head);
+  hlL.position.set(-c.bodyWid * 0.32, 0.6, c.bodyLen / 2 - 0.02);
+  carRoot.add(hlL);
+  const hlR = new THREE.Mesh(hlGeo, head);
+  hlR.position.set(c.bodyWid * 0.32, 0.6, c.bodyLen / 2 - 0.02);
+  carRoot.add(hlR);
 
   // Taillights
-  const tlGeo = new THREE.SphereGeometry(0.08, 10, 8);
-  const tlL = new THREE.Mesh(tlGeo, tailMat);
-  tlL.position.set(-0.7, 0.62, -L/2 + 0.1);
-  tlL.scale.set(1.8, 1, 0.5);
-  carGroup.add(tlL);
-  const tlR = new THREE.Mesh(tlGeo, tailMat);
-  tlR.position.set(0.7, 0.62, -L/2 + 0.1);
-  tlR.scale.set(1.8, 1, 0.5);
-  carGroup.add(tlR);
+  const tlGeo = new THREE.BoxGeometry(0.35, 0.12, 0.06);
+  const tlL = new THREE.Mesh(tlGeo, tail);
+  tlL.position.set(-c.bodyWid * 0.32, 0.58, -c.bodyLen / 2 + 0.02);
+  carRoot.add(tlL);
+  const tlR = new THREE.Mesh(tlGeo, tail);
+  tlR.position.set(c.bodyWid * 0.32, 0.58, -c.bodyLen / 2 + 0.02);
+  carRoot.add(tlR);
 
-  // Wheels
-  const tireMat = new THREE.MeshStandardMaterial({ color: 0x0c0c0c, roughness: 0.9, metalness: 0.1 });
-  const rimMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.25, metalness: 0.95 });
+  // Accent stripe
+  const stripe = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1, 0.02, c.bodyLen * 0.75),
+    accent
+  );
+  stripe.position.set(0, 0.85, 0);
+  carRoot.add(stripe);
 
-  const wb = spec.wheelBase / 2;
-  const tw = spec.trackWidth / 2;
-  const wheelR = 0.42;
-  const wheelW = 0.3;
+  // WHEELS
+  const tireMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95 });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0xbbbbbb, metalness: 0.9, roughness: 0.3 });
 
-  const wheelDefs = [
+  const wb = c.wheelBase / 2;
+  const tw = c.trackWidth / 2;
+  const wr = 0.36;
+
+  const defs = [
     { x: -tw, z: wb, front: true },
     { x: tw, z: wb, front: true },
     { x: -tw, z: -wb, front: false },
     { x: tw, z: -wb, front: false }
   ];
 
-  wheelDefs.forEach((wd) => {
+  defs.forEach(d => {
     const g = new THREE.Group();
 
-    const tireGeo = new THREE.CylinderGeometry(wheelR, wheelR, wheelW, 20);
-    const tire = new THREE.Mesh(tireGeo, tireMat);
+    const tire = new THREE.Mesh(
+      new THREE.CylinderGeometry(wr, wr, 0.28, 16),
+      tireMat
+    );
     tire.rotation.z = Math.PI / 2;
     tire.castShadow = true;
     g.add(tire);
 
-    const rimGeo = new THREE.CylinderGeometry(wheelR * 0.62, wheelR * 0.62, wheelW * 1.02, 12);
-    const rim = new THREE.Mesh(rimGeo, rimMat);
+    const rim = new THREE.Mesh(
+      new THREE.CylinderGeometry(wr * 0.55, wr * 0.55, 0.29, 10),
+      rimMat
+    );
     rim.rotation.z = Math.PI / 2;
     g.add(rim);
 
-    // spoke detail
-    for (let s = 0; s < 5; s++) {
-      const spoke = new THREE.Mesh(
-        new THREE.BoxGeometry(wheelW * 1.03, wheelR * 1.1, 0.06),
-        rimMat
-      );
-      spoke.rotation.x = (s / 5) * Math.PI;
-      g.add(spoke);
-    }
-
-    g.position.set(wd.x, wheelR, wd.z);
-    g.userData.front = wd.front;
-    g.userData.x = wd.x;
-    carGroup.add(g);
-    wheelMeshes.push(g);
+    g.position.set(d.x, wr, d.z);
+    g.userData.front = d.front;
+    carRoot.add(g);
+    wheelGroups.push(g);
   });
 
-  carGroup.position.set(0, 0, 0);
-  carGroup.rotation.set(0, 0, 0);
+  console.log('[BUILD] Car visual built:', c.name);
 }
 
 // ============================================================
-// PHYSICS CAR — REAL RaycastVehicle
+// PHYSICS CAR — RaycastVehicle
 // ============================================================
-let vehicleBody = null;
-let raycastVehicle = null;
+let chassis = null;
+let vehicle = null;
 
-function buildPhysicsCar(carIndex) {
-  if (vehicleBody) {
-    world.removeBody(vehicleBody);
-    vehicleBody = null;
-    raycastVehicle = null;
+function buildPhysicsCar(idx) {
+  if (chassis) {
+    world.removeBody(chassis);
+    chassis = null;
+    vehicle = null;
   }
 
-  const spec = CARS[carIndex];
+  const c = CARS[idx];
 
-  // Chassis shape
-  const halfExtents = new CANNON.Vec3(spec.bodyWid * 0.9, 0.4, spec.bodyLen * 0.42);
-  const chassisShape = new CANNON.Box(halfExtents);
+  const shape = new CANNON.Box(new CANNON.Vec3(c.bodyWid / 2, 0.35, c.bodyLen / 2));
+  chassis = new CANNON.Body({ mass: c.mass });
+  chassis.addShape(shape);
+  chassis.position.set(0, 1.2, 0);
+  chassis.angularDamping = 0.7;
+  chassis.linearDamping = 0.05;
+  world.addBody(chassis);
 
-  const chassisBody = new CANNON.Body({
-    mass: spec.mass,
-    material: new CANNON.Material({ friction: 0.4, restitution: 0.05 })
-  });
-  chassisBody.addShape(chassisShape, new CANNON.Vec3(0, 0, 0));
-  chassisBody.position.set(0, 1.2, 0);
-  chassisBody.angularDamping = 0.6;
-  chassisBody.linearDamping = 0.02;
-  world.addBody(chassisBody);
-
-  vehicleBody = chassisBody;
-
-  // Raycast vehicle
-  raycastVehicle = new CANNON.RaycastVehicle({
-    chassisBody: chassisBody,
+  vehicle = new CANNON.RaycastVehicle({
+    chassisBody: chassis,
     indexRightAxis: 0,
     indexUpAxis: 1,
     indexForwardAxis: 2
   });
 
-  const wb = spec.wheelBase / 2;
-  const tw = spec.trackWidth / 2;
-  const wheelR = 0.42;
+  const wb = c.wheelBase / 2;
+  const tw = c.trackWidth / 2;
+  const wr = 0.36;
 
-  const wheelOpts = {
-    radius: wheelR,
+  const opts = {
+    radius: wr,
     directionLocal: new CANNON.Vec3(0, -1, 0),
-    suspensionStiffness: 32,
-    suspensionRestLength: 0.35,
-    frictionSlip: spec.grip,
+    suspensionStiffness: 30,
+    suspensionRestLength: 0.4,
+    frictionSlip: c.grip,
     dampingRelaxation: 2.3,
     dampingCompression: 4.4,
     maxSuspensionForce: 100000,
     rollInfluence: 0.05,
     axleLocal: new CANNON.Vec3(-1, 0, 0),
-    maxSuspensionTravel: 0.25,
+    maxSuspensionTravel: 0.3,
     customSlidingRotationalSpeed: -30,
     useCustomSlidingRotationalSpeed: true,
     chassisConnectionPointLocal: new CANNON.Vec3(0, 0, 0)
   };
 
-  const offsets = [
+  const positions = [
     { x: -tw, z: wb }, { x: tw, z: wb },
     { x: -tw, z: -wb }, { x: tw, z: -wb }
   ];
 
-  offsets.forEach((o, i) => {
-    const opts = Object.assign({}, wheelOpts);
-    opts.chassisConnectionPointLocal = new CANNON.Vec3(o.x, 0, o.z);
-    opts.isFrontWheel = i < 2;
-    raycastVehicle.addWheel(opts);
+  positions.forEach(p => {
+    const o = Object.assign({}, opts);
+    o.chassisConnectionPointLocal = new CANNON.Vec3(p.x, 0, p.z);
+    vehicle.addWheel(o);
   });
 
-  raycastVehicle.addToWorld(world);
-
-  // Reset visual
-  carGroup.position.set(0, 0, 0);
-  carGroup.quaternion.set(0, 0, 0, 1);
+  vehicle.addToWorld(world);
+  console.log('[BUILD] Physics car built:', c.name);
 }
 
 // ============================================================
-// INPUT HANDLERS
+// UI: SELECT
 // ============================================================
-function bindHold(el, onDown, onUp) {
-  const start = (e) => { e.preventDefault(); onDown(); el.classList.add('on'); audio.resume(); };
-  const end = (e) => { e.preventDefault(); onUp(); el.classList.remove('on'); };
-  el.addEventListener('touchstart', start, { passive: false });
-  el.addEventListener('touchend', end, { passive: false });
-  el.addEventListener('touchcancel', end, { passive: false });
-  el.addEventListener('mousedown', start);
-  el.addEventListener('mouseup', end);
-  el.addEventListener('mouseleave', end);
-  el.addEventListener('contextmenu', e => e.preventDefault());
-}
-
-function setupInputs() {
-  bindHold(document.getElementById('steerL'), () => input.left = true, () => input.left = false);
-  bindHold(document.getElementById('steerR'), () => input.right = true, () => input.right = false);
-  bindHold(document.getElementById('gasBtn'), () => input.gas = true, () => input.gas = false);
-  bindHold(document.getElementById('brakeBtn'), () => input.brake = true, () => input.brake = false);
-
-  const shiftUp = (e) => {
-    e.preventDefault();
-    if (!state.running) return;
-    state.manual = true;
-    state.manualGear = Math.min(state.manualGear + 1, 5);
-    document.getElementById('hudTrans').textContent = 'MANUAL';
-  };
-  const shiftDown = (e) => {
-    e.preventDefault();
-    if (!state.running) return;
-    state.manual = true;
-    state.manualGear = Math.max(state.manualGear - 1, 0);
-    document.getElementById('hudTrans').textContent = 'MANUAL';
-  };
-  document.getElementById('padUp').addEventListener('touchstart', shiftUp, { passive: false });
-  document.getElementById('padUp').addEventListener('mousedown', shiftUp);
-  document.getElementById('padDown').addEventListener('touchstart', shiftDown, { passive: false });
-  document.getElementById('padDown').addEventListener('mousedown', shiftDown);
-
-  // Keyboard
-  window.addEventListener('keydown', (e) => {
-    if (e.repeat) return;
-    switch (e.key) {
-      case 'ArrowUp': case 'w': input.gas = true; break;
-      case 'ArrowDown': case 's': input.brake = true; break;
-      case 'ArrowLeft': case 'a': input.left = true; break;
-      case 'ArrowRight': case 'd': input.right = true; break;
-      case 'Shift': shiftUp(e); break;
-      case 'Control': shiftDown(e); break;
-    }
-  });
-  window.addEventListener('keyup', (e) => {
-    switch (e.key) {
-      case 'ArrowUp': case 'w': input.gas = false; break;
-      case 'ArrowDown': case 's': input.brake = false; break;
-      case 'ArrowLeft': case 'a': input.left = false; break;
-      case 'ArrowRight': case 'd': input.right = false; break;
-    }
-  });
-
-  // Back button -> return to select
-  document.getElementById('backBtn').addEventListener('click', () => {
-    document.getElementById('carSelect').classList.remove('hide');
-    document.getElementById('hud').classList.remove('on');
-    state.running = false;
-    state.speed = 0;
-    input.gas = input.brake = input.left = input.right = false;
-  });
-}
-
-// ============================================================
-// UI: CAR SELECT
-// ============================================================
-const SILHOUETTES = {
-  m5: '<svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMid meet"><path d="M20 50 Q20 30 40 28 L60 20 Q90 15 120 20 L160 28 Q180 30 180 50 Z"/><circle cx="50" cy="52" r="10"/><circle cx="150" cy="52" r="10"/><path d="M40 28 L70 24 L100 22 L130 24 L160 28" stroke-opacity=".4"/></svg>',
-  mustang: '<svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMid meet"><path d="M15 50 Q15 28 35 26 L55 22 Q80 18 115 20 L155 26 Q180 28 180 50 Z"/><circle cx="48" cy="52" r="10"/><circle cx="152" cy="52" r="10"/><path d="M35 26 L60 20 L100 18 L140 20 L165 26" stroke-opacity=".4"/></svg>',
-  porsche: '<svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMid meet"><path d="M25 50 Q25 28 45 26 L70 18 Q100 14 125 18 L155 26 Q175 28 175 50 Z"/><circle cx="52" cy="52" r="10"/><circle cx="148" cy="52" r="10"/><path d="M45 26 L75 20 L100 18 L125 20 L155 26" stroke-opacity=".4"/></svg>',
-  ferrari: '<svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMid meet"><path d="M20 50 Q20 28 40 25 L65 15 Q100 10 130 15 L165 25 Q180 28 180 50 Z"/><circle cx="50" cy="52" r="10"/><circle cx="150" cy="52" r="10"/><path d="M40 25 L70 17 L100 15 L130 17 L160 25" stroke-opacity=".4"/></svg>'
+const SIL = {
+  m5: '<svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMid meet"><path d="M25 48 Q25 30 42 28 L62 22 Q95 16 130 22 L165 28 Q178 30 178 48 Z"/><circle cx="55" cy="50" r="9"/><circle cx="145" cy="50" r="9"/></svg>',
+  mustang: '<svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMid meet"><path d="M20 48 Q20 28 38 26 L58 22 Q88 18 125 22 L162 28 Q178 30 178 48 Z"/><circle cx="52" cy="50" r="9"/><circle cx="148" cy="50" r="9"/></svg>',
+  porsche: '<svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMid meet"><path d="M28 48 Q28 30 46 26 L68 20 Q98 16 130 20 L162 26 Q174 28 174 48 Z"/><circle cx="56" cy="50" r="9"/><circle cx="144" cy="50" r="9"/></svg>',
+  ferrari: '<svg viewBox="0 0 200 70" preserveAspectRatio="xMidYMid meet"><path d="M22 48 Q22 28 40 25 L64 18 Q98 12 132 18 L166 25 Q178 28 178 48 Z"/><circle cx="54" cy="50" r="9"/><circle cx="146" cy="50" r="9"/></svg>'
 };
 
-function buildCarSelectUI() {
-  const grid = document.getElementById('carGrid');
-  grid.innerHTML = '';
-  CARS.forEach((car, i) => {
-    const div = document.createElement('div');
-    div.className = 'carCard' + (i === 0 ? ' active' : '');
-    div.dataset.index = i;
-    div.innerHTML = `
-      <div class="silhouette">${SILHOUETTES[car.silhouette]}</div>
+function buildSelectUI() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  CARS.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'card' + (i === 0 ? ' on' : '');
+    d.innerHTML = `
+      <div class="sil">${SIL[c.sil]}</div>
       <div>
-        <div class="name">${car.name}</div>
-        <div class="specs">
-          <div class="spec"><span>POWER</span><span>${Math.round(car.power / 10)} hp</span></div>
-          <div class="spec"><span>DRIVE</span><span>${car.drivetrain}</span></div>
-          <div class="spec"><span>TOP</span><span>${car.topSpeed} km/h</span></div>
-        </div>
+        <div class="nm">${c.name}</div>
+        <div class="sp"><span>DRIVE</span><b>${c.drivetrain}</b></div>
+        <div class="sp"><span>TOP</span><b>${Math.round(c.topSpeed * 3.6)} km/h</b></div>
       </div>
     `;
-    div.addEventListener('click', () => selectCar(i));
-    div.addEventListener('touchstart', (e) => { e.preventDefault(); selectCar(i); }, { passive: false });
-    grid.appendChild(div);
+    d.addEventListener('click', () => pickCar(i));
+    d.addEventListener('touchstart', e => { e.preventDefault(); pickCar(i); }, { passive: false });
+    g.appendChild(d);
   });
 }
 
-function selectCar(i) {
-  state.selectedCar = i;
-  document.querySelectorAll('.carCard').forEach((c, idx) => {
-    c.classList.toggle('active', idx === i);
-  });
+function pickCar(i) {
+  S.carIndex = i;
+  document.querySelectorAll('.card').forEach((c, j) => c.classList.toggle('on', j === i));
   buildCarVisual(i);
   buildPhysicsCar(i);
 }
 
 // ============================================================
-// LOADER
+// INPUT
 // ============================================================
-let loadPct = 0;
-function bumpLoad(p) { loadPct = Math.max(loadPct, p); document.getElementById('loadFill').style.width = loadPct + '%'; }
-bumpLoad(10);
+function hold(el, down, up) {
+  const s = e => { e.preventDefault(); down(); el.classList.add('on'); };
+  const e2 = e => { e.preventDefault(); up(); el.classList.remove('on'); };
+  el.addEventListener('touchstart', s, { passive: false });
+  el.addEventListener('touchend', e2, { passive: false });
+  el.addEventListener('touchcancel', e2, { passive: false });
+  el.addEventListener('mousedown', s);
+  el.addEventListener('mouseup', e2);
+  el.addEventListener('mouseleave', e2);
+}
+
+function setupInput() {
+  hold(document.getElementById('sL'), () => IN.left = true, () => IN.left = false);
+  hold(document.getElementById('sR'), () => IN.right = true, () => IN.right = false);
+  hold(document.getElementById('gas'), () => IN.gas = true, () => IN.gas = false);
+  hold(document.getElementById('brk'), () => IN.brake = true, () => IN.brake = false);
+
+  // Gear up/down — simple: nudge gear number directly
+  const gup = document.getElementById('gup');
+  const gdown = document.getElementById('gdown');
+  const doUp = e => { e.preventDefault(); if (S.running) { S.gear = Math.min(S.gear + 1, 6); updateGearLabel(); } };
+  const doDown = e => { e.preventDefault(); if (S.running) { S.gear = Math.max(S.gear - 1, 1); updateGearLabel(); } };
+  gup.addEventListener('touchstart', doUp, { passive: false });
+  gup.addEventListener('mousedown', doUp);
+  gdown.addEventListener('touchstart', doDown, { passive: false });
+  gdown.addEventListener('mousedown', doDown);
+
+  // Back
+  document.getElementById('bk').addEventListener('click', () => {
+    S.running = false;
+    document.getElementById('hud').classList.remove('on');
+    document.getElementById('select').classList.remove('hide');
+  });
+
+  // Keyboard
+  window.addEventListener('keydown', e => {
+    if (e.repeat) return;
+    if (e.key === 'ArrowUp' || e.key === 'w') IN.gas = true;
+    if (e.key === 'ArrowDown' || e.key === 's') IN.brake = true;
+    if (e.key === 'ArrowLeft' || e.key === 'a') IN.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') IN.right = true;
+  });
+  window.addEventListener('keyup', e => {
+    if (e.key === 'ArrowUp' || e.key === 'w') IN.gas = false;
+    if (e.key === 'ArrowDown' || e.key === 's') IN.brake = false;
+    if (e.key === 'ArrowLeft' || e.key === 'a') IN.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') IN.right = false;
+  });
+}
+
+function updateGearLabel() {
+  document.getElementById('gr').textContent = S.gear;
+}
 
 // ============================================================
-// GAME LOOP
+// SIMULATION
 // ============================================================
-const FIXED_DT = 1 / 60;
-const MAX_SUB_STEPS = 3;
+function stepPhysics(dt) {
+  if (!vehicle) return;
+  const c = CARS[S.carIndex];
 
-function updateVehicle() {
-  if (!raycastVehicle || !vehicleBody) return;
+  // Steering
+  const target = (IN.left ? 1 : 0) - (IN.right ? 1 : 0);
+  S.steer += (target * c.steer - S.steer) * 0.18;
 
-  const spec = CARS[state.selectedCar];
-
-  // Steering — smooth interpolation
-  const steerTarget = (input.left ? 1 : 0) - (input.right ? 1 : 0);
-  state.steerInput += (steerTarget * spec.steer - state.steerInput) * 0.15;
-
-  // Apply steering to front wheels only
   for (let i = 0; i < 4; i++) {
-    const w = raycastVehicle.wheelInfos[i];
+    const w = vehicle.wheelInfos[i];
     if (!w) continue;
-    if (i < 2) {
-      w.steering = state.steerInput;
-    } else {
-      w.steering = 0;
-    }
+    w.steering = i < 2 ? S.steer : 0;
   }
 
   // Throttle / Brake
-  const throttleInput = input.gas ? 1 : 0;
-  const brakeInput = input.brake ? 1 : 0;
+  S.throttle = IN.gas ? 1 : 0;
+  S.brake = IN.brake ? 1 : 0;
 
-  // Compute engine force based on gear & rpm
-  const maxRpm = 7500;
-  const rpmRatio = Math.min(state.rpm / maxRpm, 1);
-  const torqueFactor = Math.max(0.3, Math.sin(rpmRatio * Math.PI * 0.9));
-  let engineForce = 0;
-  if (throttleInput) {
-    engineForce = spec.power * torqueFactor;
-  }
+  // Gear ratio → engine force
+  const gearRatios = [3.4, 2.3, 1.7, 1.3, 1.0, 0.8];
+  const ratio = gearRatios[Math.min(S.gear - 1, gearRatios.length - 1)];
+  const torque = c.power * ratio * 0.18;
+  const force = S.throttle * torque;
 
-  // Apply to wheels based on drivetrain
-  if (spec.drivetrain === 'AWD') {
-    for (let i = 0; i < 4; i++) raycastVehicle.applyEngineForce(engineForce * 0.25, i);
+  if (c.drivetrain === 'AWD') {
+    for (let i = 0; i < 4; i++) vehicle.applyEngineForce(force / 4, i);
   } else {
-    raycastVehicle.applyEngineForce(engineForce * 0.5, 2);
-    raycastVehicle.applyEngineForce(engineForce * 0.5, 3);
+    vehicle.applyEngineForce(force / 2, 2);
+    vehicle.applyEngineForce(force / 2, 3);
   }
 
-  // Braking
-  const brakeForce = brakeInput * spec.brake;
-  for (let i = 0; i < 4; i++) {
-    raycastVehicle.setBrake(brakeInput ? spec.brake : 0, i);
+  const brakeF = S.brake * c.brake * 20;
+  for (let i = 0; i < 4; i++) vehicle.setBrake(brakeF, i);
+
+  // Speed
+  const v = chassis.velocity;
+  S.speed = Math.sqrt(v.x * v.x + v.z * v.z);
+  if (!isFinite(S.speed)) S.speed = 0;
+
+  // RPM
+  const wheelRpm = (S.speed / (2 * Math.PI * 0.36)) * 60;
+  let rpm = wheelRpm * ratio * 3.4;
+  if (rpm < 900) rpm = 900 + S.throttle * 700;
+  S.rpm = Math.max(900, Math.min(8000, rpm));
+  if (!isFinite(S.rpm)) S.rpm = 900;
+
+  // Auto-shift
+  if (!IN.gas && S.speed < 1) S.gear = 1;
+  else {
+    const shiftUpAt = 6500, shiftDownAt = 3000;
+    if (S.rpm > shiftUpAt && S.gear < 6) { S.gear++; updateGearLabel(); }
+    else if (S.rpm < shiftDownAt && S.gear > 1) { S.gear--; updateGearLabel(); }
   }
-
-  // Downforce (simple)
-  const vel = vehicleBody.velocity;
-  const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(carGroup.quaternion);
-  const speedAlong = vel.x * fwd.x + vel.z * fwd.z;
-  if (speedAlong > 0) {
-    vehicleBody.applyForce(
-      new CANNON.Vec3(0, -spec.downforce * speedAlong * 10, 0),
-      new CANNON.Vec3(0, 0, 0)
-    );
-  }
-
-  // Calculate speed
-  const sp = Math.hypot(vel.x, vel.z);
-  state.speed = isFinite(sp) ? sp : 0;
-  state.throttle = throttleInput;
-  state.brake = brakeInput;
-
-  // Gear logic
-  if (!state.manual) {
-    // Automatic shifting
-    const ratios = spec.gearRatios;
-    const topSpd = spec.topSpeed / 3.6;
-    const gearCount = ratios.filter(r => r > 0).length;
-    const norm = state.speed / topSpd;
-    let targetGear = 0;
-    for (let g = gearCount - 1; g >= 0; g--) {
-      const threshold = (g / gearCount) * 0.9;
-      if (norm >= threshold) { targetGear = g; break; }
-    }
-    state.autoGear = targetGear;
-    state.gear = String(targetGear + 1);
-
-    // RPM from speed
-    const gearRatio = ratios[Math.min(targetGear, ratios.length - 1)] || 1;
-    const finalDrive = 3.4;
-    const wheelCirc = Math.PI * 0.84;
-    const wheelRpm = (state.speed / wheelCirc) * 60;
-    let rpm = wheelRpm * finalDrive * gearRatio;
-    if (rpm < 900) rpm = 900 + throttleInput * 800;
-    state.rpm = Math.max(900, Math.min(8200, rpm));
-  } else {
-    // Manual
-    state.autoGear = state.manualGear;
-    state.gear = String(state.manualGear + 1);
-    const gearRatio = spec.gearRatios[state.manualGear] || 1;
-    const finalDrive = 3.4;
-    const wheelCirc = Math.PI * 0.84;
-    const wheelRpm = (state.speed / wheelCirc) * 60;
-    let rpm = wheelRpm * finalDrive * gearRatio;
-    if (rpm < 900) rpm = 900 + throttleInput * 800;
-    state.rpm = Math.max(900, Math.min(8200, rpm));
-  }
-
-  if (!isFinite(state.rpm)) state.rpm = 900;
-  if (!isFinite(state.speed)) state.speed = 0;
 }
 
-function syncVisualCar(dt) {
-  if (!vehicleBody) return;
+function syncVisual(dt) {
+  if (!chassis) return;
 
-  // Position & rotation
-  carGroup.position.set(
-    vehicleBody.position.x,
-    vehicleBody.position.y - 0.85,
-    vehicleBody.position.z
+  carRoot.position.set(
+    chassis.position.x,
+    chassis.position.y - 0.85,
+    chassis.position.z
   );
-  carGroup.quaternion.set(
-    vehicleBody.quaternion.x,
-    vehicleBody.quaternion.y,
-    vehicleBody.quaternion.z,
-    vehicleBody.quaternion.w
+  carRoot.quaternion.set(
+    chassis.quaternion.x, chassis.quaternion.y,
+    chassis.quaternion.z, chassis.quaternion.w
   );
 
-  // Wheel spinning & steering
-  const spinSpeed = state.speed * 8;
-  state.wheelSpin += spinSpeed * dt;
-
-  wheelMeshes.forEach((wm, i) => {
-    // Spin
-    wm.children.forEach(c => {
-      if (c.geometry && c.geometry.type === 'CylinderGeometry') {
-        // rotate around X axis (since we rotated cylinder z by PI/2, its local rotation axis is now X in world)
-      }
-    });
-    // Simpler: rotate whole wheel group around its local X axis based on spin
-    wm.rotation.x = state.wheelSpin;
-
-    // Steering for front wheels
-    if (wm.userData.front && raycastVehicle) {
-      const wi = raycastVehicle.wheelInfos[i];
-      if (wi) {
-        wm.rotation.y = wi.steering;
-      }
-    }
+  S.wheelSpin += S.speed * 8 * dt;
+  wheelGroups.forEach((g, i) => {
+    g.rotation.x = S.wheelSpin;
+    if (g.userData.front) g.rotation.y = S.steer;
   });
 }
 
 function updateCamera(dt) {
-  if (!vehicleBody) return;
-
-  const carPos = carGroup.position;
-  const carQuat = carGroup.quaternion;
-
-  // Local offset behind and above
-  const back = new THREE.Vector3(0, 2.2, -6.5).applyQuaternion(carQuat);
+  if (!chassis) return;
+  const q = carRoot.quaternion;
+  const back = new THREE.Vector3(0, 2.4, -7).applyQuaternion(q);
   const target = new THREE.Vector3(
-    carPos.x + back.x,
-    carPos.y + back.y + 1.5,
-    carPos.z + back.z
+    carRoot.position.x + back.x,
+    carRoot.position.y + back.y + 1.2,
+    carRoot.position.z + back.z
   );
-
   camera.position.lerp(target, 1 - Math.pow(0.001, dt));
-
-  const lookAt = new THREE.Vector3(
-    carPos.x + carQuat.x * 0.5,
-    carPos.y + 1.1,
-    carPos.z + carQuat.z * 0.5
+  camera.lookAt(
+    carRoot.position.x + q.x * 0.5,
+    carRoot.position.y + 1,
+    carRoot.position.z + q.z * 0.5
   );
-  camera.lookAt(lookAt);
 
-  // Sun follows
-  sun.position.set(carPos.x + 60, 100, carPos.z + 40);
-  sun.target.position.copy(carPos);
+  sun.position.set(carRoot.position.x + 30, 60, carRoot.position.z + 20);
+  sun.target.position.copy(carRoot.position);
   sun.target.updateMatrixWorld();
 }
 
 function updateHUD() {
-  const kmh = Math.round(state.speed * 3.6);
-  const safeKmh = isFinite(kmh) ? Math.max(0, kmh) : 0;
-  document.getElementById('kmh').textContent = safeKmh;
-  document.getElementById('gearBox').textContent = state.gear;
+  const kmh = Math.round(S.speed * 3.6);
+  document.getElementById('kmh').textContent = kmh;
+  document.getElementById('gr').textContent = S.gear;
 
-  const maxDisplay = 300;
-  const ratio = Math.min(safeKmh / maxDisplay, 1);
-  const arcLen = 260;
-  document.getElementById('arc').setAttribute('stroke-dasharray', `${ratio * arcLen} ${arcLen}`);
+  const ratio = Math.min(kmh / 300, 1);
+  document.getElementById('arc').setAttribute('stroke-dasharray', `${ratio * 250} 250`);
 }
+
+// ============================================================
+// MAIN LOOP
+// ============================================================
+const FIXED = 1 / 60;
+let lastTime = performance.now();
 
 function loop() {
   requestAnimationFrame(loop);
 
   const now = performance.now();
-  let dt = (now - state.lastTime) / 1000;
-  state.lastTime = now;
+  let dt = (now - lastTime) / 1000;
+  lastTime = now;
   if (!isFinite(dt) || dt > 0.1) dt = 0.016;
-  if (dt < 0) dt = 0.016;
+  if (dt <= 0) dt = 0.016;
 
-  if (state.running) {
-    // Fixed-step physics with accumulator
-    state.accumulator += dt;
-    let steps = 0;
-    while (state.accumulator >= FIXED_DT && steps < MAX_SUB_STEPS) {
-      updateVehicle();
-      world.step(FIXED_DT);
-      state.accumulator -= FIXED_DT;
-      steps++;
+  if (S.running) {
+    S.accum += dt;
+    let guard = 0;
+    while (S.accum >= FIXED && guard < 3) {
+      stepPhysics(FIXED);
+      world.step(FIXED);
+      S.accum -= FIXED;
+      guard++;
     }
-    if (steps === MAX_SUB_STEPS) state.accumulator = 0;
+    if (guard >= 3) S.accum = 0;
 
-    syncVisualCar(dt);
+    syncVisual(dt);
     updateCamera(dt);
     updateHUD();
-    audio.update(state.rpm, state.throttle, state.speed);
   }
 
-  composer.render();
-}
-
-// ============================================================
-// START FLOW
-// ============================================================
-function startGame() {
-  audio.start();
-  document.getElementById('carSelect').classList.add('hide');
-  document.getElementById('hud').classList.add('on');
-  const car = CARS[state.selectedCar];
-  document.getElementById('hudCarName').textContent = car.name;
-
-  state.running = true;
-  state.manual = false;
-  state.manualGear = 0;
-  state.autoGear = 1;
-  state.gear = '1';
-  state.rpm = 900;
-  state.speed = 0;
-  state.lastTime = performance.now();
-  state.accumulator = 0;
-  document.getElementById('hudTrans').textContent = 'AUTOMATIC';
-
-  // Reset car position
-  if (vehicleBody) {
-    vehicleBody.position.set(0, 1.5, 0);
-    vehicleBody.velocity.set(0, 0, 0);
-    vehicleBody.angularVelocity.set(0, 0, 0);
-    vehicleBody.quaternion.set(0, 0, 0, 1);
-    vehicleBody.force.set(0, 0, 0);
-    vehicleBody.torque.set(0, 0, 0);
-  }
-
-  // Reset input
-  input.gas = input.brake = input.left = input.right = false;
+  renderer.render(scene, camera);
 }
 
 // ============================================================
 // BOOT
 // ============================================================
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  composer.setSize(window.innerWidth, window.innerHeight);
-});
+function startGame() {
+  document.getElementById('select').classList.add('hide');
+  document.getElementById('hud').classList.add('on');
+  document.getElementById('cn').textContent = CARS[S.carIndex].name;
+  document.getElementById('tm').textContent = 'AUTOMATIC';
+
+  S.running = true;
+  S.speed = 0;
+  S.rpm = 900;
+  S.gear = 1;
+  S.steer = 0;
+  S.wheelSpin = 0;
+  S.accum = 0;
+  lastTime = performance.now();
+
+  if (chassis) {
+    chassis.position.set(0, 1.2, 0);
+    chassis.velocity.set(0, 0, 0);
+    chassis.angularVelocity.set(0, 0, 0);
+    chassis.quaternion.set(0, 0, 0, 1);
+    chassis.force.set(0, 0, 0);
+    chassis.torque.set(0, 0, 0);
+  }
+
+  IN.gas = IN.brake = IN.left = IN.right = false;
+  updateGearLabel();
+}
 
 function boot() {
-  buildCarSelectUI();
-  selectCar(0);
-  setupInputs();
+  console.log('[BOOT] Building select UI');
+  buildSelectUI();
 
-  document.getElementById('startBtn').addEventListener('click', startGame);
-  document.getElementById('startBtn').addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); }, { passive: false });
+  console.log('[BOOT] Building car 0');
+  pickCar(0);
 
-  bumpLoad(80);
+  console.log('[BOOT] Setting up input');
+  setupInput();
 
+  document.getElementById('go').addEventListener('click', startGame);
+  document.getElementById('go').addEventListener('touchstart', e => { e.preventDefault(); startGame(); }, { passive: false });
+
+  // Hide loader
   setTimeout(() => {
-    bumpLoad(100);
+    document.getElementById('lf').style.width = '100%';
     document.getElementById('loader').classList.add('hide');
-  }, 800);
+  }, 300);
 
+  console.log('[BOOT] Starting loop');
   loop();
+
+  console.log('[BOOT] Complete — scene should render');
 }
+
+// Orientation check
+function checkOrientation() {
+  const rot = document.getElementById('rotate');
+  const portrait = window.innerHeight > window.innerWidth;
+  rot.classList.toggle('show', portrait);
+}
+window.addEventListener('resize', checkOrientation);
+checkOrientation();
 
 boot();
