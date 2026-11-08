@@ -193,7 +193,6 @@
     border: 1px solid rgba(255,255,255,0.08);
   }
 
-  /* Desktop hint */
   #hint {
     position: fixed;
     top: calc(60px + env(safe-area-inset-top));
@@ -228,7 +227,6 @@
 <div id="carName">BMW M5</div>
 <div id="hint">WASD · Arrow Keys · Space</div>
 
-<!-- Speedometer -->
 <svg id="speedometer" viewBox="0 0 200 200">
   <defs>
     <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -242,68 +240,44 @@
     </linearGradient>
   </defs>
 
-  <!-- Background disc -->
   <circle cx="100" cy="100" r="86" fill="rgba(8,8,10,0.72)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
   <circle cx="100" cy="100" r="86" fill="url(#glowGrad)"/>
 
-  <!-- Progress arc (270° sweep, -225° to 45°) -->
-  <path id="arcBg"
-        d="M 34.5 140.5 A 78 78 0 1 1 165.5 140.5"
-        fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="7" stroke-linecap="round"/>
-  <path id="arcProgress"
-        d="M 34.5 140.5 A 78 78 0 1 1 165.5 140.5"
-        fill="none" stroke="url(#arcGrad)" stroke-width="7" stroke-linecap="round"
-        stroke-dasharray="0 999"/>
+  <path id="arcBg" d="M 34.5 140.5 A 78 78 0 1 1 165.5 140.5" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="7" stroke-linecap="round"/>
+  <path id="arcProgress" d="M 34.5 140.5 A 78 78 0 1 1 165.5 140.5" fill="none" stroke="url(#arcGrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="0 999"/>
 
-  <!-- Tick marks -->
   <g id="ticks" stroke="rgba(255,255,255,0.35)" stroke-width="2" stroke-linecap="round"></g>
 
-  <!-- Needle -->
   <g id="needle" transform="rotate(-135 100 100)">
     <line x1="100" y1="100" x2="100" y2="34" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
     <circle cx="100" cy="34" r="3" fill="#fff"/>
   </g>
   <circle cx="100" cy="100" r="7" fill="#111" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
 
-  <!-- Speed text -->
-  <text id="speedVal" x="100" y="132" text-anchor="middle" fill="#fff"
-        font-size="34" font-weight="700" letter-spacing="-1">0</text>
-  <text x="100" y="150" text-anchor="middle" fill="rgba(255,255,255,0.4)"
-        font-size="9" font-weight="600" letter-spacing="3">KM/H</text>
+  <text id="speedVal" x="100" y="132" text-anchor="middle" fill="#fff" font-size="34" font-weight="700" letter-spacing="-1">0</text>
+  <text x="100" y="150" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="9" font-weight="600" letter-spacing="3">KM/H</text>
 </svg>
 
 <div id="gear">1</div>
 
-<!-- Steering (left) -->
 <div id="steering">
   <div class="steer-btn" data-steer="left">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </div>
   <div class="steer-btn" data-steer="right">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
   </div>
 </div>
 
-<!-- Pedals (right) -->
 <div id="pedals">
   <div class="pedal" data-pedal="brake">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="8"/>
-      <line x1="8" y1="12" x2="16" y2="12"/>
-    </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
   </div>
   <div class="pedal" data-pedal="gas">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 5v14M5 12h14"/>
-    </svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
   </div>
 </div>
 
-<!-- Car Selector -->
 <div id="carBar"></div>
 
 <script type="importmap">
@@ -330,42 +304,17 @@ import * as CANNON from 'cannon-es';
    CAR SPECS (real-world data)
    ============================================================ */
 const CARS = {
-  bmw: {
-    name: 'BMW M5',
-    power: 727, torque: 1000, weight: 2370,
-    topSpeed: 305, color: 0x0a0a12,
-    sound: 'v8', wheels: 4
-  },
-  mustang: {
-    name: 'Ford Mustang 1969',
-    power: 375, torque: 610, weight: 1610,
-    topSpeed: 190, color: 0xb01515,
-    sound: 'v8old'
-  },
-  porsche: {
-    name: 'Porsche 911',
-    power: 394, torque: 450, weight: 1520,
-    topSpeed: 294, color: 0xf0f0f0,
-    sound: 'flat6'
-  },
-  ferrari: {
-    name: 'LaFerrari',
-    power: 950, torque: 900, weight: 1255,
-    topSpeed: 351, color: 0xd91a1a,
-    sound: 'v12'
-  }
+  bmw: { name: 'BMW M5', power: 727, torque: 1000, weight: 2370, topSpeed: 305, color: 0x0a0a12, sound: 'v8' },
+  mustang: { name: 'Ford Mustang 1969', power: 375, torque: 610, weight: 1610, topSpeed: 190, color: 0xb01515, sound: 'v8old' },
+  porsche: { name: 'Porsche 911', power: 394, torque: 450, weight: 1520, topSpeed: 294, color: 0xf0f0f0, sound: 'flat6' },
+  ferrari: { name: 'LaFerrari', power: 950, torque: 900, weight: 1255, topSpeed: 351, color: 0xd91a1a, sound: 'v12' }
 };
 
 /* ============================================================
    RENDERER
    ============================================================ */
 const canvas = document.getElementById('canvas');
-const renderer = new THREE.WebGLRenderer({
-  canvas,
-  antialias: true,
-  powerPreference: 'high-performance',
-  alpha: false
-});
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance', alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -379,10 +328,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
    ============================================================ */
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xb8cce0, 0.0035);
-
-const camera = new THREE.PerspectiveCamera(
-  62, window.innerWidth / window.innerHeight, 0.5, 3000
-);
+const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.5, 3000);
 
 /* ============================================================
    SKY + SUN
@@ -411,7 +357,6 @@ sunLight.shadow.bias = -0.0004;
 sunLight.shadow.normalBias = 0.02;
 scene.add(sunLight);
 scene.add(sunLight.target);
-
 scene.add(new THREE.HemisphereLight(0x9db8d8, 0x3a4030, 0.55));
 
 /* ============================================================
@@ -429,17 +374,13 @@ new RGBELoader()
 /* ============================================================
    GROUND + ROAD
    ============================================================ */
-// Grass
 const grassGeo = new THREE.PlaneGeometry(4000, 4000, 1, 1);
-const grassMat = new THREE.MeshStandardMaterial({
-  color: 0x4a6b3a, roughness: 1.0, metalness: 0
-});
+const grassMat = new THREE.MeshStandardMaterial({ color: 0x4a6b3a, roughness: 1.0, metalness: 0 });
 const grass = new THREE.Mesh(grassGeo, grassMat);
 grass.rotation.x = -Math.PI / 2;
 grass.receiveShadow = true;
 scene.add(grass);
 
-// Asphalt (procedural via canvas — no texture load needed)
 function makeAsphaltTexture() {
   const c = document.createElement('canvas');
   c.width = c.height = 256;
@@ -459,17 +400,13 @@ function makeAsphaltTexture() {
 }
 const asphaltTex = makeAsphaltTexture();
 
-// Straight road
-const roadMat = new THREE.MeshStandardMaterial({
-  map: asphaltTex, roughness: 0.85, metalness: 0.05, color: 0xffffff
-});
+const roadMat = new THREE.MeshStandardMaterial({ map: asphaltTex, roughness: 0.85, metalness: 0.05, color: 0xffffff });
 const road = new THREE.Mesh(new THREE.PlaneGeometry(16, 600), roadMat);
 road.rotation.x = -Math.PI / 2;
 road.position.y = 0.02;
 road.receiveShadow = true;
 scene.add(road);
 
-// Cross road
 const road2 = new THREE.Mesh(new THREE.PlaneGeometry(16, 400), roadMat);
 road2.rotation.x = -Math.PI / 2;
 road2.rotation.z = Math.PI / 2;
@@ -477,29 +414,23 @@ road2.position.set(0, 0.02, -80);
 road2.receiveShadow = true;
 scene.add(road2);
 
-// Center line (dashed)
-const lineMat = new THREE.MeshStandardMaterial({
-  color: 0xf5f5c0, roughness: 0.5, emissive: 0x2a2a10, emissiveIntensity: 0.3
-});
+const lineMat = new THREE.MeshStandardMaterial({ color: 0xf5f5c0, roughness: 0.5, emissive: 0x2a2a10, emissiveIntensity: 0.3 });
 for (let z = -280; z < 300; z += 14) {
   const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 5), lineMat);
   dash.rotation.x = -Math.PI / 2;
   dash.position.set(0, 0.03, z);
   scene.add(dash);
 }
-// Road edges
+
 for (const x of [-7.8, 7.8]) {
-  const edge = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.3, 600),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 })
-  );
+  const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 600), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 }));
   edge.rotation.x = -Math.PI / 2;
   edge.position.set(x, 0.03, 0);
   scene.add(edge);
 }
 
 /* ============================================================
-   TREES (instanced)
+   TREES
    ============================================================ */
 const trunkGeo = new THREE.CylinderGeometry(0.35, 0.55, 5, 6);
 const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3020, roughness: 1 });
@@ -517,7 +448,6 @@ while (placed < N && attempts < N * 6) {
   attempts++;
   const x = (Math.random() - 0.5) * 700;
   const z = (Math.random() - 0.5) * 700;
-  // keep away from roads
   if (Math.abs(x) < 12 && Math.abs(z) < 320) continue;
   if (Math.abs(z + 80) < 12 && Math.abs(x) < 220) continue;
 
@@ -539,17 +469,14 @@ trunks.receiveShadow = foliage.receiveShadow = true;
 scene.add(trunks, foliage);
 
 /* ============================================================
-   BUILDINGS (background city)
+   BUILDINGS
    ============================================================ */
 const buildingGroup = new THREE.Group();
 for (let i = 0; i < 40; i++) {
   const w = 8 + Math.random() * 18;
   const h = 15 + Math.random() * 55;
   const d = 8 + Math.random() * 18;
-  const mat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color().setHSL(0.58 + Math.random() * 0.05, 0.1, 0.28 + Math.random() * 0.2),
-    roughness: 0.85, metalness: 0.15
-  });
+  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(0.58 + Math.random() * 0.05, 0.1, 0.28 + Math.random() * 0.2), roughness: 0.85, metalness: 0.15 });
   const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   let bx, bz;
   do {
@@ -563,99 +490,52 @@ for (let i = 0; i < 40; i++) {
 scene.add(buildingGroup);
 
 /* ============================================================
-   CAR MESH (procedural, realistic PBR)
+   CAR MESH
    ============================================================ */
 function buildCar(color) {
   const g = new THREE.Group();
-
-  const paint = new THREE.MeshPhysicalMaterial({
-    color, metalness: 0.75, roughness: 0.22,
-    clearcoat: 1, clearcoatRoughness: 0.06,
-    envMapIntensity: 1.4
-  });
-  const glass = new THREE.MeshPhysicalMaterial({
-    color: 0x0a0a15, metalness: 0.2, roughness: 0.02,
-    transmission: 0.7, transparent: true, opacity: 0.85,
-    envMapIntensity: 1.6
-  });
+  const paint = new THREE.MeshPhysicalMaterial({ color, metalness: 0.75, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.4 });
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0x0a0a15, metalness: 0.2, roughness: 0.02, transmission: 0.7, transparent: true, opacity: 0.85, envMapIntensity: 1.6 });
   const rubber = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.95 });
   const chrome = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 1, roughness: 0.15 });
-  const head = new THREE.MeshStandardMaterial({
-    color: 0xffffee, emissive: 0xfff0c0, emissiveIntensity: 2.2
-  });
-  const tail = new THREE.MeshStandardMaterial({
-    color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 1.8
-  });
+  const head = new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xfff0c0, emissiveIntensity: 2.2 });
+  const tail = new THREE.MeshStandardMaterial({ color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 1.8 });
 
-  // main body (rounded feel via layered boxes)
   const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.65, 4.4), paint);
-  body.position.y = 0.72;
-  body.castShadow = true;
-  g.add(body);
+  body.position.y = 0.72; body.castShadow = true; g.add(body);
 
   const bodyLow = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.3, 4.2), paint);
-  bodyLow.position.y = 0.42;
-  bodyLow.castShadow = true;
-  g.add(bodyLow);
+  bodyLow.position.y = 0.42; bodyLow.castShadow = true; g.add(bodyLow);
 
-  // cabin
   const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.55, 1.9), glass);
-  cabin.position.set(0, 1.24, -0.15);
-  cabin.castShadow = true;
-  g.add(cabin);
+  cabin.position.set(0, 1.24, -0.15); cabin.castShadow = true; g.add(cabin);
 
-  // roof cap (body color)
   const roof = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 1.7), paint);
-  roof.position.set(0, 1.53, -0.15);
-  g.add(roof);
+  roof.position.set(0, 1.53, -0.15); g.add(roof);
 
-  // hood
   const hood = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.08, 1.5), paint);
-  hood.position.set(0, 1.06, 1.5);
-  g.add(hood);
+  hood.position.set(0, 1.06, 1.5); g.add(hood);
 
-  // rear spoiler
   const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.08, 0.42), paint);
-  spoiler.position.set(0, 1.2, -2.1);
-  g.add(spoiler);
+  spoiler.position.set(0, 1.2, -2.1); g.add(spoiler);
 
-  // headlights
-  const hg = new THREE.BoxGeometry(0.45, 0.16, 0.1);
   for (const x of [-0.6, 0.6]) {
-    const hl = new THREE.Mesh(hg, head);
-    hl.position.set(x, 0.85, 2.22);
-    g.add(hl);
-  }
-  // taillights
-  const tg = new THREE.BoxGeometry(0.5, 0.14, 0.1);
-  for (const x of [-0.6, 0.6]) {
-    const tl = new THREE.Mesh(tg, tail);
-    tl.position.set(x, 0.9, -2.22);
-    g.add(tl);
+    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.16, 0.1), head);
+    hl.position.set(x, 0.85, 2.22); g.add(hl);
+    const tl = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.1), tail);
+    tl.position.set(x, 0.9, -2.22); g.add(tl);
   }
 
-  // wheels
   const wheels = [];
   const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.32, 20);
   const rimGeo = new THREE.CylinderGeometry(0.26, 0.26, 0.33, 8);
-  const positions = [
-    [-1.0, 0.42, 1.5], [1.0, 0.42, 1.5],
-    [-1.0, 0.42, -1.5], [1.0, 0.42, -1.5]
-  ];
+  const positions = [[-1.0, 0.42, 1.5], [1.0, 0.42, 1.5], [-1.0, 0.42, -1.5], [1.0, 0.42, -1.5]];
   for (const [x, y, z] of positions) {
     const w = new THREE.Mesh(wheelGeo, rubber);
-    w.rotation.z = Math.PI / 2;
-    w.position.set(x, y, z);
-    w.castShadow = true;
-    g.add(w);
-    wheels.push(w);
-
+    w.rotation.z = Math.PI / 2; w.position.set(x, y, z); w.castShadow = true; g.add(w); wheels.push(w);
     const r = new THREE.Mesh(rimGeo, chrome);
-    r.rotation.z = Math.PI / 2;
-    r.position.set(x, y, z);
-    g.add(r);
+    r.rotation.z = Math.PI / 2; r.position.set(x, y, z); g.add(r);
   }
-
   g.userData.wheels = wheels;
   return g;
 }
@@ -669,10 +549,7 @@ world.defaultContactMaterial.restitution = 0.05;
 world.broadphase = new CANNON.SAPBroadphase(world);
 world.allowSleep = false;
 
-const groundBody = new CANNON.Body({
-  mass: 0,
-  shape: new CANNON.Plane()
-});
+const groundBody = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
 groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
 world.addBody(groundBody);
 
@@ -691,37 +568,16 @@ class Vehicle {
     this.body.angularDamping = 0.6;
     world.addBody(this.body);
 
-    this.ray = new CANNON.RaycastVehicle({
-      chassisBody: this.body,
-      indexRightAxis: 0,
-      indexUpAxis: 1,
-      indexForwardAxis: 2
-    });
+    this.ray = new CANNON.RaycastVehicle({ chassisBody: this.body, indexRightAxis: 0, indexUpAxis: 1, indexForwardAxis: 2 });
 
     const opts = {
-      radius: 0.42,
-      directionLocal: new CANNON.Vec3(0, -1, 0),
-      axleLocal: new CANNON.Vec3(-1, 0, 0),
-      suspensionStiffness: 38,
-      suspensionRestLength: 0.35,
-      frictionSlip: 3.2,
-      dampingRelaxation: 2.3,
-      dampingCompression: 4.4,
-      maxSuspensionForce: 100000,
-      rollInfluence: 0.02,
-      maxSuspensionTravel: 0.3,
-      customSlidingRotationalSpeed: -30,
-      useCustomSlidingRotationalSpeed: true
+      radius: 0.42, directionLocal: new CANNON.Vec3(0, -1, 0), axleLocal: new CANNON.Vec3(-1, 0, 0),
+      suspensionStiffness: 38, suspensionRestLength: 0.35, frictionSlip: 3.2,
+      dampingRelaxation: 2.3, dampingCompression: 4.4, maxSuspensionForce: 100000,
+      rollInfluence: 0.02, maxSuspensionTravel: 0.3, customSlidingRotationalSpeed: -30, useCustomSlidingRotationalSpeed: true
     };
-
-    [
-      [-1.0, 0, 1.5], [1.0, 0, 1.5],
-      [-1.0, 0, -1.5], [1.0, 0, -1.5]
-    ].forEach(p => {
-      this.ray.addWheel({
-        ...opts,
-        chassisConnectionPointLocal: new CANNON.Vec3(p[0], p[1], p[2])
-      });
+    [[-1.0, 0, 1.5], [1.0, 0, 1.5], [-1.0, 0, -1.5], [1.0, 0, -1.5]].forEach(p => {
+      this.ray.addWheel({ ...opts, chassisConnectionPointLocal: new CANNON.Vec3(p[0], p[1], p[2]) });
     });
     this.ray.addToWorld(world);
 
@@ -729,6 +585,7 @@ class Vehicle {
     scene.add(this.mesh);
 
     this.controls = { throttle: 0, brake: 0, steer: 0, handbrake: 0 };
+    // SAFETY: start with valid numbers so the HUD/audio never receive NaN
     this.speed = 0;
     this.gear = 1;
     this.rpm = 900;
@@ -737,10 +594,9 @@ class Vehicle {
 
   update(dt) {
     const r = this.ray;
-    const kmh = Math.abs(r.currentVehicleSpeed * 3.6);
+    const kmh = Math.abs(r.currentVehicleSpeed * 3.6) || 0;
     this.speed = kmh;
 
-    // auto gear
     if (kmh < 1) this.gear = 0;
     else if (kmh < 25) this.gear = 1;
     else if (kmh < 55) this.gear = 2;
@@ -749,24 +605,18 @@ class Vehicle {
     else if (kmh < 205) this.gear = 5;
     else this.gear = 6;
 
-    // rpm
     const ratios = [0, 3.5, 2.3, 1.7, 1.3, 1.0, 0.8];
-    const targetRpm = this.gear === 0
-      ? 900
-      : 1000 + (kmh / this.specs.topSpeed) * 7000 * (ratios[this.gear] / 3.5);
+    const targetRpm = this.gear === 0 ? 900 : 1000 + (kmh / this.specs.topSpeed) * 7000 * (ratios[this.gear] / 3.5);
     this.rpm = THREE.MathUtils.lerp(this.rpm, Math.min(7500, Math.max(900, targetRpm)), 0.12);
 
-    // engine force
     const power = this.specs.power * 90;
     const force = this.controls.throttle * power * (this.gear ? 1 / Math.sqrt(this.gear) : 1);
     for (let i = 0; i < 4; i++) r.applyEngineForce(-force, i);
 
-    // steering
     const steerTarget = this.controls.steer * 0.5;
     r.setSteeringValue(steerTarget, 0);
     r.setSteeringValue(steerTarget, 1);
 
-    // brake
     const brakeF = this.controls.brake * 250;
     for (let i = 0; i < 4; i++) r.setBrake(brakeF, i);
     if (this.controls.handbrake) {
@@ -774,11 +624,9 @@ class Vehicle {
       r.setBrake(1200, 3);
     }
 
-    // sync
     this.mesh.position.copy(this.body.position);
     this.mesh.quaternion.copy(this.body.quaternion);
 
-    // spin wheels
     this.wheelSpin += (r.currentVehicleSpeed / 0.42) * dt;
     this.mesh.userData.wheels.forEach(w => { w.rotation.x = this.wheelSpin; });
   }
@@ -792,7 +640,7 @@ class Vehicle {
 }
 
 /* ============================================================
-   ENGINE SOUND (Web Audio synthesis)
+   ENGINE SOUND (Fixed to prevent NaN errors)
    ============================================================ */
 class EngineAudio {
   constructor() {
@@ -824,10 +672,14 @@ class EngineAudio {
     this.master.gain.setTargetAtTime(0.28, this.ctx.currentTime, 0.15);
   }
   update(rpm, throttle) {
+    // SAFETY: Guard against NaN/Infinity reaching Web Audio API
+    if (!isFinite(rpm) || rpm <= 0) rpm = 900;
+    if (!isFinite(throttle)) throttle = 0;
+
     const base = Math.max(20, rpm / 60);
     this.oscs.forEach(({ o, g, h }) => {
       o.frequency.setTargetAtTime(base * h, this.ctx.currentTime, 0.03);
-      g.gain.setTargetAtTime((0.06 + throttle * 0.12) / (h), this.ctx.currentTime, 0.06);
+      g.gain.setTargetAtTime((0.06 + throttle * 0.12) / h, this.ctx.currentTime, 0.06);
     });
     this.filter.frequency.setTargetAtTime(500 + rpm * 0.35, this.ctx.currentTime, 0.05);
     this.master.gain.setTargetAtTime(0.18 + throttle * 0.14, this.ctx.currentTime, 0.1);
@@ -857,19 +709,13 @@ function spawn(key) {
   engine.start();
 
   document.getElementById('carName').textContent = specs.name;
-
-  // update active button
-  document.querySelectorAll('.car-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.car === key);
-  });
+  document.querySelectorAll('.car-btn').forEach(b => b.classList.toggle('active', b.dataset.car === key));
 }
 
 /* ============================================================
    CAR SELECTOR UI
    ============================================================ */
 const carBar = document.getElementById('carBar');
-
-// Simple SVG silhouettes (no emoji)
 const silhouettes = {
   bmw: `<svg viewBox="0 0 60 22"><rect x="4" y="10" width="52" height="8" rx="2"/><rect x="16" y="4" width="28" height="7" rx="2"/><circle cx="14" cy="19" r="3.5"/><circle cx="46" cy="19" r="3.5"/></svg>`,
   mustang: `<svg viewBox="0 0 60 22"><rect x="4" y="11" width="52" height="7" rx="1.5"/><rect x="14" y="4" width="26" height="7" rx="1.5"/><rect x="42" y="8" width="14" height="4" rx="1"/><circle cx="14" cy="19" r="3.5"/><circle cx="46" cy="19" r="3.5"/></svg>`,
@@ -894,42 +740,33 @@ const arcProgress = document.getElementById('arcProgress');
 const needle = document.getElementById('needle');
 const speedVal = document.getElementById('speedVal');
 const gearEl = document.getElementById('gear');
-const ARC_LENGTH = 2 * Math.PI * 78 * (270 / 360); // ~367
+const ARC_LENGTH = 2 * Math.PI * 78 * (270 / 360);
 
-// tick marks
 (function makeTicks() {
   const g = document.getElementById('ticks');
   const ns = 'http://www.w3.org/2000/svg';
   for (let i = 0; i <= 14; i++) {
     const a = (-135 + (270 / 14) * i) * Math.PI / 180;
     const rOuter = 78, rInner = i % 2 === 0 ? 68 : 72;
-    const x1 = 100 + rOuter * Math.cos(a);
-    const y1 = 100 + rOuter * Math.sin(a);
-    const x2 = 100 + rInner * Math.cos(a);
-    const y2 = 100 + rInner * Math.sin(a);
     const line = document.createElementNS(ns, 'line');
-    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('x1', 100 + rOuter * Math.cos(a)); line.setAttribute('y1', 100 + rOuter * Math.sin(a));
+    line.setAttribute('x2', 100 + rInner * Math.cos(a)); line.setAttribute('y2', 100 + rInner * Math.sin(a));
     if (i % 2 === 0) line.setAttribute('stroke', 'rgba(255,255,255,0.6)');
     g.appendChild(line);
   }
 })();
 
 function updateSpeedo(kmh, rpm, gear) {
+  if (!isFinite(kmh)) kmh = 0;
+  if (!isFinite(rpm)) rpm = 900;
+
   const max = 350;
   const t = Math.min(kmh / max, 1);
   const angle = -135 + 270 * t;
 
-  // progress arc (with dash offset)
   arcProgress.setAttribute('stroke-dasharray', `${ARC_LENGTH * t} 9999`);
-
-  // needle
   needle.setAttribute('transform', `rotate(${angle} 100 100)`);
-
-  // text
   speedVal.textContent = Math.round(kmh);
-
-  // gear
   gearEl.textContent = gear === 0 ? 'N' : gear;
 }
 
@@ -937,13 +774,9 @@ function updateSpeedo(kmh, rpm, gear) {
    INPUT
    ============================================================ */
 const keys = {};
-window.addEventListener('keydown', e => {
-  keys[e.code] = true;
-  if (e.code === 'KeyR' && vehicle) vehicle.reset();
-});
+window.addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'KeyR' && vehicle) vehicle.reset(); });
 window.addEventListener('keyup', e => keys[e.code] = false);
 
-// Touch pedals
 const pedals = { gas: false, brake: false };
 document.querySelectorAll('[data-pedal]').forEach(el => {
   const type = el.dataset.pedal;
@@ -957,7 +790,6 @@ document.querySelectorAll('[data-pedal]').forEach(el => {
   el.addEventListener('mouseleave', off);
 });
 
-// Touch steering
 const steer = { left: false, right: false };
 document.querySelectorAll('[data-steer]').forEach(el => {
   const dir = el.dataset.steer;
@@ -991,7 +823,6 @@ function updateCamera(dt) {
   const lookAt = new THREE.Vector3(p.x, p.y + 1.0, p.z);
   camera.lookAt(lookAt);
 
-  // sun follows car for consistent shadows
   sunLight.target.position.set(p.x, 0, p.z);
   sunLight.position.set(p.x + 120, 90, p.z + 60);
 }
@@ -1006,7 +837,6 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
 
-  // combine inputs
   if (vehicle) {
     const kThrottle = (keys['KeyW'] || keys['ArrowUp']) ? 1 : 0;
     const kBrake = (keys['KeyS'] || keys['ArrowDown']) ? 1 : 0;
@@ -1015,8 +845,7 @@ function animate() {
 
     vehicle.controls.throttle = Math.max(kThrottle, pedals.gas ? 1 : 0);
     vehicle.controls.brake = Math.max(kBrake, pedals.brake ? 1 : 0);
-    vehicle.controls.steer =
-      (kRight || steer.right ? 1 : 0) - (kLeft || steer.left ? 1 : 0);
+    vehicle.controls.steer = (kRight || steer.right ? 1 : 0) - (kLeft || steer.left ? 1 : 0);
     vehicle.controls.handbrake = keys['Space'] ? 1 : 0;
 
     world.step(fixedStep, dt, 3);
@@ -1039,18 +868,11 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// start
 spawn('bmw');
 animate();
 
-// hide loader + fade hint
-setTimeout(() => {
-  document.getElementById('loader').classList.add('hidden');
-}, 500);
-setTimeout(() => {
-  document.getElementById('hint').classList.add('fade');
-}, 6000);
-
+setTimeout(() => document.getElementById('loader').classList.add('hidden'), 500);
+setTimeout(() => document.getElementById('hint').classList.add('fade'), 6000);
 </script>
 </body>
 </html>
