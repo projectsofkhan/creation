@@ -5,27 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<title>Apex Drive | Ultimate Racing</title>
+<meta name="theme-color" content="#050508">
+<title>Apex Drive | Ultimate Racing Engine</title>
 
-<!-- ============================================================ -->
-<!-- CORE STYLES                                                  -->
-<!-- ============================================================ -->
+<!-- ========================================================================= -->
+<!-- CSS DESIGN SYSTEM & CORE STYLES                                           -->
+<!-- ========================================================================= -->
 <style>
-  /* Reset & Base Variables */
+  /* ----------------------------------------------------------------------- */
+  /* 1. GLOBAL RESET & VARIABLES                                             */
+  /* ----------------------------------------------------------------------- */
   :root {
-    --bg-color: #050508;
-    --text-main: #ffffff;
-    --text-muted: rgba(255, 255, 255, 0.5);
-    --glass-bg: rgba(20, 20, 30, 0.45);
-    --glass-border: rgba(255, 255, 255, 0.12);
-    --glass-highlight: rgba(255, 255, 255, 0.25);
-    --accent: #ff3366;
-    --accent-glow: rgba(255, 51, 102, 0.4);
-    --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: "SF Mono", "Roboto Mono", "Courier New", monospace;
+    --bg-main: #050508;
+    --bg-secondary: #0a0a12;
+    --bg-tertiary: #12121c;
+    
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.4);
+    --text-disabled: rgba(255, 255, 255, 0.2);
+    
+    --accent-primary: #ff3366;
+    --accent-secondary: #00e676;
+    --accent-warning: #ffcc00;
+    --accent-danger: #ff1744;
+    
+    --glass-bg: rgba(18, 18, 28, 0.65);
+    --glass-bg-hover: rgba(30, 30, 45, 0.8);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-border-highlight: rgba(255, 255, 255, 0.25);
+    --glass-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+    
+    --font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: 'SF Mono', 'Roboto Mono', 'Courier New', monospace;
+    
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
   }
 
-  * {
+  *, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -39,14 +59,18 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background: var(--bg-color);
-    color: var(--text-main);
-    font-family: var(--font-main);
+    background: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-display);
     overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* App Container */
-  #app {
+  /* ----------------------------------------------------------------------- */
+  /* 2. LAYOUT CONTAINERS                                                    */
+  /* ----------------------------------------------------------------------- */
+  #app-container {
     position: fixed;
     top: 0;
     left: 0;
@@ -56,355 +80,401 @@
     flex-direction: column;
   }
 
-  /* Force Landscape Container */
-  #game-root {
+  #game-stage {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    transform-origin: center center;
-    transition: transform 0.3s ease;
+    overflow: hidden;
     background: #000;
+    z-index: 1;
+    transform-origin: center center;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   }
 
-  /* Canvas */
-  #render-canvas {
+  #game-canvas {
     display: block;
     width: 100%;
     height: 100%;
     outline: none;
   }
 
-  /* ============================================================ */
-  /* PORTRAIT BLOCKER / ROTATE OVERLAY                            */
-  /* ============================================================ */
-  #rotate-overlay {
+  /* ----------------------------------------------------------------------- */
+  /* 3. ORIENTATION & LOADING SCREENS                                        */
+  /* ----------------------------------------------------------------------- */
+  #portrait-blocker {
     position: fixed;
     inset: 0;
-    background: var(--bg-color);
+    background: var(--bg-main);
     display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 30px;
+    gap: 25px;
     z-index: 99999;
   }
 
-  #rotate-overlay.active {
+  #portrait-blocker.visible {
     display: flex;
   }
 
-  #rotate-overlay svg {
-    width: 64px;
-    height: 64px;
-    stroke: var(--text-muted);
-    stroke-width: 1.5;
+  #portrait-blocker .icon-container {
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    border: 2px solid var(--text-disabled);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: rotateDevice 2.5s ease-in-out infinite;
+  }
+
+  #portrait-blocker .icon-container svg {
+    width: 40px;
+    height: 40px;
+    stroke: var(--text-secondary);
+    stroke-width: 2;
     fill: none;
-    animation: rotatePhone 3s ease-in-out infinite;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
-  #rotate-overlay p {
-    font-size: 14px;
-    letter-spacing: 6px;
+  #portrait-blocker h2 {
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 4px;
     text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  #portrait-blocker p {
+    font-size: 12px;
     color: var(--text-muted);
+    letter-spacing: 1px;
   }
 
-  @keyframes rotatePhone {
+  @keyframes rotateDevice {
     0%, 100% { transform: rotate(0deg); }
-    50% { transform: rotate(90deg); }
+    30%, 70% { transform: rotate(90deg); }
   }
 
-  /* ============================================================ */
-  /* LOADING SCREEN                                               */
-  /* ============================================================ */
   #loading-screen {
     position: fixed;
     inset: 0;
-    background: #050508;
+    background: var(--bg-main);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 10000;
-    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.6s ease, visibility 0.6s ease;
   }
 
   #loading-screen.hidden {
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
   }
 
-  .loader-brand {
-    font-size: 12px;
-    letter-spacing: 12px;
+  .loading-logo {
+    font-size: 24px;
     font-weight: 700;
+    letter-spacing: 12px;
     text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-    animation: pulseBrand 2s infinite;
+    margin-bottom: 10px;
+    background: linear-gradient(90deg, #fff, var(--text-muted));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: pulseLogo 2s infinite;
   }
 
-  .loader-bar-container {
-    width: 240px;
-    height: 2px;
+  .loading-subtitle {
+    font-size: 10px;
+    letter-spacing: 6px;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+
+  .loading-progress-container {
+    width: 300px;
+    height: 3px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 2px;
+    border-radius: 3px;
     overflow: hidden;
     position: relative;
   }
 
-  .loader-bar-fill {
+  .loading-progress-bar {
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, #fff, var(--accent));
-    border-radius: 2px;
-    transition: width 0.4s ease;
-    box-shadow: 0 0 10px var(--accent-glow);
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-warning));
+    border-radius: 3px;
+    box-shadow: 0 0 15px var(--accent-primary);
+    transition: width 0.3s ease;
   }
 
-  .loader-text {
+  .loading-status {
     margin-top: 15px;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: rgba(255, 255, 255, 0.3);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
   }
 
-  @keyframes pulseBrand {
-    0%, 100% { opacity: 0.5; }
+  .loading-percentage {
+    position: absolute;
+    right: 0;
+    top: -25px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  @keyframes pulseLogo {
+    0%, 100% { opacity: 0.7; }
     50% { opacity: 1; }
   }
 
-  /* ============================================================ */
-  /* CAR SELECTION SCREEN                                         */
-  /* ============================================================ */
-  #select-screen {
+  /* ----------------------------------------------------------------------- */
+  /* 4. CAR SELECTION MENU                                                   */
+  /* ----------------------------------------------------------------------- */
+  #menu-screen {
     position: fixed;
     inset: 0;
-    background: linear-gradient(180deg, #050508 0%, #0a0a12 100%);
     z-index: 9000;
+    background: linear-gradient(135deg, var(--bg-main) 0%, var(--bg-secondary) 100%);
     display: flex;
     flex-direction: column;
-    padding: 30px;
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition: opacity 0.4s ease, transform 0.4s ease;
   }
 
-  #select-screen.hidden {
+  #menu-screen.hidden {
     opacity: 0;
     pointer-events: none;
     transform: scale(1.05);
   }
 
-  .select-header {
+  .menu-header {
+    padding: calc(20px + var(--safe-top)) calc(30px + var(--safe-right)) 15px calc(30px + var(--safe-left));
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .select-title-group h1 {
-    font-size: 24px;
+  .menu-header-left h1 {
+    font-size: 28px;
     font-weight: 200;
-    letter-spacing: 2px;
+    letter-spacing: 4px;
+    margin-bottom: 4px;
   }
 
-  .select-title-group span {
-    font-size: 10px;
-    letter-spacing: 8px;
+  .menu-header-left span {
+    font-size: 11px;
     color: var(--text-muted);
+    letter-spacing: 6px;
     text-transform: uppercase;
   }
 
-  .select-tag {
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--accent);
-    border: 1px solid var(--accent-glow);
-    padding: 4px 10px;
-    border-radius: 20px;
-    background: rgba(255, 51, 102, 0.05);
+  .menu-header-right {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
-  .car-grid {
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-secondary);
+    box-shadow: 0 0 10px var(--accent-secondary);
+  }
+
+  .menu-content {
     flex: 1;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    gap: 15px;
+    gap: 20px;
+    padding: 20px calc(30px + var(--safe-right)) 20px calc(30px + var(--safe-left));
+    overflow-y: auto;
   }
 
   .car-card {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    padding: 20px;
+    border-radius: 24px;
+    padding: 24px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     position: relative;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: var(--glass-shadow);
   }
 
-  .car-card::before {
+  .car-card::after {
     content: '';
     position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 50% 0%, var(--glass-highlight), transparent 70%);
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent);
+    pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s;
+  }
+
+  .car-card:hover::after, .car-card.active::after {
+    opacity: 1;
   }
 
   .car-card.active {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--glass-highlight);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  }
-
-  .car-card.active::before {
-    opacity: 1;
+    border-color: var(--accent-primary);
+    background: var(--glass-bg-hover);
+    box-shadow: 0 0 30px rgba(255, 51, 102, 0.15);
   }
 
   .car-card:active {
     transform: scale(0.98);
   }
 
-  .car-svg-container {
+  .car-card-visual {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    position: relative;
     z-index: 1;
   }
 
-  .car-svg-container svg {
+  .car-card-visual svg {
     width: 100%;
-    max-width: 160px;
+    max-width: 200px;
     height: auto;
-    stroke: rgba(255, 255, 255, 0.2);
+    stroke: var(--text-disabled);
     stroke-width: 1.5;
     fill: none;
-    transition: stroke 0.3s ease;
+    transition: stroke 0.3s;
   }
 
-  .car-card.active .car-svg-container svg {
-    stroke: #fff;
+  .car-card.active .car-card-visual svg {
+    stroke: var(--text-primary);
   }
 
-  .car-details {
+  .car-card-info {
+    position: relative;
     z-index: 1;
   }
 
-  .car-name {
-    font-size: 16px;
+  .car-card-info h3 {
+    font-size: 18px;
     font-weight: 600;
+    margin-bottom: 12px;
     letter-spacing: 1px;
-    margin-bottom: 8px;
   }
 
-  .car-specs {
+  .car-card-specs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .spec-item {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
   }
 
-  .car-spec-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10px;
+  .spec-label {
+    font-size: 9px;
     color: var(--text-muted);
-    letter-spacing: 1px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
   }
 
-  .car-spec-row span:last-child {
-    color: #fff;
+  .spec-value {
+    font-size: 13px;
     font-weight: 600;
+    color: var(--text-primary);
+    font-family: var(--font-mono);
   }
 
-  .start-btn-container {
-    margin-top: 20px;
+  .menu-footer {
+    padding: 20px calc(30px + var(--safe-right)) calc(30px + var(--safe-bottom)) calc(30px + var(--safe-left));
     display: flex;
     justify-content: center;
   }
 
-  #start-btn {
+  #btn-start-game {
     width: 100%;
     max-width: 400px;
-    padding: 20px;
-    background: #fff;
-    color: #000;
+    padding: 22px;
+    background: var(--text-primary);
+    color: var(--bg-main);
     font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 8px;
+    font-weight: 800;
+    letter-spacing: 6px;
     text-transform: uppercase;
-    border-radius: 16px;
     border: none;
+    border-radius: 16px;
     cursor: pointer;
-    transition: transform 0.2s ease, background 0.2s ease;
     box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);
+    transition: all 0.2s;
   }
 
-  #start-btn:active {
-    transform: scale(0.96);
-    background: #ddd;
+  #btn-start-game:hover {
+    background: #eeeeee;
+    transform: translateY(-2px);
   }
 
-  /* ============================================================ */
-  /* IN-GAME HUD                                                  */
-  /* ============================================================ */
-  #hud {
+  #btn-start-game:active {
+    transform: scale(0.97) translateY(0);
+  }
+
+  /* ----------------------------------------------------------------------- */
+  /* 5. IN-GAME HUD                                                          */
+  /* ----------------------------------------------------------------------- */
+  #hud-layer {
     position: absolute;
     inset: 0;
-    pointer-events: none;
     z-index: 100;
+    pointer-events: none;
     opacity: 0;
-    transition: opacity 0.5s ease;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    transition: opacity 0.4s ease;
+    padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
   }
 
-  #hud.active {
+  #hud-layer.visible {
     opacity: 1;
   }
 
-  #hud > * {
+  #hud-layer > * {
     pointer-events: auto;
   }
 
-  /* Top Bar Info */
-  .hud-top-info {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    text-align: right;
-  }
-
-  .hud-car-name {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-  }
-
-  .hud-trans-mode {
-    font-size: 9px;
-    letter-spacing: 2px;
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
-
-  /* Back Button */
-  .hud-back-btn {
+  /* Top Bar */
+  .hud-top-bar {
     position: absolute;
     top: 20px;
     left: 20px;
-    width: 44px;
-    height: 44px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .hud-btn-back {
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
@@ -414,37 +484,57 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background 0.2s ease;
+    box-shadow: var(--glass-shadow);
   }
 
-  .hud-back-btn:active {
-    background: var(--glass-highlight);
+  .hud-btn-back:active {
+    background: var(--glass-bg-hover);
+    transform: scale(0.95);
   }
 
-  .hud-back-btn svg {
-    width: 20px;
-    height: 20px;
-    stroke: #fff;
-    stroke-width: 2;
+  .hud-btn-back svg {
+    width: 22px;
+    height: 22px;
+    stroke: var(--text-primary);
+    stroke-width: 2.5;
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
 
+  .hud-car-indicator {
+    text-align: right;
+  }
+
+  .hud-car-indicator h2 {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  }
+
+  .hud-car-indicator span {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    font-family: var(--font-mono);
+  }
+
   /* Paddle Shifters */
-  .paddle-container {
+  .hud-paddle-container {
     position: absolute;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 15px;
+    gap: 12px;
   }
 
-  .paddle-btn {
-    height: 48px;
-    padding: 0 24px;
-    border-radius: 24px;
+  .hud-paddle-btn {
+    height: 52px;
+    padding: 0 28px;
+    border-radius: 26px;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(15px);
@@ -452,48 +542,50 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 12px;
     cursor: pointer;
-    transition: all 0.1s ease;
+    box-shadow: var(--glass-shadow);
+    transition: all 0.1s;
   }
 
-  .paddle-btn:active, .paddle-btn.pressed {
-    background: var(--glass-highlight);
+  .hud-paddle-btn:active, .hud-paddle-btn.pressed {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-highlight);
     transform: scale(0.95);
   }
 
-  .paddle-btn svg {
-    width: 18px;
-    height: 18px;
-    stroke: #fff;
+  .hud-paddle-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--text-primary);
     stroke-width: 2.5;
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
 
-  .paddle-btn span {
-    font-size: 10px;
-    letter-spacing: 2px;
+  .hud-paddle-btn .paddle-label {
+    font-size: 11px;
     font-weight: 700;
-    color: var(--text-muted);
+    letter-spacing: 2px;
+    color: var(--text-secondary);
   }
 
   /* Speedometer */
-  .speedo-container {
+  .hud-speedo-container {
     position: absolute;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    width: 200px;
-    height: 120px;
+    width: 220px;
+    height: 130px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
   }
 
-  .speedo-svg {
+  .hud-speedo-svg {
     position: absolute;
     bottom: 0;
     left: 0;
@@ -502,39 +594,46 @@
     overflow: visible;
   }
 
-  .speedo-value {
-    font-size: 38px;
+  .hud-speedo-value {
+    font-size: 42px;
     font-weight: 200;
-    font-variant-numeric: tabular-nums;
     line-height: 1;
-    text-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
     z-index: 2;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
   }
 
-  .speedo-unit {
+  .hud-speedo-unit {
     font-size: 10px;
-    letter-spacing: 5px;
+    font-weight: 600;
+    letter-spacing: 6px;
     color: var(--text-muted);
     z-index: 2;
-    margin-bottom: 15px;
+    margin-bottom: 18px;
   }
 
-  .speedo-gear {
+  .hud-speedo-gear-badge {
     position: absolute;
-    top: 10px;
+    top: 15px;
     right: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 700;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 800;
     z-index: 2;
+    box-shadow: var(--glass-shadow);
   }
 
   /* Steering Controls */
-  .steer-container {
+  .hud-steer-container {
     position: absolute;
     bottom: 30px;
     left: 30px;
@@ -542,9 +641,9 @@
     gap: 20px;
   }
 
-  .steer-btn {
-    width: 76px;
-    height: 76px;
+  .hud-steer-btn {
+    width: 84px;
+    height: 84px;
     border-radius: 50%;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
@@ -554,18 +653,20 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.1s ease;
+    box-shadow: var(--glass-shadow);
+    transition: all 0.1s;
   }
 
-  .steer-btn:active, .steer-btn.pressed {
-    background: var(--glass-highlight);
+  .hud-steer-btn:active, .hud-steer-btn.pressed {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-highlight);
     transform: scale(0.92);
   }
 
-  .steer-btn svg {
-    width: 32px;
-    height: 32px;
-    stroke: #fff;
+  .hud-steer-btn svg {
+    width: 36px;
+    height: 36px;
+    stroke: var(--text-primary);
     stroke-width: 2.5;
     fill: none;
     stroke-linecap: round;
@@ -573,7 +674,7 @@
   }
 
   /* Pedal Controls */
-  .pedal-container {
+  .hud-pedal-container {
     position: absolute;
     bottom: 30px;
     right: 30px;
@@ -582,9 +683,9 @@
     align-items: flex-end;
   }
 
-  .pedal-btn {
-    width: 76px;
-    height: 76px;
+  .hud-pedal-btn {
+    width: 84px;
+    height: 84px;
     border-radius: 50%;
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
@@ -594,39 +695,41 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.1s ease;
+    box-shadow: var(--glass-shadow);
+    transition: all 0.1s;
   }
 
-  .pedal-btn.gas {
-    width: 96px;
-    height: 96px;
+  .hud-pedal-btn.gas-pedal {
+    width: 104px;
+    height: 104px;
   }
 
-  .pedal-btn:active, .pedal-btn.pressed {
-    background: var(--glass-highlight);
+  .hud-pedal-btn:active, .hud-pedal-btn.pressed {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-highlight);
     transform: scale(0.92);
   }
 
-  .pedal-btn svg {
-    width: 32px;
-    height: 32px;
-    stroke: #fff;
+  .hud-pedal-btn svg {
+    width: 36px;
+    height: 36px;
+    stroke: var(--text-primary);
     stroke-width: 2.5;
     fill: none;
     stroke-linecap: round;
     stroke-linejoin: round;
   }
 
-  .pedal-btn.gas svg {
-    width: 40px;
-    height: 40px;
+  .hud-pedal-btn.gas-pedal svg {
+    width: 44px;
+    height: 44px;
   }
 
-  /* ============================================================ */
-  /* RESPONSIVE OVERRIDES & LANDSCAPE FORCING                     */
-  /* ============================================================ */
+  /* ----------------------------------------------------------------------- */
+  /* 6. ORIENTATION AND RESPONSIVENESS OVERRIDES                             */
+  /* ----------------------------------------------------------------------- */
   @media (orientation: portrait) {
-    #game-root {
+    #game-stage {
       width: 100vh;
       height: 100vw;
       top: 50%;
@@ -634,123 +737,135 @@
       transform: translate(-50%, -50%) rotate(90deg);
       position: fixed;
     }
+    
+    .menu-content {
+      grid-template-columns: 1fr;
+    }
   }
-  
+
   /* Utility Classes */
-  .hidden { display: none !important; }
-  .invisible { opacity: 0 !important; pointer-events: none !important; }
+  .no-display { display: none !important; }
+  .no-pointer { pointer-events: none !important; }
 </style>
 </head>
 <body>
 
-<!-- ============================================================ -->
-<!-- HTML STRUCTURE START                                         -->
-<!-- ============================================================ -->
+<!-- ========================================================================= -->
+<!-- HTML DOM STRUCTURE                                                        -->
+<!-- ========================================================================= -->
 
-<div id="app">
+<div id="app-container">
   
-  <!-- PORTRAIT ROTATE OVERLAY -->
-  <div id="rotate-overlay">
-    <svg viewBox="0 0 24 24">
-      <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-      <line x1="12" y1="18" x2="12.01" y2="18"></line>
-    </svg>
-    <p>Rotate Device</p>
+  <!-- PORTRAIT BLOCKER OVERLAY -->
+  <div id="portrait-blocker">
+    <div class="icon-container">
+      <svg viewBox="0 0 24 24">
+        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+        <line x1="12" y1="18" x2="12.01" y2="18"></line>
+      </svg>
+    </div>
+    <h2>Rotate Device</h2>
+    <p>Landscape orientation required</p>
   </div>
 
   <!-- LOADING SCREEN -->
   <div id="loading-screen">
-    <div class="loader-brand">Apex Drive</div>
-    <div class="loader-bar-container">
-      <div class="loader-bar-fill" id="loader-fill"></div>
+    <div class="loading-logo">Apex Drive</div>
+    <div class="loading-subtitle">Ultimate Racing Engine</div>
+    <div class="loading-progress-container">
+      <div class="loading-progress-bar" id="load-bar"></div>
+      <div class="loading-percentage" id="load-pct">0%</div>
     </div>
-    <div class="loader-text" id="loader-text">Initializing Engine...</div>
+    <div class="loading-status" id="load-status">Initializing engine...</div>
   </div>
 
-  <!-- MAIN GAME ROOT -->
-  <div id="game-root">
-    <canvas id="render-canvas"></canvas>
+  <!-- MAIN 3D RENDER STAGE -->
+  <div id="game-stage">
+    <canvas id="game-canvas"></canvas>
   </div>
 
-  <!-- CAR SELECTION SCREEN -->
-  <div id="select-screen" class="hidden">
-    <div class="select-header">
-      <div class="select-title-group">
-        <span>Choose Your Machine</span>
+  <!-- MAIN MENU SCREEN -->
+  <div id="menu-screen" class="hidden">
+    <div class="menu-header">
+      <div class="menu-header-left">
         <h1>Select Vehicle</h1>
+        <span>Choose your machine</span>
       </div>
-      <div class="select-tag">Live Physics</div>
+      <div class="menu-header-right">
+        <div class="status-dot"></div>
+        <span>LIVE PHYSICS</span>
+      </div>
     </div>
     
-    <div class="car-grid" id="car-grid">
-      <!-- Cards injected by JS -->
+    <div class="menu-content" id="menu-car-list">
+      <!-- Car cards injected here by JS -->
     </div>
     
-    <div class="start-btn-container">
-      <button id="start-btn">Start Engine</button>
+    <div class="menu-footer">
+      <button id="btn-start-game">Start Engine</button>
     </div>
   </div>
 
   <!-- IN-GAME HUD -->
-  <div id="hud" class="hidden">
+  <div id="hud-layer" class="hidden">
     
-    <!-- Back Button -->
-    <div class="hud-back-btn" id="btn-back">
-      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-    </div>
-
-    <!-- Top Right Info -->
-    <div class="hud-top-info">
-      <div class="hud-car-name" id="hud-car-name">BMW M5</div>
-      <div class="hud-trans-mode" id="hud-trans-mode">AUTOMATIC</div>
+    <!-- Top Bar -->
+    <div class="hud-top-bar">
+      <div class="hud-btn-back" id="btn-back-to-menu">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </div>
+      <div class="hud-car-indicator">
+        <h2 id="hud-car-name-display">BMW M5</h2>
+        <span id="hud-transmission-display">AUTOMATIC</span>
+      </div>
     </div>
 
     <!-- Paddle Shifters -->
-    <div class="paddle-container">
-      <div class="paddle-btn" id="btn-pad-down">
+    <div class="hud-paddle-container">
+      <div class="hud-paddle-btn" id="btn-shift-down">
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-        <span>DOWN</span>
+        <div class="paddle-label">DOWN</div>
       </div>
-      <div class="paddle-btn" id="btn-pad-up">
+      <div class="hud-paddle-btn" id="btn-shift-up">
         <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-        <span>UP</span>
+        <div class="paddle-label">UP</div>
       </div>
     </div>
 
     <!-- Speedometer -->
-    <div class="speedo-container">
-      <div class="speedo-gear" id="speedo-gear">1</div>
-      <div class="speedo-value" id="speedo-value">0</div>
-      <div class="speedo-unit">KM/H</div>
-      <svg class="speedo-svg" viewBox="0 0 200 120">
+    <div class="hud-speedo-container">
+      <div class="hud-speedo-gear-badge" id="hud-gear-value">1</div>
+      <div class="hud-speedo-value" id="hud-speed-value">0</div>
+      <div class="hud-speedo-unit">KM/H</div>
+      <svg class="hud-speedo-svg" viewBox="0 0 220 130">
         <defs>
-          <linearGradient id="speed-grad" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0%" stop-color="#00ff88"/>
-            <stop offset="50%" stop-color="#ffdd00"/>
-            <stop offset="100%" stop-color="#ff0044"/>
+          <linearGradient id="speed-gradient" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stop-color="#00e676"/>
+            <stop offset="50%" stop-color="#ffcc00"/>
+            <stop offset="100%" stop-color="#ff1744"/>
           </linearGradient>
         </defs>
-        <path d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6" stroke-linecap="round"/>
-        <path id="speedo-arc" d="M 15 100 A 85 85 0 0 1 185 100" fill="none" stroke="url(#speed-grad)" stroke-width="6" stroke-linecap="round" stroke-dasharray="0 267"/>
+        <path d="M 15 110 A 95 95 0 0 1 205 110" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8" stroke-linecap="round"/>
+        <path id="hud-speed-arc" d="M 15 110 A 95 95 0 0 1 205 110" fill="none" stroke="url(#speed-gradient)" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 298"/>
       </svg>
     </div>
 
     <!-- Steering -->
-    <div class="steer-container">
-      <div class="steer-btn" id="btn-left">
+    <div class="hud-steer-container">
+      <div class="hud-steer-btn" id="btn-steer-left">
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
       </div>
-      <div class="steer-btn" id="btn-right">
+      <div class="hud-steer-btn" id="btn-steer-right">
         <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>
 
     <!-- Pedals -->
-    <div class="pedal-container">
-      <div class="pedal-btn" id="btn-brake">
+    <div class="hud-pedal-container">
+      <div class="hud-pedal-btn" id="btn-pedal-brake">
         <svg viewBox="0 0 24 24"><line x1="6" y1="12" x2="18" y2="12"/></svg>
       </div>
-      <div class="pedal-btn gas" id="btn-gas">
+      <div class="hud-pedal-btn gas-pedal" id="btn-pedal-gas">
         <svg viewBox="0 0 24 24"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg>
       </div>
     </div>
@@ -758,9 +873,9 @@
   </div>
 </div>
 
-<!-- ============================================================ -->
-<!-- SCRIPT INJECTION                                             -->
-<!-- ============================================================ -->
+<!-- ========================================================================= -->
+<!-- MAIN SCRIPT INJECTION                                                     -->
+<!-- ========================================================================= -->
 <script type="module" src="./game.js"></script>
 
 </body>
