@@ -3,7 +3,7 @@ import { gameState, Audio, HUD, terrainHeight, Input } from './engine.js';
 import { CROPS } from './plants.js';
 
 /* ═══════════════════════════════════════════════════════════════
-   VERDANT VALE — tools.js  (FIXED)
+   VERDANT VALE — tools.js  (FULLY FIXED)
    ═══════════════════════════════════════════════════════════════ */
 
 // ── Shared materials for tools ──────────────────────────────
@@ -406,10 +406,12 @@ export function performAction(handManager, camera, plantManager, worldInteractab
       }
       return;
     }
-    if (plant.water < 0.4) {
+    
+    // FIXED: Plant uses soilWater now
+    if (plant.soilWater < 0.4) {
       if (held === 'wateringcan') {
         if (player.water > 0) {
-          plant.water_();
+          plant.waterPlant();
           player.water--;
           handManager.playSwing();
           window.dispatchEvent(new CustomEvent('hud-refresh'));
@@ -421,11 +423,13 @@ export function performAction(handManager, camera, plantManager, worldInteractab
       }
       return;
     }
+    
     if (plant.hasDisease) {
       plant.treat();
       handManager.playSwing();
       return;
     }
+    
     HUD.showToast(plant.getPrompt().replace(/<[^>]*>/g, ''));
     return;
   }
@@ -459,7 +463,6 @@ export function performAction(handManager, camera, plantManager, worldInteractab
     if (plant) {
       handManager.playSwing();
       spawnDirtPuff(targetX, targetY, targetZ);
-      // Switch to hands after planting so you don't waste seeds
       if (player.seeds[cropId] <= 0) handManager.setTool('hand');
     }
     return;
