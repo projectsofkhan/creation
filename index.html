@@ -2,40 +2,386 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>BLEACH · The Final Deception</title>
-<link rel="stylesheet" href="style.css">
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wild West — Target Practice</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { overflow:hidden; background:#1a0f08; font-family:'Courier New',monospace; color:#e8dcc8; }
+  #hud { position:fixed; inset:0; pointer-events:none; z-index:10; }
+  #crosshair { position:absolute; top:50%; left:50%; width:6px; height:6px; margin:-3px 0 0 -3px;
+    border:1px solid rgba(255,255,255,.8); border-radius:50%; }
+  #stats { position:absolute; top:20px; left:20px; font-size:14px; letter-spacing:1px;
+    text-shadow:0 1px 3px #000; }
+  #stats span { color:#c9a05a; }
+  #msg { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    font-size:28px; letter-spacing:4px; text-align:center; text-shadow:0 2px 10px #000;
+    opacity:0; transition:opacity .4s; pointer-events:none; }
+  #start { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; background:radial-gradient(#2a1810,#0a0503);
+    cursor:pointer; text-align:center; padding:20px; }
+  #start h1 { font-size:clamp(24px,6vw,48px); letter-spacing:8px; color:#d4a85a;
+    text-shadow:0 0 30px rgba(200,120,40,.5); margin-bottom:16px; }
+  #start p { color:#8a7a68; font-size:14px; letter-spacing:2px; margin:6px 0; }
+  #start .hint { color:#c9a05a; margin-top:24px; font-size:16px; }
+  #start small { color:#5a4a38; margin-top:40px; font-size:11px; max-width:420px; line-height:1.6; }
+  .vignette { position:fixed; inset:0; pointer-events:none; z-index:5;
+    background:radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.6) 100%); }
+</style>
 </head>
 <body>
-<div id="stage">
-  <div class="lb" style="top:0"></div>
-  <div class="lb" style="bottom:0"></div>
-  <div class="o" id="chr"></div>
-  <div class="o" id="fl"></div>
-  <div class="o" id="ban"></div>
-  <div class="o" id="sub"></div>
-  <div class="o" id="st">
-    <h1>BLEACH</h1>
-    <h2>THE FINAL DECEPTION</h2>
-    <button id="go">▶ PLAY</button>
-    <p>Sound on · Landscape · 3 minutes</p>
-    <p id="ld" style="font-size:14px;opacity:.6;margin-top:20px">Loading audio…</p>
-  </div>
-  <div class="o" id="en">
-    <h1>THE ALMIGHTY</h1>
-    <h2>VS</h2>
-    <h1>KYŌKA SUIGETSU</h1>
-    <button id="re">REPLAY</button>
-  </div>
+<div id="hud">
+  <div id="crosshair"></div>
+  <div id="stats">SCORE <span id="score">0</span> · AMMO <span id="ammo">6</span> / 6</div>
+  <div id="msg"></div>
 </div>
-<script type="module" src="script.js"></script>
+<div class="vignette"></div>
+<div id="start">
+  <h1>WILD WEST</h1>
+  <p>TARGET PRACTICE · 1899</p>
+  <p>CLICK TO DRAW</p>
+  <div class="hint">[ LEFT CLICK ] shoot · [ R ] reload</div>
+  <small>Sounds are synthesized (WebAudio). To use real audio, download western SFX from OpenGameArt/Freesound and paste local URLs into the SOUNDS object in the script.</small>
+</div>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ============================================================
+   SOUND — synthesized by default. Paste real URLs to override.
+   ============================================================ */
+// Download from OpenGameArt/Freesound, drop files next to this HTML, then uncomment:
+const SOUNDS = {
+  shot:   null, // './sounds/gunshot.mp3'
+  reload: null, // './sounds/reload.mp3'
+  hit:    null, // './sounds/ding.mp3'
+  wind:   null, // './sounds/desert-wind.mp3'
+};
+
+let AC = null, masterGain = null, noiseBuf = null;
+async function initAudio() {
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') await AC.resume();
+    masterGain = AC.createGain(); masterGain.gain.value = .5; masterGain.connect(AC.destination);
+    noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  } catch(e) { AC = null; }
+}
+function noise(type, f0, f1, dur, vol, q = 1) {
+  if (!AC) return;
+  const s = AC.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+  const f = AC.createBiquadFilter(); f.type = type; f.Q.value = q;
+  const t = AC.currentTime;
+  f.frequency.setValueAtTime(f0, t);
+  f.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  const g = AC.createGain();
+  g.gain.setValueAtTime(.0001, t);
+  g.gain.linearRampToValueAtTime(vol, t + dur * .05);
+  g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  s.connect(f); f.connect(g); g.connect(masterGain);
+  s.start(t); s.stop(t + dur + .05);
+}
+function tone(type, f0, f1, dur, vol, delay = 0) {
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  const t = AC.currentTime + delay;
+  o.type = type; o.frequency.setValueAtTime(f0, t);
+  o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g); g.connect(masterGain); o.start(t); o.stop(t + dur + .05);
+}
+const audioCache = {};
+function playFile(url, vol = 1) {
+  if (!url) return false;
+  if (!audioCache[url]) audioCache[url] = new Audio(url);
+  try {
+    const c = audioCache[url].cloneNode();
+    c.volume = vol; c.play().catch(()=>{});
+    return true;
+  } catch(e) { return false; }
+}
+function playShot() {
+  if (playFile(SOUNDS.shot, .8)) return;
+  // synth gunshot: crack + low thump
+  noise('highpass', 6000, 800, .08, .9);
+  tone('sine', 180, 40, .18, .8);
+  noise('lowpass', 800, 60, .25, .5, .7);
+}
+function playReload() {
+  if (playFile(SOUNDS.reload, .7)) return;
+  tone('square', 800, 400, .04, .2);
+  tone('square', 600, 300, .04, .2, .12);
+  tone('square', 900, 500, .04, .15, .28);
+}
+function playHit() {
+  if (playFile(SOUNDS.hit, .8)) return;
+  tone('sine', 1200, 1800, .15, .5);
+  tone('sine', 1800, 2400, .12, .3, .05);
+}
+function startWind() {
+  if (playFile(SOUNDS.wind, .3)) return;
+  // looping synth wind
+  if (!AC) return;
+  const s = AC.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+  const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300; f.Q.value = .5;
+  const g = AC.createGain(); g.gain.value = .06;
+  const lfo = AC.createOscillator(); lfo.frequency.value = .1;
+  const lfoG = AC.createGain(); lfoG.gain.value = .03;
+  lfo.connect(lfoG); lfoG.connect(g.gain);
+  s.connect(f); f.connect(g); g.connect(masterGain);
+  s.start(); lfo.start();
+}
+
+/* ============================================================
+   SCENE
+   ============================================================ */
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a0f08);
+scene.fog = new THREE.Fog(0x1a0f08, 30, 90);
+
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, .1, 200);
+camera.position.set(0, 1.7, 6);
+camera.lookAt(0, 1.7, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+document.body.insertBefore(renderer.domElement, document.getElementById('hud'));
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ---- Lights: warm sunset ---- */
+const sun = new THREE.DirectionalLight(0xffa860, 2.5);
+sun.position.set(-15, 8, -20);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -25; sun.shadow.camera.right = 25;
+sun.shadow.camera.top = 25; sun.shadow.camera.bottom = -25;
+sun.shadow.camera.far = 60;
+scene.add(sun);
+
+scene.add(new THREE.AmbientLight(0x5a3a28, 1.2));
+const fill = new THREE.DirectionalLight(0x4a6a9a, .6);
+fill.position.set(10, 5, 10);
+scene.add(fill);
+
+/* ---- Ground: cracked dirt plane ---- */
+const groundGeo = new THREE.PlaneGeometry(120, 120, 40, 40);
+const gPos = groundGeo.attributes.position;
+for (let i = 0; i < gPos.count; i++) {
+  const x = gPos.getX(i), y = gPos.getY(i);
+  gPos.setZ(i, (Math.sin(x*.3)*Math.cos(y*.2))*0.15 + (Math.random()-.5)*0.08);
+}
+groundGeo.computeVertexNormals();
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x6a4a30, roughness: .95, metalness: 0 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI/2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+/* ---- Fence posts (atmosphere) ---- */
+const postMat = new THREE.MeshStandardMaterial({ color: 0x3a2418, roughness: .9 });
+for (let i = 0; i < 20; i++) {
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, 1.6, 6), postMat);
+  post.position.set(-12 + i*1.3, .8, -18);
+  post.castShadow = true;
+  scene.add(post);
+}
+
+/* ---- Distant mesas (silhouettes) ---- */
+const mesaMat = new THREE.MeshStandardMaterial({ color: 0x2a1810, roughness: 1 });
+for (let i = 0; i < 8; i++) {
+  const w = 8 + Math.random()*15, h = 4 + Math.random()*8;
+  const mesa = new THREE.Mesh(new THREE.BoxGeometry(w, h, w*.6), mesaMat);
+  mesa.position.set(-60 + i*18, h/2, -70);
+  scene.add(mesa);
+}
+
+/* ---- Dead trees ---- */
+function makeTree(x, z) {
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.1, .18, 3.5, 5), postMat);
+  trunk.position.set(x, 1.75, z);
+  trunk.castShadow = true;
+  scene.add(trunk);
+  for (let i = 0; i < 4; i++) {
+    const branch = new THREE.Mesh(new THREE.CylinderGeometry(.03, .06, 1.2, 4), postMat);
+    branch.position.set(x + (Math.random()-.5)*1.2, 2.2 + Math.random()*1.2, z + (Math.random()-.5)*1.2);
+    branch.rotation.z = (Math.random()-.5)*1.4;
+    branch.rotation.x = (Math.random()-.5)*1.4;
+    branch.castShadow = true;
+    scene.add(branch);
+  }
+}
+makeTree(-8, -10);
+makeTree(7, -14);
+makeTree(-3, -20);
+
+/* ============================================================
+   TARGETS
+   ============================================================ */
+const targets = [];
+const targetMat = new THREE.MeshStandardMaterial({ color: 0xc9a05a, roughness: .7, emissive: 0x3a2008, emissiveIntensity: .3 });
+const ringMat = new THREE.MeshStandardMaterial({ color: 0x8a2a1a, roughness: .8 });
+
+function spawnTarget() {
+  const g = new THREE.Group();
+  // bottle body
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.12, .14, .5, 10), targetMat);
+  body.position.y = .25; body.castShadow = true;
+  g.add(body);
+  // neck
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.06, .1, .2, 8), targetMat);
+  neck.position.y = .6; neck.castShadow = true;
+  g.add(neck);
+  // ring band
+  const band = new THREE.Mesh(new THREE.TorusGeometry(.12, .015, 6, 14), ringMat);
+  band.position.y = .45; band.rotation.x = Math.PI/2;
+  g.add(band);
+
+  const angle = (Math.random() - .5) * 1.2;
+  const dist = 8 + Math.random() * 10;
+  const x = Math.sin(angle) * dist;
+  const z = -dist;
+  g.position.set(x, 0, z);
+  g.userData = { alive: true, respawnAt: 0 };
+  scene.add(g);
+  targets.push(g);
+  return g;
+}
+
+// Start with 6 targets
+for (let i = 0; i < 6; i++) spawnTarget();
+
+/* ============================================================
+   SHOOTING
+   ============================================================ */
+const raycaster = new THREE.Raycaster();
+const crosshairEl = document.getElementById('crosshair');
+const scoreEl = document.getElementById('score');
+const ammoEl = document.getElementById('ammo');
+const msgEl = document.getElementById('msg');
+
+let score = 0, ammo = 6, maxAmmo = 6, reloading = false, locked = false;
+
+function showMsg(text, dur = 800) {
+  msgEl.textContent = text; msgEl.style.opacity = 1;
+  clearTimeout(showMsg._t);
+  showMsg._t = setTimeout(() => msgEl.style.opacity = 0, dur);
+}
+
+function shoot() {
+  if (!locked || reloading) return;
+  if (ammo <= 0) { playReload(); reload(); return; }
+  ammo--;
+  ammoEl.textContent = ammo;
+  playShot();
+  crosshairEl.style.transform = 'translateY(8px)';
+  setTimeout(() => crosshairEl.style.transform = '', 60);
+
+  raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+  const hits = raycaster.intersectObjects(targets, true);
+  if (hits.length) {
+    let obj = hits[0].object;
+    while (obj.parent && !targets.includes(obj)) obj = obj.parent;
+    if (targets.includes(obj) && obj.userData.alive) {
+      obj.userData.alive = false;
+      obj.visible = false;
+      obj.userData.respawnAt = performance.now() + 1200;
+      score += 100;
+      scoreEl.textContent = score;
+      playHit();
+      showMsg('+100');
+    }
+  }
+}
+
+function reload() {
+  if (reloading) return;
+  reloading = true;
+  ammoEl.textContent = '—';
+  setTimeout(() => {
+    ammo = maxAmmo;
+    ammoEl.textContent = ammo;
+    reloading = false;
+    playReload();
+  }, 700);
+}
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+document.getElementById('start').addEventListener('click', async () => {
+  await initAudio();
+  startWind();
+  document.getElementById('start').style.display = 'none';
+  renderer.domElement.requestPointerLock();
+});
+
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === renderer.domElement;
+  if (!locked) {
+    document.getElementById('start').style.display = 'flex';
+    document.getElementById('start').querySelector('.hint').textContent = 'CLICK TO RESUME';
+  }
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!locked) return;
+  const sens = .002;
+  camera.rotation.y -= e.movementX * sens;
+  camera.rotation.x -= e.movementY * sens;
+  camera.rotation.x = Math.max(-Math.PI/2 + .1, Math.min(Math.PI/2 - .1, camera.rotation.x));
+  camera.rotation.z = 0;
+  // keep order: yaw then pitch — use euler order YXZ
+});
+camera.rotation.order = 'YXZ';
+
+document.addEventListener('mousedown', (e) => {
+  if (e.button === 0) shoot();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyR') reload();
+});
+
+/* ============================================================
+   LOOP
+   ============================================================ */
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), .05);
+  const now = performance.now();
+
+  // respawn targets
+  for (const t of targets) {
+    if (!t.userData.alive && now > t.userData.respawnAt) {
+      // reposition
+      const angle = (Math.random() - .5) * 1.2;
+      const dist = 8 + Math.random() * 10;
+      t.position.set(Math.sin(angle) * dist, 0, -dist);
+      t.userData.alive = true;
+      t.visible = true;
+    }
+  }
+
+  // subtle bob
+  camera.position.y = 1.7 + Math.sin(now * .002) * .01;
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
 </body>
 </html>
