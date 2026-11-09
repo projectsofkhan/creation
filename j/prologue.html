@@ -1,1104 +1,562 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover" />
-<title>Feris & Joie — Prologue</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Just Like a Whisper — Prologue</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #000; cursor: pointer; }
-canvas { display: block; width: 100%; height: 100%; }
-
-#vignette {
-  position: fixed; inset: 0; pointer-events: none; z-index: 5;
-  background: radial-gradient(circle at 50% 50%, transparent 30%, rgba(0,0,0,0.75) 100%);
-}
-
-#text {
-  position: fixed;
-  bottom: 11%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 86%;
-  max-width: 780px;
-  text-align: center;
-  font-family: 'Georgia', 'Times New Roman', serif;
-  font-size: clamp(15px, 2.2vw, 21px);
-  line-height: 1.72;
-  letter-spacing: 0.4px;
-  color: #e0d8c8;
-  text-shadow: 0 2px 18px rgba(0,0,0,1), 0 0 50px rgba(0,0,0,0.9);
-  opacity: 0;
-  transition: opacity 0.9s ease;
-  pointer-events: none;
-  z-index: 10;
-  font-style: italic;
-}
-#text.show { opacity: 1; }
-#text em { font-style: normal; color: #f0e6d0; font-weight: 500; }
-#text .whisper { color: #a09684; font-size: 0.92em; }
-
-#chapter {
-  position: fixed;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  opacity: 0;
-  transition: opacity 1.6s ease;
-  pointer-events: none;
-  z-index: 10;
-}
-#chapter.show { opacity: 1; }
-#chapter .label {
-  font-family: 'Georgia', serif;
-  font-size: 12px;
-  letter-spacing: 10px;
-  text-transform: uppercase;
-  color: #8a8070;
-  margin-bottom: 28px;
-}
-#chapter .title {
-  font-family: 'Georgia', serif;
-  font-size: clamp(30px, 6vw, 64px);
-  font-weight: 300;
-  letter-spacing: 12px;
-  color: #ebe4d0;
-  text-transform: uppercase;
-  text-shadow: 0 0 50px rgba(0,0,0,1);
-}
-#chapter .subtitle {
-  font-family: 'Georgia', serif;
-  font-size: clamp(12px, 1.7vw, 15px);
-  letter-spacing: 7px;
-  color: #8a8070;
-  margin-top: 20px;
-  font-style: italic;
-}
-
-#skip {
-  position: fixed;
-  bottom: 22px;
-  right: 22px;
-  z-index: 100;
-  padding: 10px 22px;
-  font-family: 'Georgia', serif;
-  font-size: 11px;
-  letter-spacing: 4px;
-  text-transform: uppercase;
-  color: #8a8070;
-  border: 1px solid rgba(138,128,112,0.3);
-  border-radius: 40px;
-  background: rgba(0,0,0,0.5);
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.6s ease, color 0.3s ease;
-}
-#skip.show { opacity: 1; pointer-events: auto; }
-#skip:hover { color: #ebe4d0; }
-
-#end {
-  position: fixed; inset: 0;
-  background: #000;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  z-index: 200;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 2.4s ease, visibility 2.4s;
-  padding: 30px;
-  text-align: center;
-  cursor: pointer;
-}
-#end.show { opacity: 1; visibility: visible; }
-#end .title {
-  font-family: 'Georgia', serif;
-  font-size: clamp(38px, 8vw, 84px);
-  letter-spacing: 20px;
-  font-weight: 300;
-  color: #ebe4d0;
-  margin-bottom: 22px;
-  text-shadow: 0 0 70px rgba(200, 180, 140, 0.2);
-}
-#end .tagline {
-  font-family: 'Georgia', serif;
-  font-size: clamp(12px, 1.8vw, 15px);
-  letter-spacing: 7px;
-  color: #8a8070;
-  font-style: italic;
-  margin-bottom: 70px;
-}
-#end .hint {
-  font-family: 'Georgia', serif;
-  font-size: 11px;
-  letter-spacing: 5px;
-  color: #5a5048;
-  text-transform: uppercase;
-  animation: pulse 2.5s ease-in-out infinite;
-}
-@keyframes pulse {
-  0%,100% { opacity: 0.4; }
-  50%     { opacity: 0.9; }
-}
-
-#start {
-  position: fixed; inset: 0;
-  z-index: 150;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  background: #000;
-  text-align: center;
-  transition: opacity 1.2s ease;
-}
-#start.hide { opacity: 0; pointer-events: none; }
-#start .s1 {
-  font-family: 'Georgia', serif;
-  font-size: 12px;
-  letter-spacing: 10px;
-  color: #6a6058;
-  text-transform: uppercase;
-  margin-bottom: 26px;
-}
-#start .s2 {
-  font-family: 'Georgia', serif;
-  font-size: clamp(15px, 2vw, 18px);
-  letter-spacing: 4px;
-  color: #d8d0c0;
-  font-style: italic;
-  animation: pulse 3s ease-in-out infinite;
-}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Georgia,"Times New Roman",serif;color:#fff;-webkit-user-select:none;user-select:none}
+#menu{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 35%,#2a1a14 0%,#0a0706 62%,#020202 100%);transition:opacity 1s}
+#menu .k{letter-spacing:.5em;font-size:12px;opacity:.55;margin-bottom:18px}
+#menu h1{font-weight:400;font-size:clamp(26px,6.5vw,66px);letter-spacing:.18em;line-height:1.15}
+#menu h2{font-weight:400;font-style:italic;font-size:clamp(13px,2.2vw,20px);opacity:.75;margin:14px 0 36px;max-width:520px;line-height:1.6}
+#watch{cursor:pointer;border:1.5px solid #d8b48a;background:rgba(140,80,40,.2);color:#fff;font:inherit;font-size:19px;letter-spacing:.35em;padding:15px 42px 15px 50px;border-radius:50px;transition:.3s}
+#watch:hover{background:rgba(200,120,60,.42);transform:scale(1.05)}
+#menu small{margin-top:24px;opacity:.5;font-size:12px;max-width:430px;line-height:1.7}
+#rot{position:fixed;inset:0;z-index:60;background:#050805;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;color:#e8d8c0}
+#rot.show{display:flex}
+#rot svg{width:90px;height:90px;margin-bottom:22px;animation:rw 2.2s ease-in-out infinite}
+@keyframes rw{0%,100%{transform:rotate(-90deg)}50%{transform:rotate(0)}}
+#rot p{font-size:18px;letter-spacing:.25em;line-height:1.8}
+#stage{position:fixed;left:0;top:0;width:100vw;height:100vh;background:#000;overflow:hidden;visibility:hidden;transform-origin:0 0}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ov{position:absolute;inset:0;pointer-events:none}
+#vign{background:radial-gradient(ellipse 62% 78% at 50% 48%,transparent 42%,rgba(0,0,0,.6) 100%);z-index:2}
+.bar{position:absolute;left:0;right:0;height:7%;background:#000;z-index:3}
+#fade{background:#000;opacity:1;z-index:8}
+#sub{position:absolute;left:12%;right:12%;bottom:9%;text-align:center;font-size:clamp(11px,1.8vw,21px);line-height:1.4;text-shadow:0 2px 10px #000,0 0 3px #000,0 0 2px #000;z-index:5;opacity:0;transition:opacity .5s;font-style:italic}
+#sub.on{background:linear-gradient(90deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.6) 12%,rgba(0,0,0,.6) 88%,rgba(0,0,0,0) 100%);padding:.35em 1.2em;border-radius:.4em}
+#whisper{position:absolute;left:0;right:0;top:44%;text-align:center;font-size:clamp(13px,2.2vw,26px);letter-spacing:.55em;z-index:6;opacity:0;transition:opacity 1.2s;font-style:italic;color:#d8c8b0;text-shadow:0 0 20px #000}
+#end{position:absolute;inset:0;background:#000;z-index:9;opacity:0;transition:opacity 1.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+#end>*{opacity:0;transition:opacity 2.4s;position:absolute}
+#end>.on{opacity:1}
+#titlecard{font-size:clamp(20px,4.5vw,52px);letter-spacing:.42em;font-weight:400;top:47%;color:#efe0c8}
+#tagline{font-size:clamp(11px,1.5vw,18px);letter-spacing:.35em;font-style:italic;top:60%;color:#a89478;opacity:0;transition:opacity 2.4s}
+#hud{position:absolute;top:8%;right:3%;z-index:20;display:flex;gap:10px;opacity:0;transition:opacity .4s}
+#hud.show{opacity:1}
+#hud button{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer}
 </style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 </head>
 <body>
-
-<canvas id="c"></canvas>
-<div id="vignette"></div>
-<div id="text"></div>
-<div id="chapter">
-  <div class="label">Prologue</div>
-  <div class="title">Feris &amp; Joie</div>
-  <div class="subtitle">before the forest</div>
+<div id="menu">
+  <div class="k">A CINEMATIC SHORT — PROLOGUE</div>
+  <h1>JUST LIKE<br>A WHISPER</h1>
+  <h2>A story of two children, a war without end, and a bond that even death could not break.</h2>
+  <button id="watch">▶ &nbsp;BEGIN</button>
+  <small>Best experienced in landscape. Sound on for narration and music.</small>
 </div>
-<button id="skip">Skip</button>
-
-<div id="start">
-  <div class="s1">A story in the dark</div>
-  <div class="s2">tap to begin</div>
+<div id="rot"><svg viewBox="0 0 100 100" fill="none" stroke="#d8b48a" stroke-width="4"><rect x="14" y="26" width="72" height="48" rx="8"/><circle cx="50" cy="50" r="4" fill="#d8b48a"/></svg><p>PLEASE ROTATE YOUR DEVICE</p></div>
+<div id="stage">
+  <canvas id="c"></canvas>
+  <div class="ov" id="vign"></div>
+  <div class="bar" style="top:0"></div><div class="bar" style="bottom:0"></div>
+  <div id="whisper"></div>
+  <div id="sub"></div>
+  <div class="ov" id="fade"></div>
+  <div id="end">
+    <div id="titlecard">JUST LIKE A WHISPER</div>
+    <div id="tagline">The story begins.</div>
+  </div>
+  <div id="hud"><button id="snd">🔊</button><button id="exit">✕</button></div>
 </div>
+<script type="module">
+import * as THREE from 'three';
+const $=s=>document.querySelector(s);
+const canvas=$('#c'),stage=$('#stage');
+const touch=matchMedia('(pointer:coarse)').matches;
+const TOTAL=50;
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a));return t*t*(3-2*t)};
+const E=u=>u*u*(3-2*u);
+const C=h=>new THREE.Color(h);
+let _s=1337;const rnd=()=>((_s=(_s*16807)%2147483647)-1)/2147483646;
+const vn=(x,y)=>{const h=(x,y)=>{const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.floor(s)};const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);return h(xi,yi)*(1-u)*(1-v)+h(xi+1,yi)*u*(1-v)+h(xi,yi+1)*(1-u)*v+h(xi+1,yi+1)*u*v};
+const fbm=(x,y)=>{let a=.5,f=1,s=0;for(let i=0;i<4;i++){s+=a*vn(x*f,y*f);f*=2;a*=.5}return s};
+const gY=(x,z)=>.6*Math.sin(x*.15)*Math.cos(z*.13)-.3+0;
 
-<div id="end">
-  <div class="title">FERIS &amp; JOIE</div>
-  <div class="tagline">their story begins in the dark</div>
-  <div class="hint">tap to begin chapter one</div>
-</div>
+/* ---------- renderer ---------- */
+const renderer=new THREE.WebGLRenderer({canvas,antialias:!touch,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio||1,touch?1.5:2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0xd8c9a0,.0011);
+const camera=new THREE.PerspectiveCamera(46,16/9,.05,4000);
+const LB=0.87;
 
-<script>
-/* ════════════════════════════════════════════════════════════════
-   FERIS & JOIE — PROLOGUE
-   A real-time animated short. Canvas, 60fps, hand-coded.
-   ~3 minutes. Pure motion. No slideshows.
-   ════════════════════════════════════════════════════════════════ */
-
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const txt = document.getElementById('text');
-const chapterEl = document.getElementById('chapter');
-const skipBtn = document.getElementById('skip');
-const startEl = document.getElementById('start');
-const endEl = document.getElementById('end');
-
-let W = 0, H = 0, DPR = 1;
-
-function resize() {
-  DPR = Math.min(window.devicePixelRatio || 1, 2);
-  W = window.innerWidth;
-  H = window.innerHeight;
-  canvas.width = W * DPR;
-  canvas.height = H * DPR;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+let started=false;
+function needPortrait(){return started&&touch&&innerHeight>innerWidth}
+function layout(){
+  const W=innerWidth,H=innerHeight;
+  $('#rot').classList.toggle('show',needPortrait());
+  const portrait=H>W;
+  const w=portrait?H:W,h=portrait?W:H;
+  if(portrait&&touch){stage.style.width=w+'px';stage.style.height=h+'px';stage.style.transform=`translate(${W}px,0) rotate(90deg)`}
+  else{stage.style.width=W+'px';stage.style.height=H+'px';stage.style.transform='none'}
+  renderer.setSize(w,h,false);
+  camera.aspect=w/(h*LB);camera.updateProjectionMatrix();
+  camera.setViewOffset(w,h*LB,0,h*(1-LB)*.5,w,h*LB);
 }
-window.addEventListener('resize', resize);
-resize();
+addEventListener('resize',layout);
 
-// ════════════════════════════════════════════════════════════════
-//  TIMELINE ENGINE
-// ════════════════════════════════════════════════════════════════
-const timeline = {
-  t: 0,           // total elapsed seconds
-  running: false,
-  scenes: [],     // array of scene objects
-  current: 0,
-  paused: false,
-};
+/* ---------- materials ---------- */
+const toonGrad=(()=>{const t=new THREE.DataTexture(new Uint8Array([70,140,210,255]),4,1,THREE.RedFormat);t.minFilter=t.magFilter=THREE.NearestFilter;t.needsUpdate=true;return t})();
+const toon=(c,o={})=>new THREE.MeshToonMaterial({color:c,gradientMap:toonGrad,...o});
+const spriteTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.4,'rgba(255,255,255,.6)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
 
-// Easing
-const ease = {
-  inOut: (t) => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2,
-  out:   (t) => 1 - Math.pow(1-t, 3),
-  in:    (t) => t*t*t,
-  smooth: (t) => t*t*(3-2*t),
-};
+/* ---------- sky ---------- */
+const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{top:{value:C(0x3d84c8)},hor:{value:C(0xf2dfb4)},sunDir:{value:new THREE.Vector3(0,1,0)},sunCol:{value:C(0xffffff)},cloudCol:{value:C(0xffffff)},time:{value:0},cloud:{value:.3}},
+  vertexShader:`varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`varying vec3 vD;uniform vec3 top,hor,sunDir,sunCol,cloudCol;uniform float time,cloud;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+float fb(vec2 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*n(p);p*=2.02;a*=.5;}return s;}
+void main(){vec3 d=normalize(vD);float y=max(d.y,0.);vec3 col=mix(hor,top,pow(y,.55));
+float sd=max(dot(d,sunDir),0.);col+=sunCol*(pow(sd,600.)*4.+pow(sd,14.)*.4+pow(sd,3.)*.12);
+if(d.y>0.){vec2 uv=d.xz/(max(d.y,0.05)+.12)*1.2+vec2(time*.01,time*.004);float c=fb(uv*1.3);float cov=smoothstep(1.-cloud,1.-cloud+.28,c)*smoothstep(0.,.12,d.y);vec3 cc=cloudCol*(.75+.5*pow(sd,2.));col=mix(col,cc,cov*.9);}
+else col=mix(hor,hor*.7,clamp(-d.y*3.,0.,1.));
+gl_FragColor=vec4(col,1.);
+#include <tonemapping_fragment>
+#include <colorspace_fragment>
+}`});
+const sky=new THREE.Mesh(new THREE.SphereGeometry(1500,32,16),skyMat);sky.frustumCulled=false;sky.renderOrder=-10;scene.add(sky);
 
-// Utility: clamp + lerp + mix
-const clamp = (v,a,b) => v<a?a:v>b?b:v;
-const lerp = (a,b,t) => a + (b-a)*t;
-const mix = (c1, c2, t) => [
-  Math.round(lerp(c1[0], c2[0], t)),
-  Math.round(lerp(c1[1], c2[1], t)),
-  Math.round(lerp(c1[2], c2[2], t)),
-];
-const rgb = (c, a=1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+/* ---------- water ---------- */
+function makeWater(alpha){
+  return new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  uniforms:{time:{value:0},alpha:{value:alpha},fogD:{value:.001},sunDir:{value:new THREE.Vector3()},sunCol:{value:new THREE.Color()},hor:{value:new THREE.Color()},top:{value:new THREE.Color()},fogCol:{value:new THREE.Color()},deepCol:{value:C(0x2c3a3a)},shallowCol:{value:C(0x5a7a6a)}},
+  vertexShader:`varying vec3 wp;void main(){vec4 w=modelMatrix*vec4(position,1.);wp=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
+  fragmentShader:`uniform float time,alpha,fogD;uniform vec3 sunDir,sunCol,hor,top,fogCol,deepCol,shallowCol;varying vec3 wp;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+float fb(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n(p);p*=2.03;a*=.5;}return s;}
+void main(){vec2 p=wp.xz;vec2 fp=p+vec2(time*.55,time*.12);
+float n1=fb(fp*.35),n2=fb(fp*1.1+vec2(3.,7.));float e=.08;
+float dx=(fb(fp*.35+vec2(e,0.))-n1)/e,dz=(fb(fp*.35+vec2(0.,e))-n1)/e;
+vec3 nrm=normalize(vec3(-dx*.08,1.,-dz*.08));
+vec3 V=normalize(cameraPosition-wp);
+float fr=pow(1.-max(dot(nrm,V),0.),3.);
+vec3 skyc=mix(hor,top,clamp(reflect(-V,nrm).y,0.,1.)*.8);
+float sl=clamp(.5+.5*n2,0.,1.);
+vec3 body=mix(deepCol,shallowCol,sl*.55+fr*.25);
+vec3 col=mix(body,skyc,clamp(.1+fr*.82,0.,1.));
+vec3 R=reflect(-sunDir,nrm);col+=sunCol*pow(max(dot(R,V),0.),180.)*2.4;
+float dist=length(cameraPosition-wp);float f=1.-exp(-fogD*fogD*dist*dist);
+col=mix(col,fogCol,clamp(f,0.,1.));
+gl_FragColor=vec4(col,mix(.9,1.,fr)*alpha);
+#include <tonemapping_fragment>
+#include <colorspace_fragment>
+}`})}
+const waterMat=makeWater(1);
+const waterGeo=new THREE.PlaneGeometry(4000,4000);waterGeo.rotateX(-Math.PI/2);
+const water=new THREE.Mesh(waterGeo,waterMat);water.renderOrder=1;scene.add(water);
 
-// ════════════════════════════════════════════════════════════════
-//  PARTICLE SYSTEMS
-// ════════════════════════════════════════════════════════════════
-class Ember {
-  constructor(x, y) { this.reset(x, y); }
-  reset(x, y) {
-    this.x = x;
-    this.y = y;
-    this.vx = (Math.random() - 0.5) * 40;
-    this.vy = -20 - Math.random() * 60;
-    this.life = 0.5 + Math.random() * 2.5;
-    this.maxLife = this.life;
-    this.size = 1 + Math.random() * 2.5;
-    this.hue = 20 + Math.random() * 25;
-  }
-  update(dt, wind) {
-    this.life -= dt;
-    if (this.life <= 0) return false;
-    this.vx += wind * dt * 10;
-    this.vy -= 8 * dt;
-    this.vx *= 0.99;
-    this.x += this.vx * dt;
-    this.y += this.vy * dt;
-    return true;
-  }
-  draw(ctx) {
-    const a = clamp(this.life / this.maxLife, 0, 1);
-    const grd = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 4);
-    grd.addColorStop(0, `hsla(${this.hue}, 100%, 70%, ${a})`);
-    grd.addColorStop(0.5, `hsla(${this.hue}, 100%, 50%, ${a * 0.5})`);
-    grd.addColorStop(1, `hsla(${this.hue}, 100%, 40%, 0)`);
-    ctx.fillStyle = grd;
-    ctx.fillRect(this.x - this.size*4, this.y - this.size*4, this.size*8, this.size*8);
-  }
-}
+/* ---------- ground (three separate patches we move between) ---------- */
+function makeGround(color1,color2,rough=1){
+  const g=new THREE.PlaneGeometry(400,200,80,40);g.rotateX(-Math.PI/2);
+  const p=g.attributes.position,col=new Float32Array(p.count*3);
+  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),h=.6*Math.sin(x*.15)*Math.cos(z*.13)-.3;p.setY(i,h);
+    const n=vn(x*.2,z*.2);col.set([lerp(color1[0],color2[0],n),lerp(color1[1],color2[1],n),lerp(color1[2],color2[2],n)],i*3)}
+  g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();
+  return new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:rough}))}
+const SOUTH=[.62,.55,.36],SOUTH2=[.78,.7,.5];
+const NORTH=[.55,.6,.62],NORTH2=[.72,.76,.78];
+const BURNT=[.14,.12,.11],BURNT2=[.28,.24,.22];
+const groundS=makeGround(SOUTH,SOUTH2);groundS.receiveShadow=true;scene.add(groundS);
+const groundN=makeGround(NORTH,NORTH2,.9);groundN.receiveShadow=true;groundN.visible=false;scene.add(groundN);
+const groundB=makeGround(BURNT,BURNT2);groundB.receiveShadow=true;groundB.visible=false;scene.add(groundB);
 
-class RainDrop {
-  constructor(x, y) {
-    this.x = x; this.y = y;
-    this.len = 8 + Math.random() * 14;
-    this.speed = 400 + Math.random() * 300;
-    this.alpha = 0.15 + Math.random() * 0.35;
-  }
-  update(dt, wind) {
-    this.y += this.speed * dt;
-    this.x += wind * 50 * dt;
-    return this.y < H + 20;
-  }
-  draw(ctx) {
-    ctx.strokeStyle = `rgba(200,210,220,${this.alpha})`;
-    ctx.lineWidth = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(this.x, this.y);
-    ctx.lineTo(this.x - 1, this.y + this.len);
-    ctx.stroke();
-  }
-}
+/* ---------- lights ---------- */
+const hemi=new THREE.HemisphereLight(0xbfd8ff,0x8a7550,.8);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffffff,3);sun.castShadow=true;
+sun.shadow.mapSize.set(touch?1024:2048,touch?1024:2048);
+Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60,near:1,far:400});
+sun.shadow.bias=-.0004;sun.shadow.normalBias=.3;scene.add(sun,sun.target);
 
-class AshParticle {
-  constructor(x, y) {
-    this.x = x; this.y = y;
-    this.vx = (Math.random() - 0.5) * 15;
-    this.vy = 5 + Math.random() * 15;
-    this.life = 3 + Math.random() * 5;
-    this.maxLife = this.life;
-    this.size = 0.8 + Math.random() * 1.6;
-    this.sway = Math.random() * Math.PI * 2;
-  }
-  update(dt, wind) {
-    this.life -= dt;
-    if (this.life <= 0) return false;
-    this.sway += dt * 2;
-    this.x += this.vx * dt + Math.sin(this.sway) * 8 * dt + wind * 10 * dt;
-    this.y += this.vy * dt;
-    return true;
-  }
-  draw(ctx) {
-    const a = clamp(this.life / this.maxLife, 0, 1) * 0.6;
-    ctx.fillStyle = `rgba(120, 110, 100, ${a})`;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-    ctx.fill();
-  }
-}
-
-class SnowFlake {
-  constructor(x, y) {
-    this.x = x; this.y = y;
-    this.vx = (Math.random() - 0.5) * 20;
-    this.vy = 20 + Math.random() * 40;
-    this.size = 1 + Math.random() * 2;
-    this.sway = Math.random() * Math.PI * 2;
-    this.alpha = 0.4 + Math.random() * 0.5;
-  }
-  update(dt, wind) {
-    this.sway += dt * 1.5;
-    this.x += this.vx * dt + Math.sin(this.sway) * 15 * dt + wind * 15 * dt;
-    this.y += this.vy * dt;
-    return this.y < H + 10;
-  }
-  draw(ctx) {
-    ctx.fillStyle = `rgba(230, 235, 245, ${this.alpha})`;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-    ctx.fill();
-  }
+/* ---------- moods ---------- */
+const M=(t,el,az,si,sc,top,hor,fog,fd,hi,ex,cl,cc,rain)=>({t,el,az,si,sc:C(sc),top:C(top),hor:C(hor),fog:C(fog),fd,hi,ex,cl,cc:C(cc),rain});
+const MK=[
+M(0,50,215,3.2,0xfff0d2,0x3d84c8,0xf2dfb4,0xebdcb4,.0011,.8,1.05,.1,0xffffff,0),
+M(4,40,215,2.6,0xffd8a0,0x4a88c4,0xf0d0a0,0xe0c898,.0012,.85,1.05,.3,0xffe8d0,0),
+M(10,25,240,1.2,0xff8850,0x2a3a5a,0xc86040,0x7a3a28,.0028,.4,.95,.9,0xffa060,0),
+M(15,20,240,.6,0xff6030,0x101828,0x8a3020,0x3a1810,.0045,.2,.8,1,0x402020,0),
+M(16,35,240,1.6,0xb8c8d8,0x2a3440,0x5a6470,0x4a545e,.0032,.35,1,1,0x3a4048,0),
+M(21,38,240,1.5,0xb8c8d8,0x2a3440,0x5a6470,0x4a545e,.0032,.35,1,1,0x3a4048,0),
+M(22,30,240,1.4,0xa8b8c8,0x3a4450,0x6a7078,0x5a6068,.0045,.3,.95,1,0x505860,.4),
+M(29,35,240,1.6,0xc8d0d8,0x3a4450,0x8090a0,0x6a7a8a,.0035,.4,1,1,0x707880,.15),
+M(30,20,240,2.4,0xffb070,0x4a5a70,0xd89060,0xb08058,.0022,.6,1.05,.6,0xffc890,0),
+M(33,15,250,2,0xffa060,0x3a4a60,0xc87050,0x905840,.0026,.5,1,.8,0xffb070,0),
+M(37,12,250,1.6,0xff8050,0x2a2a40,0xa04030,0x602820,.0032,.35,.9,1,0xff7040,0),
+M(38,30,260,1.2,0xd0a880,0x4a4a4a,0x8a8070,0x6a6258,.004,.4,.85,1,0x605848,.15),
+M(43,20,260,1,0xa09080,0x3a3a3a,0x6a6058,0x4a4438,.005,.35,.8,1,0x403830,0),
+M(44,40,260,2.4,0xc8d8e0,0x4a6a80,0x8aa0b0,0x7a8a98,.003,.6,1,.8,0xa0b8c8,0),
+M(50,60,260,3,0xe0e8f0,0x4a7890,0x90b0c8,0x8098a8,.002,.8,1.05,.4,0xb8c8d8,0)];
+const mood={sc:new THREE.Color(),top:new THREE.Color(),hor:new THREE.Color(),fog:new THREE.Color(),cc:new THREE.Color()};
+const sunDir=new THREE.Vector3();
+const _sd=new THREE.Vector3(),_sdl=new THREE.Vector3();let sunLock=-1;
+function applyMood(T){
+  let i=0;while(i<MK.length-2&&T>=MK[i+1].t)i++;
+  const a=MK[i],b=MK[i+1],u=sstep(a.t,b.t,T);
+  for(const k of['el','az','si','fd','hi','ex','cl','rain'])mood[k]=lerp(a[k],b[k],u);
+  for(const k of['sc','top','hor','fog','cc'])mood[k].copy(a[k]).lerp(b[k],u);
+  const el=mood.el*Math.PI/180,az=mood.az*Math.PI/180;
+  _sd.set(Math.cos(el)*Math.sin(az),Math.sin(el),Math.cos(el)*Math.cos(az));
+  if(i!==sunLock){sunLock=i;_sdl.copy(_sd)}
+  sunDir.copy(_sdl).lerp(_sd,.02);
+  sun.color.copy(mood.sc);sun.intensity=mood.si;
+  hemi.color.copy(mood.top).lerp(new THREE.Color(1,1,1),.35);hemi.intensity=mood.hi;
+  scene.fog.color.copy(mood.fog);scene.fog.density=mood.fd;
+  renderer.toneMappingExposure=mood.ex;
+  const su=skyMat.uniforms;su.top.value.copy(mood.top);su.hor.value.copy(mood.hor);su.sunDir.value.copy(sunDir);su.sunCol.value.copy(mood.sc);su.cloudCol.value.copy(mood.cc);su.cloud.value=mood.cl;su.time.value=T;
+  const w=waterMat.uniforms;w.time.value=T;w.fogD.value=mood.fd;w.sunDir.value.copy(sunDir);w.sunCol.value.copy(mood.sc);w.hor.value.copy(mood.hor);w.top.value.copy(mood.top);w.fogCol.value.copy(mood.fog);
 }
 
-// ════════════════════════════════════════════════════════════════
-//  WORLD STATE
-// ════════════════════════════════════════════════════════════════
-const world = {
-  wind: 0,
-  windTarget: 0,
-  time: 0,
+/* ---------- person factory (from Forest Man) ---------- */
+const eyeMat=toon(0x0b0806);
+function makePerson(o){
+  const P={seed:rnd()*6,o};const g=new THREE.Group();P.g=g;
+  const root=new THREE.Group();g.add(root);P.root=root;
+  const upper=new THREE.Group();upper.position.y=.78;root.add(upper);P.upper=upper;
+  const skin=toon(o.skin),shirt=toon(o.shirt),pants=toon(o.pants),hair=toon(o.hair);
+  const add=(geo,mat,par,x=0,y=0,z=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;par.add(m);return m};
+  const torso=add(new THREE.CapsuleGeometry(.19,.36,4,12),shirt,upper,0,.34,0);torso.scale.set(1.12,1,.78);
+  add(new THREE.CylinderGeometry(.055,.065,.14,8),skin,upper,0,.76,0);
+  const head=new THREE.Group();head.position.y=.9;upper.add(head);P.head=head;
+  const hm=add(new THREE.SphereGeometry(.135,20,16),skin,head);hm.scale.set(.92,1.1,1);
+  const hr=add(new THREE.SphereGeometry(.142,20,12,0,Math.PI*2,0,Math.PI*.58),hair,head,0,.018,-.01);hr.rotation.x=-.28;
+  for(const sx of[-1,1])add(new THREE.SphereGeometry(.016,8,6),eyeMat,head,sx*.048,.02,.125);
+  if(o.robe){add(new THREE.CylinderGeometry(.25,.4,1.2,12),toon(o.robe),root,0,.6,0)}
+  if(o.cape){const cp=add(new THREE.PlaneGeometry(.5,1.1),toon(o.cape,{side:THREE.DoubleSide}),upper,0,-.1,-.22);cp.rotation.x=.1}
+  const limb=(par,x,y,len,r,mat)=>{const pv=new THREE.Group();pv.position.set(x,y,0);par.add(pv);add(new THREE.CapsuleGeometry(r,len,4,8),mat,pv,0,-(len/2+r*.8),0);return pv};
+  P.legL=limb(root,-.1,.78,.62,.085,pants);P.legR=limb(root,.1,.78,.62,.085,pants);
+  P.armL=limb(upper,-.27,.62,.44,.055,shirt);P.armR=limb(upper,.27,.62,.44,.055,shirt);
+  for(const a of[P.armL,P.armR])add(new THREE.SphereGeometry(.05,10,8),skin,a,0,-.55,0);
+  for(const l of[P.legL,P.legR])add(new THREE.BoxGeometry(.1,.05,.22),skin,l,0,-.75,.05);
+  g.scale.setScalar(o.scale||1);P.stoop=o.stoop||0;scene.add(g);return P}
+function pose(P,s,T){
+  P.g.visible=!!s.vis;if(!s.vis)return;
+  const k=s.kneel||0,ph=(s.dist||0)*3.6,swA=Math.sin(ph)*.75;
+  P.g.position.set(s.x,s.y,s.z);P.g.rotation.y=s.ry;
+  P.legL.rotation.x=k>0?lerp(swA,-1.05,k):swA;P.legR.rotation.x=k>0?lerp(-swA,1.55,k):-swA;
+  P.root.position.y=Math.abs(Math.cos(ph))*.025-.35*k+Math.sin(T*1.4+P.seed)*.008;
+  P.upper.rotation.x=k*.42+P.stoop+Math.sin(T*1.1+P.seed)*.008;
+  P.armL.rotation.x=(s.aL!==undefined?s.aL:-swA*.8)+Math.sin(T*.9+P.seed)*.05;
+  P.armR.rotation.x=(s.aR!==undefined?s.aR:swA*.8)-Math.sin(T*.9+P.seed)*.05;
+  P.armL.rotation.z=-.08;P.armR.rotation.z=.08;
+  P.head.rotation.x=(s.hx||0)+Math.sin(T*.7+P.seed)*.02;
+  P.head.rotation.y=(s.hy||0)+Math.sin(T*.55+P.seed*1.3)*.05}
 
-  embers: [],
-  rain: [],
-  ash: [],
-  snow: [],
+const PI=Math.PI;
+const FERIS=makePerson({skin:0x9a6a46,shirt:0x8a7a6a,pants:0x5a4a3a,hair:0x1a1210,scale:.9});
+const JOIE=makePerson({skin:0xa07050,shirt:0xd8c8b0,pants:0x8a6a4a,hair:0x2a1810,scale:.74});
+const KING=makePerson({skin:0x9a8878,shirt:0x1a1a20,pants:0x101018,hair:0x202018,robe:0x1a1820,cape:0x3a1010,scale:1.02,stoop:.05});
+const SOLDIERS=[];
+for(let i=0;i<5;i++)SOLDIERS.push(makePerson({skin:0x8a5a3a,shirt:0x2a2a30,pants:0x1a1a20,hair:0x121010,scale:1}));
+const VILLAGERS=[];
+for(let i=0;i<6;i++)VILLAGERS.push(makePerson({skin:[0x9a6a46,0xa07050,0x8a5a3a][i%3],shirt:[0x9a4a3a,0x6a8a4a,0xc9a24a][i%3],pants:0x4a3a2a,hair:[0x1a1210,0x3a2010,0x6a5040][i%3],scale:.9}));
+const ferS={},joeS={},kingS={},solS=SOLDIERS.map(()=>({})),vilS=VILLAGERS.map(()=>({}));
 
-  // Cinematic camera
-  cam: {
-    x: 0, y: 0, zoom: 1,
-    shakeX: 0, shakeY: 0,
-    targetX: 0, targetY: 0, targetZoom: 1,
-  },
+/* ---------- estate (prologue house) ---------- */
+const estate=new THREE.Group();estate.position.set(-60,0,-40);
+{const wallMat=toon(0xd8c8a0),roofMat=toon(0x8a4a2a);
+ const body=new THREE.Mesh(new THREE.BoxGeometry(14,6,10),wallMat);body.position.y=3;body.castShadow=body.receiveShadow=true;estate.add(body);
+ const roof=new THREE.Mesh(new THREE.ConeGeometry(11,3,4),roofMat);roof.position.y=7.5;roof.rotation.y=PI/4;roof.castShadow=true;estate.add(roof);
+ for(let i=0;i<4;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.6,1.2,1.2),toon(0x3a2a18));w.position.set(-7+i*4.5,3.5,5.05);estate.add(w)}
+ const chimney=new THREE.Mesh(new THREE.BoxGeometry(1.2,4,1.2),roofMat);chimney.position.set(4,8,-2);estate.add(chimney);
+ // river in front
+ const dock=new THREE.Mesh(new THREE.BoxGeometry(8,.4,2),toon(0x6a4a2a));dock.position.set(0,.2,12);estate.add(dock);
+}
+scene.add(estate);
 
-  // Scene-specific
-  fireIntensity: 0,
-  fireTarget: 0,
-  fog: 0,
-  fogTarget: 0,
-  knifeGlow: 0,
-  knifeGlowTarget: 0,
-  forestDarkness: 0,
-  forestTarget: 0,
-};
+/* ---------- fire (on estate) ---------- */
+const fireGroup=new THREE.Group();fireGroup.position.set(-60,0,-40);
+const fireMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
+ uniforms:{time:{value:0},alpha:{value:0}},
+ vertexShader:`varying vec2 uv;void main(){uv=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform float time,alpha;varying vec2 uv;
+ float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+ float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+ float fb(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n(p);p*=2.03;a*=.5;}return s;}
+ void main(){vec2 p=uv*1.5;float f=fb(p*2.+vec2(time*1.2,-time*2.5));
+ float shape=smoothstep(.3,.7,f+ (1.-uv.y)*.8);
+ float glow=1.-smoothstep(.4,1.,length(uv-vec2(0.,.1)));
+ vec3 col=mix(vec3(1.,.3,.1),vec3(1.,.9,.4),glow);
+ gl_FragColor=vec4(col,shape*glow*alpha);
+ #include <tonemapping_fragment>
+ #include <colorspace_fragment>
+ }`});
+for(let i=0;i<8;i++){const f=new THREE.Mesh(new THREE.PlaneGeometry(3+i*1.5,4+i*1.8),fireMat);f.position.set((i%4-1.5)*4,2.5+i%3*1.5,(Math.floor(i/4)-.5)*3);f.renderOrder=5;fireGroup.add(f)}
+fireGroup.visible=false;scene.add(fireGroup);
 
-// ════════════════════════════════════════════════════════════════
-//  RENDER PRIMITIVES
-// ════════════════════════════════════════════════════════════════
+/* ---------- throne room / frozen court (S4 King) ---------- */
+const court=new THREE.Group();court.position.set(0,0,-200);
+{const wallMat=toon(0x2a2e34),floorMat=toon(0x1a1c20);
+ const floor=new THREE.Mesh(new THREE.BoxGeometry(40,.4,40),floorMat);floor.receiveShadow=true;court.add(floor);
+ for(const[a,b,c]of[[0,6,-18],[0,6,18],[-18,6,0],[18,6,0]]){const w=new THREE.Mesh(new THREE.BoxGeometry(a||40,12,b||40),wallMat);w.position.set(c>0?18:c<-18?-18:0,6,c>0?18:c<-18?-18:0);if(a===0)w.scale.set(.2,1,1);if(c===0)w.scale.set(1,1,.2);w.position.set(c,6,a||0);court.add(w)}
+ // pillars
+ for(let i=0;i<6;i++){for(const s of[-1,1]){const p=new THREE.Mesh(new THREE.CylinderGeometry(.6,.7,10,10),toon(0x3a3a40));p.position.set(-12+i*5,5,s*16);court.add(p)}}
+ // throne
+ const throne=new THREE.Mesh(new THREE.BoxGeometry(3,4,2),toon(0x1a0a0a));throne.position.set(0,2,-15);court.add(throne);
+ const banner=new THREE.Mesh(new THREE.PlaneGeometry(6,8),toon(0x6a1a1a,{side:THREE.DoubleSide}));banner.position.set(0,8,-17);court.add(banner);
+ const crown=new THREE.Mesh(new THREE.ConeGeometry(.5,1,6),toon(0xc9a24a));crown.position.set(0,10,-15);court.add(crown);
+}
+court.visible=false;scene.add(court);
 
-// Draw a silhouette house with flickering fire glow
-function drawHouse(x, y, w, h, fireIntensity, tint) {
-  const flicker = 1 + Math.sin(world.time * 8 + x * 0.1) * 0.08 * fireIntensity
-                    + Math.sin(world.time * 13 + x) * 0.05 * fireIntensity;
-  const baseY = y;
-  const peakX = x + w/2;
-  const peakY = y - h - w*0.25;
+/* ---------- Northern village / iron (S5) ---------- */
+const northVill=new THREE.Group();northVill.position.set(200,0,-80);
+{const hutMat=toon(0x4a4a50),roofMat=toon(0x2a2a30);
+ for(let i=0;i<5;i++){const h=new THREE.Mesh(new THREE.BoxGeometry(4,3,4),hutMat);h.position.set(-10+i*5,1.5,0);h.rotation.y=i*.7;h.castShadow=true;northVill.add(h);
+  const r=new THREE.Mesh(new THREE.ConeGeometry(3.5,1.8,4),roofMat);r.position.set(-10+i*5,3.9,0);r.rotation.y=i*.7+PI/4;northVill.add(r)}
+ // iron banner
+ const pole=new THREE.Mesh(new THREE.CylinderGeometry(.1,.12,8,6),toon(0x2a2a2a));pole.position.set(0,4,8);northVill.add(pole);
+ const ban=new THREE.Mesh(new THREE.PlaneGeometry(2,3),toon(0x3a1a1a,{side:THREE.DoubleSide}));ban.position.set(1,6.5,8);northVill.add(ban);
+}
+northVill.visible=false;scene.add(northVill);
 
-  // Roof
-  ctx.fillStyle = tint;
-  ctx.beginPath();
-  ctx.moveTo(x, y - h);
-  ctx.lineTo(peakX, peakY);
-  ctx.lineTo(x + w, y - h);
-  ctx.closePath();
-  ctx.fill();
+/* ---------- Southern village (S6/S7) ---------- */
+const southVill=new THREE.Group();southVill.position.set(400,0,0);
+const villageHouses=[];
+{const wallMat=toon(0xd8c8a0),roofMat=toon(0x6a4a2a);
+ for(let i=0;i<6;i++){const hx=-15+i*6,hz=(i%2?4:-4);
+  const h=new THREE.Mesh(new THREE.BoxGeometry(5,4,4),wallMat);h.position.set(hx,2,hz);h.castShadow=h.receiveShadow=true;southVill.add(h);
+  const r=new THREE.Mesh(new THREE.ConeGeometry(4,2.4,4),roofMat);r.position.set(hx,5.2,hz);r.rotation.y=PI/4;southVill.add(r);
+  const d=new THREE.Mesh(new THREE.BoxGeometry(.9,1.8,.1),toon(0x4a2a18));d.position.set(hx,1.4,hz+2.05);southVill.add(d);
+  villageHouses.push({h,r,d})}
+}
+southVill.visible=false;scene.add(southVill);
 
-  // Body
-  ctx.fillRect(x, y - h, w, h);
+/* ---------- forest (S8 backdrop) ---------- */
+const forest=new THREE.Group();forest.position.set(600,0,0);
+{const trunkMat=toon(0x2a1e14),folMat=toon(0x1a2e1a);
+ for(let i=0;i<30;i++){const t=new THREE.Mesh(new THREE.CylinderGeometry(.2,.35,4+rnd()*3,6),trunkMat);t.position.set((rnd()-.5)*50,2,(rnd()-.5)*30);t.castShadow=true;forest.add(t);
+  const f=new THREE.Mesh(new THREE.IcosahedronGeometry(1.8+rnd()*.8,1),folMat);f.position.set(t.position.x,4+rnd()*2,t.position.z);f.scale.y=.85;forest.add(f)}}
+forest.visible=false;scene.add(forest);
 
-  // Windows (glowing when fire is on)
-  if (fireIntensity > 0.1) {
-    const glow = fireIntensity * flicker;
-    for (let i = 0; i < 2; i++) {
-      const wx = x + w*0.2 + i * w*0.5;
-      const wy = y - h*0.6;
-      const ww = w*0.18;
-      const wh = h*0.28;
-      const grd = ctx.createRadialGradient(wx+ww/2, wy+wh/2, 0, wx+ww/2, wy+wh/2, ww*2.5);
-      grd.addColorStop(0, `rgba(255, 200, 100, ${0.9*glow})`);
-      grd.addColorStop(0.4, `rgba(255, 120, 30, ${0.5*glow})`);
-      grd.addColorStop(1, `rgba(255, 60, 10, 0)`);
-      ctx.fillStyle = grd;
-      ctx.fillRect(wx-ww*1.5, wy-wh*1.5, ww*4, wh*4);
-
-      ctx.fillStyle = `rgba(255, 220, 140, ${glow})`;
-      ctx.fillRect(wx, wy, ww, wh);
-    }
-  }
+/* ---------- particles: ash / snow / embers ---------- */
+function particleSystem(count,color,size,vy,wind){
+  const g=new THREE.BufferGeometry(),pos=new Float32Array(count*3);
+  for(let i=0;i<count;i++){pos[i*3]=(rnd()-.5)*60;pos[i*3+1]=rnd()*20;pos[i*3+2]=(rnd()-.5)*60}
+  g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const m=new THREE.PointsMaterial({map:spriteTex,color,size,transparent:true,opacity:.8,depthWrite:false});
+  const p=new THREE.Points(g,m);p.userData={count,vy,wind,pos};p.frustumCulled=false;return p}
+const ash=particleSystem(400,0xaaaaaa,.15,.3,0);
+const embers=particleSystem(300,0xffa050,.2,.8,1);
+const snow=particleSystem(600,0xffffff,.22,.4,0);
+scene.add(ash,embers,snow);
+function updateParticles(p,dt,active,center){
+  p.visible=active;if(!active)return;
+  const a=p.geometry.attributes.position,d=a.array,v=p.userData;
+  for(let i=0;i<v.count;i++){a[i*3]+=Math.sin(T+i)*.01*v.wind+dt*.1;
+    a[i*3+1]-=dt*v.vy;
+    if(a[i*3+1]<-5){a[i*3+1]=15+Math.random()*5;a[i*3]=center.x+(Math.random()-.5)*50;a[i*3+2]=center.z+(Math.random()-.5)*50}}
+  d.needsUpdate=true;
 }
 
-// Draw a silhouette tree
-function drawTree(x, y, h, w, tint) {
-  ctx.fillStyle = tint;
-  // Trunk
-  ctx.fillRect(x - w*0.08, y - h*0.3, w*0.16, h*0.3);
-  // Foliage layers (pine)
-  for (let i = 0; i < 3; i++) {
-    const yOff = y - h*0.3 - i * h*0.22;
-    const wScale = 1 - i * 0.2;
-    ctx.beginPath();
-    ctx.moveTo(x - w*0.5*wScale, yOff);
-    ctx.lineTo(x, yOff - h*0.35);
-    ctx.lineTo(x + w*0.5*wScale, yOff);
-    ctx.closePath();
-    ctx.fill();
+/* ---------- lighting rig for court ---------- */
+const courtLight=new THREE.PointLight(0xff8050,0,40);courtLight.position.set(0,8,-10);scene.add(courtLight);
+
+/* ---------- state + camera ---------- */
+let T=0,dt=.016,playing=false,last=0,soundOn=true,lastShot=-1,cueI=0,subEnd=0,whisperEl=$('#whisper');
+const S=[ferS,joeS,kingS,...solS,...vilS];
+const put=(s,x,z,ry)=>{s.x=x;s.z=z;s.y=gY(x,z);s.ry=ry;s.walk=0};
+const mv=(s,x,z,spd)=>{const dx=x-s.x,dz=z-s.z,d=Math.hypot(dx,dz);if(d>1e-4){s.ry=Math.atan2(dx,dz);s.dist=(s.dist||0)+d;s.walk=clamp(d/dt/spd)}else s.walk=0;s.x=x;s.z=z;s.y=gY(x,z)};
+const cp=new THREE.Vector3(0,420,260),cl=new THREE.Vector3(),dp=new THREE.Vector3(),dl=new THREE.Vector3();
+const lv=(v,a,b,u)=>v.set(lerp(a[0],b[0],u),lerp(a[1],b[1],u),lerp(a[2],b[2],u));
+function shot(id,k){if(id!==lastShot){lastShot=id;cp.copy(dp);cl.copy(dl)}else{cp.lerp(dp,k);cl.lerp(dl,k)}}
+
+/* ---------- narration ---------- */
+const CUES=[
+[1,"They say it is only a rumor… but the people whisper."],
+[16,"The King of the North was not always a tyrant. Once, he had a wife, a daughter… and a home by the river."],
+[22,"But the North had iron and frost. The South had gold and summer. And he convinced his people the South was the cause of all their suffering."],
+[34,"On this night, his army reached the children's village."],
+[44,"Two children survived. And in the depths of the forest… their real story begins."]];
+function say(s){if(!soundOn||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.rate=.92;u.pitch=.8;const vs=speechSynthesis.getVoices(),v=vs.find(v=>/en[-_]IN/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)}
+
+/* ---------- audio ---------- */
+let AC=null,mg,windG,fireG,padG,padF,pads=[],lastStep=-1,lastBar=-1;
+const CH=[[50,53,57],[48,52,55],[45,48,52],[50,53,57]];
+const mf=n=>440*Math.pow(2,(n-69)/12);
+function audioInit(){try{AC=new(window.AudioContext||window.webkitAudioContext)();mg=AC.createGain();mg.gain.value=.8;mg.connect(AC.destination);
+const nb=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+const mkN=(f,q,type)=>{const s=AC.createBufferSource();s.buffer=nb;s.loop=true;const fl=AC.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=AC.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(mg);s.start();return g};
+windG=mkN(300,.4,'lowpass');fireG=mkN(800,.5,'bandpass');
+padF=AC.createBiquadFilter();padF.type='lowpass';padF.frequency.value=600;padG=AC.createGain();padG.gain.value=0;padF.connect(padG);padG.connect(mg);
+pads=[];for(let i=0;i<4;i++){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=200;o.detune.value=(i-1.5)*6;o.connect(padF);o.start();pads.push(o)}}catch(e){AC=null}}
+function tone(f,v,d){if(!AC)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(mg);o.start(t);o.stop(t+d+.05)}
+function audio(){if(!AC||!soundOn)return;const t=AC.currentTime;
+const intensity=sstep(0,20,T)*.6+sstep(30,50,T)*.4;
+mg.gain.setTargetAtTime(.8*(1-sstep(48,50,T)),t,.3);
+windG.gain.setTargetAtTime(T<16?.06:T<30?.03:.04,t,.5);
+fireG.gain.setTargetAtTime(T>10&&T<15?.14:T>36&&T<43?.08:0,t,.3);
+padG.gain.setTargetAtTime(.012+.05*intensity,t,.8);padF.frequency.setTargetAtTime(400+1200*intensity,t,.5);
+const bar=Math.floor(T/3.5)%4,step=Math.floor(T/1.75);
+if(bar!==lastBar){lastBar=bar;pads.forEach((o,i)=>o.frequency.setTargetAtTime(mf(CH[bar][i%3]-12+(i===3?12:0)),t,.5))}
+if(step!==lastStep){lastStep=step;if(T>2&&T<46)tone(mf(CH[bar][step%3]+12),.05+.03*intensity,1.8)}}
+
+/* ---------- update ---------- */
+function update(){
+  applyMood(T);
+  // Reset actors
+  for(const s of S){s.vis=false;s.aL=s.aR=s.hx=s.hy=s.kneel=undefined}
+  // Reset scene groups
+  groundS.visible=groundN.visible=groundB.visible=false;
+  estate.visible=fireGroup.visible=court.visible=northVill.visible=southVill.visible=forest.visible=false;
+  courtLight.intensity=0;
+  const showAsh=T<4||T>=37&&T<44, showEmbers=T>=10&&T<16, showSnow=T>=16&&T<30;
+  updateParticles(ash,dt,showAsh,cp);
+  updateParticles(embers,dt,showEmbers,cp);
+  updateParticles(snow,dt,showSnow,cp);
+  ash.material.color.set(showAsh&&T<4?0x888888:0xbbaa99);
+
+  /* ---- S1: 0–4 BLACK ASH ---- */
+  if(T<4){
+    dp.set(0,1.5,6);dl.set(0,1.2,0);shot(1,1);
+    whisperEl.textContent='they say it is only a rumor';
+    whisperEl.style.opacity=sstep(0,.8,T)*(1-sstep(3,3.9,T))*.9;
   }
-}
-
-// Draw a figure (person silhouette)
-function drawFigure(x, y, h, breath, tint) {
-  const bw = h * 0.18;
-  const bh = h * 0.55;
-  const hw = h * 0.13;
-  const hh = h * 0.15;
-
-  const breathe = Math.sin(world.time * 1.4 + breath) * 0.02;
-
-  ctx.fillStyle = tint;
-  // Body
-  ctx.beginPath();
-  ctx.ellipse(x, y - bh*0.5, bw*(1+breathe), bh*0.5, 0, 0, Math.PI*2);
-  ctx.fill();
-  // Head
-  ctx.beginPath();
-  ctx.arc(x, y - bh - hh*0.5, hw, 0, Math.PI*2);
-  ctx.fill();
-}
-
-// Draw a knife
-function drawKnife(cx, cy, scale, angle, glow) {
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(angle);
-  ctx.scale(scale, scale);
-
-  // Glow
-  if (glow > 0.01) {
-    const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, 80);
-    grd.addColorStop(0, `rgba(220, 230, 255, ${0.4*glow})`);
-    grd.addColorStop(1, 'rgba(180, 200, 255, 0)');
-    ctx.fillStyle = grd;
-    ctx.fillRect(-80, -80, 160, 160);
+  else if(T<10){ /* ---- S2: ESTATE GOLDEN ---- */
+    whisperEl.style.opacity=0;
+    groundS.visible=true;estate.visible=true;water.visible=true;
+    VILLAGERS.forEach((P,i)=>{const a=i/6*PI*2+.3;vilS[i]={vis:true,x:-60+Math.cos(a)*9,z:-40+7+Math.sin(a)*5,ry:-a+PI};});
+    put(ferS,-60+2,-40+9,PI);put(joeS,-60-1,-40+9,PI);
+    // small smoke from chimney
+    embers.visible=true;embers.material.opacity=.3;updateParticles(embers,dt,true,{x:-56,z:-40});
+    const u=E(T/10);
+    lv(dp,[-70,6,-15],[-55,3,5],u);lv(dl,[-60,4,-40],[-60,3,-30],u);shot(2,1);
   }
-
-  // Handle
-  ctx.fillStyle = '#3a2818';
-  ctx.fillRect(-2, 8, 4, 30);
-
-  // Guard
-  ctx.fillStyle = '#5a4a30';
-  ctx.fillRect(-6, 5, 12, 4);
-
-  // Blade
-  const bladeGrd = ctx.createLinearGradient(-3, 0, 3, 0);
-  bladeGrd.addColorStop(0, '#606060');
-  bladeGrd.addColorStop(0.4, '#e0e0e8');
-  bladeGrd.addColorStop(0.5, '#ffffff');
-  bladeGrd.addColorStop(0.6, '#c0c0d0');
-  bladeGrd.addColorStop(1, '#404040');
-  ctx.fillStyle = bladeGrd;
-  ctx.beginPath();
-  ctx.moveTo(-3, 5);
-  ctx.lineTo(3, 5);
-  ctx.lineTo(3, -55);
-  ctx.lineTo(0, -65);
-  ctx.lineTo(-3, -55);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.restore();
-}
-
-// ════════════════════════════════════════════════════════════════
-//  SCENE 1 — THE BURNING VILLAGE
-// ════════════════════════════════════════════════════════════════
-function sceneBurningVillage(localT, localDt) {
-  world.fireTarget = 1;
-  world.fogTarget = 0;
-
-  // Camera slow push-in
-  world.cam.targetZoom = 1 + localT * 0.03;
-  world.cam.targetY = -localT * 5;
-
-  // Sky — dark red fire
-  const skyGrd = ctx.createLinearGradient(0, 0, 0, H);
-  skyGrd.addColorStop(0, rgb(mix([20,8,6], [60,20,10], Math.min(1, localT/2))));
-  skyGrd.addColorStop(0.5, rgb([30,12,8]));
-  skyGrd.addColorStop(1, rgb([15,5,3]));
-  ctx.fillStyle = skyGrd;
-  ctx.fillRect(0, 0, W, H);
-
-  // Fire glow at horizon
-  const glowGrd = ctx.createRadialGradient(W/2, H*0.75, 0, W/2, H*0.75, W*0.7);
-  glowGrd.addColorStop(0, `rgba(255, 100, 30, ${0.4 * world.fireIntensity})`);
-  glowGrd.addColorStop(0.5, `rgba(180, 50, 15, ${0.15 * world.fireIntensity})`);
-  glowGrd.addColorStop(1, 'rgba(100, 20, 10, 0)');
-  ctx.fillStyle = glowGrd;
-  ctx.fillRect(0, 0, W, H);
-
-  // Smoke columns
-  for (let i = 0; i < 6; i++) {
-    const sx = W * (0.15 + i * 0.15);
-    const sway = Math.sin(world.time * 0.5 + i) * 30;
-    const grd = ctx.createRadialGradient(sx + sway, H*0.3, 0, sx + sway, H*0.3, 200);
-    grd.addColorStop(0, `rgba(40, 20, 15, ${0.5 * Math.min(1, localT/1.5)})`);
-    grd.addColorStop(1, 'rgba(20, 10, 8, 0)');
-    ctx.fillStyle = grd;
-    ctx.fillRect(sx - 200 + sway, 0, 400, H);
+  else if(T<16){ /* ---- S3: FIRE ---- */
+    groundS.visible=true;estate.visible=true;water.visible=true;fireGroup.visible=true;
+    fireMat.uniforms.time.value=T;fireMat.uniforms.alpha.value=sstep(10,11.5,T);
+    scene.fog.density=mood.fd;
+    // silhouettes run
+    VILLAGERS.forEach((P,i)=>{const ph=(T-10)*.6+i*1.3;vilS[i]={vis:true,x:-60+Math.cos(ph)*12+i*2,z:-40+Math.sin(ph)*8,ry:ph+PI,walk:1,dist:ph*10}});
+    put(ferS,1000,0,0);put(joeS,1000,0,0); // hide children
+    const u=E((T-10)/6);
+    lv(dp,[-60,2.5,-25],[-60,1.8,-28],u);lv(dl,[-60,3,-40],[-60,3,-40],u);shot(3,1);
+    // doll on fire foreground (S3 beat)
   }
-
-  // Ground
-  ctx.fillStyle = '#0a0503';
-  ctx.fillRect(0, H*0.72, W, H*0.28);
-
-  // Houses burning (in a row)
-  const baseY = H * 0.72 + 40;
-  const houseW = W * 0.14;
-  for (let i = 0; i < 5; i++) {
-    const hx = W * 0.08 + i * (houseW + W * 0.02);
-    const hh = H * (0.15 + Math.sin(i * 1.7) * 0.04);
-    drawHouse(hx, baseY, houseW, hh, world.fireIntensity, '#0a0403');
+  else if(T<22){ /* ---- S4: KING ---- */
+    court.visible=true;courtLight.intensity=lerp(2,3,sstep(16,22,T));
+    KING.g.visible=true;kingS.vis=true;put(kingS,0,-13,0);kingS.hx=.15;kingS.aL=-.3;kingS.aR=.4;kingS.stoop=.1;
+    // shadowed court look
+    const u=E((T-16)/6);
+    lv(dp,[-2,1.65,-9],[0,1.7,-9.5],u);lv(dl,[0,1.5,-13],[0,1.5,-13],u);shot(4,1);
   }
-
-  // Embers — heavy at first, thinning
-  const emberRate = 40 * Math.max(0, 1 - localT/3);
-  if (Math.random() < emberRate * localDt) {
-    for (let i = 0; i < 3; i++) {
-      world.embers.push(new Ember(
-        W * (0.1 + Math.random() * 0.8),
-        H * (0.65 + Math.random() * 0.1)
-      ));
-    }
+  else if(T<30){ /* ---- S5: NORTH ---- */
+    groundN.visible=true;northVill.visible=true;
+    // starving villagers
+    VILLAGERS.forEach((P,i)=>{vilS[i]={vis:true,x:200+(-8+i*3),z:-80+3+(i%2)*2,ry:PI,hx:.3};});
+    KING.g.visible=true;kingS.vis=true;put(kingS,200,-2,PI);kingS.aL=-.6;kingS.aR=-.6;kingS.hx=.1;
+    const u=E((T-22)/8);
+    if(T<26){lv(dp,[200,5,10],[200,2.5,4],u);lv(dl,[200,2,-4],[200,1.5,-2],u)}
+    else{lv(dp,[200,2.5,4],[195,2,-6],sstep(26,30,T));lv(dl,[200,1.5,-2],[200,1.5,-8],sstep(26,30,T))}
+    shot(5,1);
   }
-
-  // Ash drifting
-  if (Math.random() < 30 * localDt) {
-    world.ash.push(new AshParticle(
-      W * (0.1 + Math.random() * 0.8),
-      -10
-    ));
+  else if(T<38){ /* ---- S6: VILLAGE DUSK ---- */
+    groundS.visible=true;southVill.visible=true;
+    FERIS.g.visible=true;JOIE.g.visible=true;
+    // children play at village
+    const ph=(T-30)*.4;
+    ferS.vis=true;put(ferS,400-3+Math.sin(ph)*3,0,Math.cos(ph)*.5);ferS.walk=.6;ferS.dist=ph*8;
+    joeS.vis=true;put(joeS,400+2+Math.sin(ph+1)*3,2,Math.sin(ph)*.5);joeS.walk=.6;joeS.dist=ph*8;
+    VILLAGERS.forEach((P,i)=>{vilS[i]={vis:true,x:400-10+i*4,z:6+(i%2)*2,ry:PI,hx:.2};});
+    // torches on horizon (embers)
+    if(T>=34){embers.visible=true;embers.material.opacity=sstep(34,37,T);updateParticles(embers,dt,true,{x:400,z:-25})}
+    const u=E((T-30)/8);
+    if(T<34){lv(dp,[400,2.5,15],[400-8,2,10],u);lv(dl,[400,1.2,0],[400-4,1.2,0],u)}
+    else{lv(dp,[400-8,2,10],[400,1.8,0],sstep(34,38,T));lv(dl,[400-4,1.2,0],[400,2,-15],sstep(34,38,T))}
+    shot(6,1);
   }
-}
-
-// ════════════════════════════════════════════════════════════════
-//  SCENE 2 — THE MORNING AFTER (grey, ash falling)
-// ════════════════════════════════════════════════════════════════
-function sceneMorningAfter(localT, localDt) {
-  world.fireTarget = 0;
-  world.fogTarget = 1;
-
-  // Camera drifts slowly
-  world.cam.targetZoom = 1 + localT * 0.02;
-  world.cam.targetY = -localT * 3;
-
-  // Grey sky
-  const skyGrd = ctx.createLinearGradient(0, 0, 0, H);
-  skyGrd.addColorStop(0, rgb([70,70,68]));
-  skyGrd.addColorStop(0.6, rgb([50,48,45]));
-  skyGrd.addColorStop(1, rgb([30,28,26]));
-  ctx.fillStyle = skyGrd;
-  ctx.fillRect(0, 0, W, H);
-
-  // Mist
-  const mistGrd = ctx.createRadialGradient(W/2, H*0.6, 0, W/2, H*0.6, W*0.7);
-  mistGrd.addColorStop(0, `rgba(160, 160, 155, ${0.15 * world.fog})`);
-  mistGrd.addColorStop(1, 'rgba(160, 160, 155, 0)');
-  ctx.fillStyle = mistGrd;
-  ctx.fillRect(0, 0, W, H);
-
-  // Ground
-  ctx.fillStyle = '#181614';
-  ctx.fillRect(0, H*0.72, W, H*0.28);
-
-  // Ruined houses (broken silhouettes)
-  const baseY = H * 0.72 + 40;
-  const houseW = W * 0.14;
-  for (let i = 0; i < 5; i++) {
-    const hx = W * 0.08 + i * (houseW + W * 0.02);
-    const hh = H * (0.09 + Math.sin(i * 2.3) * 0.05);
-    const broken = Math.sin(i * 3.7) > 0 ? 0.7 : 0.4;
-    ctx.fillStyle = '#0e0c0a';
-    ctx.beginPath();
-    ctx.moveTo(hx, baseY);
-    ctx.lineTo(hx, baseY - hh * broken);
-    ctx.lineTo(hx + houseW * 0.5, baseY - hh * broken * 1.15);
-    ctx.lineTo(hx + houseW * 0.7, baseY - hh * broken * 0.6);
-    ctx.lineTo(hx + houseW, baseY - hh * broken * 0.8);
-    ctx.lineTo(hx + houseW, baseY);
-    ctx.closePath();
-    ctx.fill();
+  else if(T<44){ /* ---- S7: MORNING AFTER ---- */
+    groundB.visible=true;southVill.visible=true;
+    // burn village houses -> swap to charcoal look
+    villageHouses.forEach((v,i)=>{v.h.material.color.set(0x2a2420);v.r.material.color.set(0x1a1410)});
+    FERIS.g.visible=true;JOIE.g.visible=true;
+    ferS.vis=true;put(ferS,400-1,3,PI);ferS.kneel=sstep(38,39.5,T);ferS.hx=.6;
+    joeS.vis=true;put(joeS,400+2,4,PI);joeS.hx=.4;
+    const u=E((T-38)/6);
+    lv(dp,[400,1.4,9],[400,1.2,7],u);lv(dl,[400,.8,3],[400,1,3],u);shot(7,1);
   }
-
-  // Ash falling slowly
-  if (Math.random() < 50 * localDt) {
-    world.ash.push(new AshParticle(
-      W * Math.random(),
-      -10
-    ));
+  else{ /* ---- S8: INTO FOREST + TITLE ---- */
+    forest.visible=true;groundS.visible=true;
+    FERIS.g.visible=true;JOIE.g.visible=true;
+    const u=E((T-44)/6);
+    // children walk into forest
+    const wx=600-10+u*8,wz=-6;
+    ferS.vis=true;put(ferS,wx-1,wz,PI);ferS.walk=.6;ferS.dist=u*12;
+    joeS.vis=true;put(joeS,wx+1,wz+1,PI);joeS.walk=.6;joeS.dist=u*12;
+    lv(dp,[600+2,3,6],[600-6,8,20],u);lv(dl,[600-10,1.5,-6],[600-12,4,-6],u);shot(8,1);
+    // end fade & title
+    if(T>46.8){whisperEl.textContent='just like a whisper';whisperEl.style.opacity=sstep(46.8,47.8,T);whisperEl.style.color='#efe0c8'}
   }
 
-  // A few leftover embers from ruins
-  if (Math.random() < 8 * localDt) {
-    world.embers.push(new Ember(
-      W * (0.2 + Math.random() * 0.6),
-      H * 0.72
-    ));
-  }
+  /* ---- poses ---- */
+  pose(FERIS,ferS,T);pose(JOIE,joeS,T);pose(KING,kingS,T);
+  SOLDIERS.forEach((P,i)=>pose(P,solS[i],T));
+  VILLAGERS.forEach((P,i)=>pose(P,vilS[i],T));
+
+  /* ---- sun & camera ---- */
+  sun.target.position.set(cl.x,0,cl.z);sun.position.set(cl.x,0,cl.z).addScaledVector(sunDir,200);
+  camera.position.copy(cp);camera.lookAt(cl);
+
+  /* ---- overlays ---- */
+  let f=1-sstep(.2,2.5,T);
+  f=Math.max(f,1-sstep(0,.35,Math.abs(T-10)));
+  f=Math.max(f,1-sstep(0,.35,Math.abs(T-16)));
+  f=Math.max(f,1-sstep(0,.35,Math.abs(T-22)));
+  f=Math.max(f,1-sstep(0,.35,Math.abs(T-30)));
+  f=Math.max(f,1-sstep(0,.35,Math.abs(T-38)));
+  f=Math.max(f,sstep(46,48.5,T));
+  $('#fade').style.opacity=f;
+
+  /* ---- end title ---- */
+  const endOn=T>=47.2;
+  $('#end').style.opacity=endOn?1:0;
+  $('#titlecard').classList.toggle('on',T>=47.6);
+  $('#tagline').classList.toggle('on',T>=48.8);
+
+  /* ---- subtitles + voice ---- */
+  while(cueI<CUES.length&&T>=CUES[cueI][0]){const c=CUES[cueI++];$('#sub').textContent=c[1];subEnd=T+c[1].split(' ').length/2.4+.6;say(c[1])}
+  const subEl=$('#sub');
+  subEl.style.opacity=T<subEnd&&T>0?1:0;subEl.classList.toggle('on',T<subEnd);
 }
 
-// ════════════════════════════════════════════════════════════════
-//  SCENE 3 — THE PARENTS (two figures, backlit)
-// ════════════════════════════════════════════════════════════════
-function sceneParents(localT, localDt) {
-  world.fireTarget = 0;
-  world.fogTarget = 0.3;
-
-  // Camera slow drift
-  world.cam.targetZoom = 1 + localT * 0.015;
-  world.cam.targetY = 0;
-
-  // Dark warm background
-  const skyGrd = ctx.createRadialGradient(W*0.5, H*0.4, 0, W*0.5, H*0.4, W*0.9);
-  skyGrd.addColorStop(0, rgb([35,18,10]));
-  skyGrd.addColorStop(0.6, rgb([20,10,6]));
-  skyGrd.addColorStop(1, rgb([5,2,1]));
-  ctx.fillStyle = skyGrd;
-  ctx.fillRect(0, 0, W, H);
-
-  // Ground
-  ctx.fillStyle = '#080403';
-  ctx.fillRect(0, H*0.72, W, H*0.28);
-
-  // Two figures — one fallen, one kneeling
-  const cx = W * 0.5;
-  const cy = H * 0.72;
-  const baseH = H * 0.4;
-
-  // Fallen figure (lying down, left)
-  ctx.save();
-  ctx.translate(cx - W*0.15, cy - 30);
-  ctx.rotate(-Math.PI/2 + 0.3);
-  drawFigure(0, 0, baseH * 0.85, 0, '#050201');
-  ctx.restore();
-
-  // Kneeling figure (right)
-  ctx.save();
-  ctx.translate(cx + W*0.1, cy - 20);
-  ctx.rotate(0.15);
-  ctx.scale(1, 0.85);
-  drawFigure(0, 0, baseH, 1.5, '#050201');
-  ctx.restore();
-
-  // Faint red glow behind them (fire reflection)
-  const glowGrd = ctx.createRadialGradient(cx, cy - baseH*0.3, 0, cx, cy - baseH*0.3, W*0.6);
-  glowGrd.addColorStop(0, 'rgba(120, 40, 15, 0.15)');
-  glowGrd.addColorStop(1, 'rgba(60, 20, 8, 0)');
-  ctx.fillStyle = glowGrd;
-  ctx.fillRect(0, 0, W, H);
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  SCENE 4 — THE KNIFE
-// ═══════════════════════════════════════════════════════════════
-function sceneKnife(localT, localDt) {
-  world.knifeGlowTarget = 0.4 + Math.sin(localT * 2) * 0.4;
-
-  // Camera very slow
-  world.cam.targetZoom = 1.1 + localT * 0.02;
-  world.cam.targetY = 0;
-
-  // Dark brown background
-  const bgGrd = ctx.createRadialGradient(W*0.5, H*0.5, 0, W*0.5, H*0.5, W*0.7);
-  bgGrd.addColorStop(0, rgb([30, 18, 12]));
-  bgGrd.addColorStop(1, rgb([8, 4, 2]));
-  ctx.fillStyle = bgGrd;
-  ctx.fillRect(0, 0, W, H);
-
-  // Hand silhouette at bottom
-  ctx.fillStyle = '#060201';
-  ctx.beginPath();
-  ctx.ellipse(W*0.5, H*1.02, W*0.35, H*0.25, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  // Knife — held vertically, catches light
-  const angle = -0.15 + Math.sin(localT * 0.8) * 0.03;
-  const scale = Math.min(W, H) / 900 * 1.5;
-  drawKnife(W*0.5, H*0.55, scale, angle, world.knifeGlow);
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  SCENE 5 — THE FOREST (deep, dark, path ahead)
-// ═══════════════════════════════════════════════════════════════
-function sceneForest(localT, localDt) {
-  world.forestTarget = 1;
-  world.fogTarget = 0.5;
-
-  // Camera pushes forward (as if walking INTO the forest)
-  world.cam.targetZoom = 1 + localT * 0.05;
-  world.cam.targetY = -localT * 8;
-
-  // Dark forest sky
-  const skyGrd = ctx.createLinearGradient(0, 0, 0, H);
-  skyGrd.addColorStop(0, rgb([10, 15, 25]));
-  skyGrd.addColorStop(0.4, rgb([5, 10, 18]));
-  skyGrd.addColorStop(1, rgb([2, 4, 3]));
-  ctx.fillStyle = skyGrd;
-  ctx.fillRect(0, 0, W, H);
-
-  // Moonlight beam
-  const moonGrd = ctx.createRadialGradient(W*0.5, 0, 0, W*0.5, H*0.5, W*0.7);
-  moonGrd.addColorStop(0, 'rgba(180, 200, 230, 0.12)');
-  moonGrd.addColorStop(1, 'rgba(180, 200, 230, 0)');
-  ctx.fillStyle = moonGrd;
-  ctx.fillRect(0, 0, W, H);
-
-  // Parallax trees — back layer (darker, smaller)
-  for (let i = 0; i < 8; i++) {
-    const tx = W * (0.05 + i * 0.13) + Math.sin(i * 3.1) * 30;
-    const th = H * (0.4 + Math.sin(i * 2.3) * 0.1);
-    const tw = W * 0.06;
-    drawTree(tx, H*0.78, th, tw, '#0a1018');
-  }
-
-  // Middle layer trees (bigger)
-  for (let i = 0; i < 6; i++) {
-    const tx = W * (0.1 + i * 0.16) + Math.sin(i * 4.7) * 20;
-    const th = H * (0.6 + Math.sin(i * 1.9) * 0.1);
-    const tw = W * 0.10;
-    drawTree(tx, H*0.85, th, tw, '#040608');
-  }
-
-  // Front layer (very dark, framing)
-  drawTree(W*0.02, H*1.05, H*0.9, W*0.16, '#020304');
-  drawTree(W*0.98, H*1.05, H*0.9, W*0.16, '#020304');
-
-  // Ground
-  ctx.fillStyle = '#030403';
-  ctx.fillRect(0, H*0.82, W, H*0.18);
-
-  // Path (light wedge leading in)
-  ctx.fillStyle = 'rgba(40, 50, 40, 0.15)';
-  ctx.beginPath();
-  ctx.moveTo(W*0.5, H*0.78);
-  ctx.lineTo(W*0.4, H);
-  ctx.lineTo(W*0.6, H);
-  ctx.closePath();
-  ctx.fill();
-
-  // Fog rolling in
-  const fogGrd = ctx.createLinearGradient(0, H*0.5, 0, H);
-  fogGrd.addColorStop(0, 'rgba(60, 70, 80, 0)');
-  fogGrd.addColorStop(0.5, `rgba(60, 70, 80, ${0.15 * world.fog})`);
-  fogGrd.addColorStop(1, `rgba(60, 70, 80, ${0.4 * world.fog})`);
-  ctx.fillStyle = fogGrd;
-  ctx.fillRect(0, 0, W, H);
-
-  // Two small figures walking into the forest (distant)
-  const figY = H*0.82;
-  const walkOffset = localT * 8;
-  const fScale = 0.5 + localT * 0.02;
-  const f1x = W*0.47 - walkOffset * 0.3;
-  const f2x = W*0.53 - walkOffset * 0.3;
-  drawFigure(f1x, figY, H*0.15 * fScale, 0, '#010202');
-  drawFigure(f2x, figY + 8, H*0.1 * fScale, 1.2, '#010202');
-
-  // Occasional snow/leaves
-  if (Math.random() < 6 * localDt) {
-    world.snow.push(new SnowFlake(
-      W * Math.random(),
-      -10
-    ));
-  }
-}
-
-// ════════════════════════════════════════════════════════════════
-//  SCENE DEFINITIONS — with timings
-// ════════════════════════════════════════════════════════════════
-const SCENES = [
-  { name: 'chapter',   duration: 4.0,  render: null },
-  { name: 'burning',   duration: 22.0, render: sceneBurningVillage },
-  { name: 'morning',   duration: 20.0, render: sceneMorningAfter },
-  { name: 'parents',   duration: 18.0, render: sceneParents },
-  { name: 'knife',     duration: 16.0, render: sceneKnife },
-  { name: 'forest',    duration: 30.0, render: sceneForest },
-  { name: 'outro',     duration: 3.0,  render: null },
-];
-
-// ════════════════════════════════════════════════════════════════
-//  NARRATION SCRIPT — synced to scene time
-// ════════════════════════════════════════════════════════════════
-const LINES = [
-  // Chapter card (0-4s) — no narration
-  // Burning village (4-26s)
-  { scene: 'burning', at: 0.5,  dur: 4.2, text: `One night, the Northern Kingdom's army burned an entire village to the ground.` },
-  { scene: 'burning', at: 5.5,  dur: 2.6, text: `<span class="whisper">They say it is only a rumor.</span>` },
-  { scene: 'burning', at: 9.0,  dur: 4.5, text: `But the people whisper that the leader of the Northern Kingdom was not always a tyrant.` },
-  { scene: 'burning', at: 14.5, dur: 4.8, text: `Long ago, before the war, he was a wealthy merchant. He had a wife, a daughter, and a home by the river.` },
-  { scene: 'burning', at: 20.0, dur: 3.0, text: `But one night, his rivals burned his estate to the ground.` },
-
-  // Morning after (26-46s)
-  { scene: 'morning', at: 0.5,  dur: 3.4, text: `His family died in the fire.` },
-  { scene: 'morning', at: 4.5,  dur: 4.4, text: `The man who survived that night was not the same man who had built the estate.` },
-  { scene: 'morning', at: 9.5,  dur: 2.8, text: `Something inside him broke.` },
-  { scene: 'morning', at: 13.0, dur: 4.0, text: `He stopped believing in peace. He stopped believing in mercy.` },
-  { scene: 'morning', at: 17.5, dur: 5.2, text: `He only believed in <em>fire</em> — because fire was the only thing that had ever been honest with him.` },
-
-  // Parents (46-64s)
-  { scene: 'parents', at: 0.5,  dur: 4.4, text: `And on this night, that monstrous army reached the children's village.` },
-  { scene: 'parents', at: 5.5,  dur: 4.4, text: `Two children — <em>Feris and Joie</em> — were not in the village that night.` },
-  { scene: 'parents', at: 10.5, dur: 3.6, text: `They had been sent to their uncle's house, a short walk away.` },
-  { scene: 'parents', at: 14.5, dur: 3.0, text: `Feris was fifteen. Joie was ten.` },
-
-  // Knife (64-80s)
-  { scene: 'knife',   at: 0.5,  dur: 4.4, text: `When they returned the next morning, there was nothing left of their home.` },
-  { scene: 'knife',   at: 5.5,  dur: 4.8, text: `They searched through the ruins until they found their mother — burned beyond saving.` },
-  { scene: 'knife',   at: 11.0, dur: 4.8, text: `Beside her lay their father. His hand was still clenched around a small knife.` },
-
-  // Forest (80-110s)
-  { scene: 'forest',  at: 0.5,  dur: 3.6, text: `Feris pulled the knife gently from his father's grip.` },
-  { scene: 'forest',  at: 4.5,  dur: 3.0, text: `There was nothing else to take.` },
-  { scene: 'forest',  at: 8.0,  dur: 3.4, text: `Terrified and alone, they ran back to their uncle's house.` },
-  { scene: 'forest',  at: 12.0, dur: 2.6, text: `But the war had already reached it.` },
-  { scene: 'forest',  at: 15.0, dur: 5.5, text: `Their uncle pressed tools into Feris's hands — matches, flint, dried food — pointed toward the deep forest, and told them to run.` },
-  { scene: 'forest',  at: 21.0, dur: 3.2, text: `<em>And not to look back.</em>` },
-  { scene: 'forest',  at: 24.5, dur: 4.0, text: `Behind them, their uncle's family was captured. Enslaved.` },
-  // Outro handled by end card
-];
-
-// ════════════════════════════════════════════════════════════════
-//  MAIN LOOP
-// ════════════════════════════════════════════════════════════════
-let lastFrame = performance.now();
-let sceneStartTime = 0;
-let sceneIdx = 0;
-let running = false;
-let linesShown = new Set();
-let allDone = false;
-
-function getSceneLocalTime() {
-  return timeline.t - sceneStartTime;
-}
-
-function nextScene() {
-  sceneIdx++;
-  if (sceneIdx >= SCENES.length) {
-    finishPrologue();
-    return;
-  }
-  sceneStartTime = timeline.t;
-  linesShown.clear();
-  if (SCENES[sceneIdx].name === 'chapter') {
-    chapterEl.classList.add('show');
-  } else {
-    chapterEl.classList.remove('show');
-  }
-}
-
-function finishPrologue() {
-  running = false;
-  allDone = true;
-  txt.classList.remove('show');
-  chapterEl.classList.remove('show');
-  skipBtn.classList.remove('show');
-  endEl.classList.add('show');
-}
-
-function showLine(line) {
-  txt.innerHTML = line.text;
-  txt.classList.add('show');
-}
-
-function hideLine() {
-  txt.classList.remove('show');
-}
-
-function checkNarration(localT) {
-  const scene = SCENES[sceneIdx];
-  if (!scene || !scene.name) return;
-
-  // Find current line (last line whose at <= localT, whose at+dur > localT)
-  let active = null;
-  let upcoming = Infinity;
-  for (let i = 0; i < LINES.length; i++) {
-    const line = LINES[i];
-    if (line.scene !== scene.name) continue;
-    if (localT >= line.at && localT < line.at + line.dur) {
-      active = line;
-      break;
-    }
-    if (localT < line.at && line.at < upcoming) {
-      upcoming = line.at;
-    }
-  }
-
-  const key = active ? `${scene.name}-${active.at}` : null;
-  if (active && !linesShown.has(key)) {
-    linesShown.add(key);
-    showLine(active);
-  } else if (!active && txt.classList.contains('show')) {
-    hideLine();
-  }
-}
-
-function update(dt) {
-  if (!running || allDone) return;
-
-  timeline.t += dt;
-  const scene = SCENES[sceneIdx];
-  if (!scene) return;
-  const localT = getSceneLocalTime();
-  const localDt = Math.min(dt, 1/30);
-
-  // Advance scene if done
-  if (localT >= scene.duration) {
-    hideLine();
-    nextScene();
-    if (!running) return;
-  }
-
-  // Update world
-  world.time += dt;
-  world.wind = lerp(world.wind, world.windTarget, dt * 0.5);
-  world.fireIntensity = lerp(world.fireIntensity, world.fireTarget, dt * 2);
-  world.fog = lerp(world.fog, world.fogTarget, dt * 0.8);
-  world.knifeGlow = lerp(world.knifeGlow, world.knifeGlowTarget, dt * 3);
-  world.forestDarkness = lerp(world.forestDarkness, world.forestTarget, dt * 1.5);
-
-  // Camera smooth
-  world.cam.x = lerp(world.cam.x, world.cam.targetX, dt * 0.5);
-  world.cam.y = lerp(world.cam.y, world.cam.targetY, dt * 0.5);
-  world.cam.zoom = lerp(world.cam.zoom, world.cam.targetZoom, dt * 0.5);
-  world.cam.shakeX *= 0.95;
-  world.cam.shakeY *= 0.95;
-
-  // Update particles
-  world.embers = world.embers.filter(e => e.update(dt, world.wind));
-  world.rain = world.rain.filter(r => r.update(dt, world.wind));
-  world.ash = world.ash.filter(a => a.update(dt, world.wind));
-  world.snow = world.snow.filter(s => s.update(dt, world.wind));
-
-  // Cap particle counts
-  if (world.embers.length > 400) world.embers.splice(0, world.embers.length - 400);
-  if (world.ash.length > 300) world.ash.splice(0, world.ash.length - 300);
-  if (world.snow.length > 200) world.snow.splice(0, world.snow.length - 200);
-
-  // Narration
-  checkNarration(localT);
-
-  // Scene ambient wind
-  if (scene.name === 'forest') world.windTarget = 0.3;
-  else if (scene.name === 'burning') world.windTarget = 0.15;
-  else world.windTarget = 0.05;
-}
-
-function render() {
-  // Apply camera
-  ctx.save();
-  ctx.translate(W/2 + world.cam.shakeX, H/2 + world.cam.shakeY);
-  ctx.scale(world.cam.zoom, world.cam.zoom);
-  ctx.translate(-W/2, -H/2 + world.cam.y);
-
-  // Render current scene
-  const scene = SCENES[sceneIdx];
-  if (scene && scene.render) {
-    const localT = getSceneLocalTime();
-    scene.render(localT, 1/60);
-  } else if (scene && scene.name === 'chapter') {
-    // Dark background for chapter card
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, W, H);
-  } else if (scene && scene.name === 'outro') {
-    // Fade out
-    const fade = clamp(getSceneLocalTime() / scene.duration, 0, 1);
-    ctx.fillStyle = `rgba(0,0,0,${fade})`;
-    ctx.fillRect(0, 0, W, H);
-  }
-
-  ctx.restore();
-
-  // Draw particles ON TOP (screen space, not camera-transformed)
-  for (const e of world.embers) e.draw(ctx);
-  for (const a of world.ash) a.draw(ctx);
-  for (const s of world.snow) s.draw(ctx);
-  for (const r of world.rain) r.draw(ctx);
-}
-
-function loop(now) {
-  requestAnimationFrame(loop);
-  const dt = Math.min((now - lastFrame) / 1000, 0.05);
-  lastFrame = now;
-
-  update(dt);
-  render();
-}
-
-// ════════════════════════════════════════════════════════════════
-//  START / SKIP / END
-// ════════════════════════════════════════════════════════════════
-function startPrologue() {
-  startEl.classList.add('hide');
-  skipBtn.classList.add('show');
-
-  timeline.t = 0;
-  sceneStartTime = 0;
-  sceneIdx = 0;
-  linesShown.clear();
-  running = true;
-  allDone = false;
-
-  // Clear particles
-  world.embers = [];
-  world.rain = [];
-  world.ash = [];
-  world.snow = [];
-
-  // Reset world
-  world.fireIntensity = 0;
-  world.fog = 0;
-  world.knifeGlow = 0;
-  world.forestDarkness = 0;
-  world.cam.zoom = 1;
-  world.cam.y = 0;
-
-  // Show chapter card
-  if (SCENES[0].name === 'chapter') {
-    chapterEl.classList.add('show');
-  }
-}
-
-function skipPrologue() {
-  running = false;
-  allDone = true;
-  finishPrologue();
-}
-
-function resetAndPlay() {
-  endEl.classList.remove('show');
-  startPrologue();
-}
-
-startEl.addEventListener('click', startPrologue);
-skipBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  skipPrologue();
-});
-endEl.addEventListener('click', resetAndPlay);
-
-// Hide chapter card when scene transitions away from 'chapter'
-// (handled in nextScene via class toggle)
-
-// Begin render loop
-requestAnimationFrame(loop);
+/* ---------- control ---------- */
+function resetState(){T=0;lastShot=-1;cueI=0;subEnd=0;lastStep=-1;lastBar=-1;sunLock=-1;
+for(const s of S){s.x=s.z=s.y=s.ry=s.dist=s.walk=0}
+$('#sub').style.opacity=0;$('#end').style.opacity=0;
+document.querySelectorAll('#end>*').forEach(e=>e.classList.remove('on'));
+whisperEl.style.opacity=0;whisperEl.textContent='';
+// restore village materials
+villageHouses.forEach(v=>{v.h.material.color.set(0xd8c8a0);v.r.material.color.set(0x6a4a2a)});
+cp.set(0,420,260);cl.set(0,0,0)}
+function start(){started=true;
+try{const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();r&&r.catch&&r.catch(()=>{});
+const o=screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape');o&&o.catch&&o.catch(()=>{})}catch(e){}
+layout();if(needPortrait())return;
+stage.style.visibility='visible';
+audioInit();if(AC&&AC.state==='suspended')AC.resume();
+const m=$('#menu');m.style.opacity=0;setTimeout(()=>{if(started)m.style.display='none'},1000);
+$('#hud').classList.add('show');resetState();playing=true;last=performance.now()}
+function stop(){playing=false;started=false;window.speechSynthesis&&speechSynthesis.cancel();
+if(AC){try{AC.close()}catch(e){}AC=null}
+stage.style.visibility='hidden';$('#hud').classList.remove('show');
+const m=$('#menu');m.style.display='flex';requestAnimationFrame(()=>m.style.opacity=1);
+if(document.fullscreenElement){const r=document.exitFullscreen();r&&r.catch&&r.catch(()=>{})}
+layout()}
+$('#watch').onclick=start;
+$('#exit').onclick=stop;
+$('#snd').onclick=()=>{soundOn=!soundOn;$('#snd').textContent=soundOn?'🔊':'🔇';if(!soundOn){window.speechSynthesis&&speechSynthesis.cancel();if(mg)mg.gain.value=0}else if(mg)mg.gain.value=.8};
+function frame(now){requestAnimationFrame(frame);if(!playing)return;
+dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
+if(T>=TOTAL){T=TOTAL-.01;playing=false;setTimeout(stop,4000)}
+update();audio();renderer.render(scene,camera)}
+layout();requestAnimationFrame(frame);
 </script>
 </body>
 </html>
