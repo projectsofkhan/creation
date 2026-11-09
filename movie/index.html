@@ -1,590 +1,665 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>The Forest Man of India — Jadav Payeng</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: 'Segoe UI', 'Helvetica Neue', system-ui, sans-serif;
-      background: #000;
-      color: #fff;
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>The Forest Man of India — Jadav Payeng</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Georgia', serif; color: #fff; user-select: none; }
+  
+  #menu {
+    position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 24px;
+    background: radial-gradient(ellipse at 50% 35%, #2b5a33 0%, #0a1a0f 62%, #030805 100%);
+    transition: opacity 1.5s ease;
+  }
+  #menu .k { letter-spacing: .5em; font-size: 12px; opacity: .7; margin-bottom: 18px; text-transform: uppercase; }
+  #menu h1 { font-weight: 400; font-size: clamp(28px, 7vw, 72px); letter-spacing: .14em; line-height: 1.1; text-shadow: 0 0 30px rgba(80,255,120,0.2); }
+  #menu h2 { font-weight: 400; font-style: italic; font-size: clamp(14px, 2.4vw, 22px); opacity: .8; margin: 14px 0 38px; }
+  #watch {
+    cursor: pointer; border: 1.5px solid #9fe08a; background: rgba(80,170,70,.2);
+    color: #fff; font: inherit; font-size: 20px; letter-spacing: .35em;
+    padding: 16px 44px 16px 52px; border-radius: 50px; transition: all .3s ease;
+    box-shadow: 0 0 30px rgba(80,200,80,0.2);
+  }
+  #watch:hover { background: rgba(110,210,90,.42); transform: scale(1.05); box-shadow: 0 0 60px rgba(100,255,100,0.4); }
+  #menu small { margin-top: 26px; opacity: .55; font-size: 12px; max-width: 430px; line-height: 1.7; }
+
+  #stage { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; background: #000; overflow: hidden; visibility: hidden; transform-origin: 0 0; }
+  #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  
+  /* Cinematic Overlays */
+  .ov { position: absolute; inset: 0; pointer-events: none; }
+  #vign { background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,.6) 100%); z-index: 2; }
+  .bar { position: absolute; left: 0; right: 0; height: 6.5%; background: #000; z-index: 3; transition: height 1s ease; }
+  #fade { background: #000; opacity: 1; z-index: 8; transition: opacity 1s; }
+  
+  /* Subtitles */
+  #sub {
+    position: absolute; left: 8%; right: 8%; bottom: 9%; text-align: center;
+    font-size: clamp(14px, 2.2vw, 28px); line-height: 1.4; text-shadow: 0 2px 10px #000, 0 0 4px #000;
+    z-index: 5; opacity: 0; transition: opacity 0.8s; font-weight: 300;
+  }
+
+  /* End Sequence */
+  #end {
+    position: absolute; inset: 0; background: #000; z-index: 9; opacity: 0;
+    transition: opacity 1.5s; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; pointer-events: none;
+  }
+  #end > * { opacity: 0; transition: opacity 2s; position: absolute; }
+  #end > .on { opacity: 1; }
+  .line { font-size: clamp(20px, 5vw, 56px); letter-spacing: .3em; font-weight: 400; }
+  .ask { font-size: clamp(18px, 4.2vw, 46px); letter-spacing: .25em; color: #b9f2a6; text-shadow: 0 0 20px #4a9a4a; }
+  .final { font-size: clamp(14px, 2.6vw, 30px); letter-spacing: .3em; line-height: 2; }
+  .final b { font-weight: 400; font-size: 1.5em; letter-spacing: .2em; color: #e0f0e0; }
+  .final span { opacity: .7; font-size: .8em; }
+
+  /* Controls HUD */
+  #hud { position: absolute; top: 8%; right: 3%; z-index: 20; display: flex; gap: 10px; opacity: 0; transition: opacity .4s; }
+  #hud.show { opacity: 1; }
+  #hud button { background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.4); color: #fff; border-radius: 50%; width: 44px; height: 44px; font-size: 18px; cursor: pointer; backdrop-filter: blur(4px); }
+  #hud button:hover { background: rgba(255,255,255,.2); }
+</style>
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
     }
-    #info {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 100;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 8px 18px;
-      border-radius: 40px;
-      font-size: 14px;
-      letter-spacing: 2px;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      color: #ffd966;
-      text-transform: uppercase;
-      pointer-events: none;
-    }
-    #start-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      background: radial-gradient(circle at 50% 40%, #0a1f0a, #000000);
-      transition: opacity 1.5s ease;
-      pointer-events: all;
-    }
-    #start-overlay.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-    h1 {
-      font-size: clamp(2rem, 8vw, 5rem);
-      font-weight: 300;
-      letter-spacing: 6px;
-      margin-bottom: 0.2rem;
-      text-shadow: 0 0 30px rgba(0, 255, 100, 0.4);
-      color: #e0f0e0;
-      text-align: center;
-      line-height: 1.2;
-    }
-    .sub {
-      font-size: 1.2rem;
-      letter-spacing: 12px;
-      margin-bottom: 2.5rem;
-      color: #9fbf9f;
-      text-transform: uppercase;
-      text-align: center;
-    }
-    .watch-btn {
-      padding: 18px 60px;
-      font-size: 1.8rem;
-      font-weight: 600;
-      letter-spacing: 8px;
-      background: transparent;
-      color: #fff;
-      border: 2px solid #6f9e6f;
-      border-radius: 60px;
-      cursor: pointer;
-      transition: all 0.4s ease;
-      box-shadow: 0 0 30px rgba(80, 200, 80, 0.2);
-      text-shadow: 0 0 10px rgba(255,255,255,0.5);
-      backdrop-filter: blur(5px);
-      margin-top: 1rem;
-    }
-    .watch-btn:hover {
-      background: #2a5a2a;
-      border-color: #b5e6b5;
-      box-shadow: 0 0 60px rgba(100, 255, 100, 0.5);
-      transform: scale(1.03);
-    }
-    .watch-btn:active {
-      transform: scale(0.98);
-    }
-    .hint {
-      margin-top: 3rem;
-      font-size: 0.9rem;
-      color: #7f9f7f;
-      letter-spacing: 4px;
-      text-align: center;
-    }
-    #fullscreen-hint {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      z-index: 200;
-      color: #9fbf9f;
-      font-size: 12px;
-      letter-spacing: 2px;
-      opacity: 0.6;
-      pointer-events: none;
-    }
-    #loading {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      color: #fff;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.5s;
-    }
-  </style>
+  }
+</script>
 </head>
 <body>
-  <div id="info">THE FOREST MAN OF INDIA</div>
-  <div id="start-overlay">
-    <h1>JADAV PAYENG</h1>
-    <div class="sub">THE FOREST MAN OF INDIA</div>
-    <button class="watch-btn" id="watchBtn">WATCH</button>
-    <div class="hint">3-MINUTE CINEMATIC ANIMATED DOCUMENTARY</div>
+
+<div id="menu">
+  <div class="k">A Cinematic Animated Documentary</div>
+  <h1>THE FOREST MAN<br>OF INDIA</h1>
+  <h2>The story of Jadav Payeng</h2>
+  <button id="watch">▶ &nbsp;WATCH</button>
+  <small>Opens full screen in landscape. Please ensure sound is enabled. The experience will begin automatically.</small>
+</div>
+
+<div id="stage">
+  <canvas id="c"></canvas>
+  
+  <div class="ov" id="vign"></div>
+  <div class="bar" style="top:0"></div>
+  <div class="bar" style="bottom:0"></div>
+  
+  <div id="sub"></div>
+  <div class="ov" id="fade"></div>
+  
+  <div id="end">
+    <div class="line" id="l1" style="top:40%">ONE MAN.</div>
+    <div class="line" id="l2" style="top:50%">ONE MISSION.</div>
+    <div class="line" id="l3" style="top:60%">ONE FOREST.</div>
+    <div class="ask" id="ask" style="top:50%">WHAT WILL YOU CHANGE?</div>
+    <div class="final" id="fin" style="top:50%">JADAV PAYENG<br><b>THE FOREST MAN OF INDIA</b><br><span>1959 – PRESENT</span></div>
   </div>
-  <div id="fullscreen-hint">⛶ CLICK WATCH FOR FULLSCREEN LANDSCAPE</div>
-  <div id="loading">Preparing engine...</div>
 
-  <!-- Three.js from CDN -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+  <div id="hud">
+    <button id="snd" title="Sound">🔊</button>
+    <button id="exit" title="Exit">✕</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+// --- Setup & Utilities ---
+const $ = s => document.querySelector(s);
+const canvas = $('#c'), stage = $('#stage');
+const touch = matchMedia('(pointer:coarse)').matches;
+const Q = touch ? 0.6 : 1; // Quality multiplier for mobile
+const TOTAL = 180; // 3 Minutes
+
+const clamp = (x, a=0, b=1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const E = u => u * u * (3 - 2 * u);
+const mod = (a, n) => ((a % n) + n) % n;
+
+let _s = 1337;
+const rnd = () => ((_s = (_s * 16807) % 2147483647) - 1) / 2147483646;
+const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+function vn(x, y) { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf); return hash(xi, yi) * (1 - u) * (1 - v) + hash(xi + 1, yi) * u * (1 - v) + hash(xi, yi + 1) * (1 - u) * v + hash(xi + 1, yi + 1) * u * v; }
+function fbm(x, y) { let a = .5, f = 1, s = 0; for (let i = 0; i < 4; i++) { s += a * vn(x * f, y * f); f *= 2; a *= .5; } return s; }
+const C = h => new THREE.Color(h);
+const white = new THREE.Color(1, 1, 1);
+
+// Heightmap for terrain (creates the sandbar)
+const cz = x => -12 + 3 * Math.sin(x * .05);
+function groundY(x, z) {
+  const d = Math.hypot(x / 260, z / 90), m = 1 - sstep(.55, 1, d);
+  const n = fbm(x * .02 + 10, z * .02 + 5) - .5;
+  return m * 2.4 - .7 + n * 1.6 * m + Math.sin(x * .9 + n * 9) * .03 * m;
+}
+
+// --- Renderer & Scene ---
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !touch, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, touch ? 1.5 : 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0xd8c9a0, .0011);
+const camera = new THREE.PerspectiveCamera(48, 16 / 9, .05, 4000);
+
+let started = false, rot = false;
+function layout() {
+  const W = innerWidth, H = innerHeight;
+  rot = started && touch && H > W;
+  const w = rot ? H : W, h = rot ? W : H;
+  stage.style.width = w + 'px'; stage.style.height = h + 'px';
+  stage.style.transform = rot ? `translate(${W}px,0) rotate(90deg)` : 'none';
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', layout);
+addEventListener('orientationchange', () => setTimeout(layout, 300));
+
+// --- Materials & Textures ---
+const toonGrad = (() => {
+  const t = new THREE.DataTexture(new Uint8Array([70, 140, 210, 255]), 4, 1, THREE.RedFormat);
+  t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t;
+})();
+const toon = (c, o={}) => new THREE.MeshToonMaterial({ color: c, gradientMap: toonGrad, ...o });
+
+// --- Sky Shader ---
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: {
+    top: { value: C(0x3d84c8) }, hor: { value: C(0xf2dfb4) },
+    sunDir: { value: new THREE.Vector3(0, 1, 0) }, sunCol: { value: C(0xffffff) },
+    cloudCol: { value: C(0xffffff) }, time: { value: 0 }, cloud: { value: .3 }
+  },
+  vertexShader: `varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+  fragmentShader: `
+    varying vec3 vD; uniform vec3 top, hor, sunDir, sunCol, cloudCol; uniform float time, cloud;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+    float fb(vec2 p){ float a = .5, s = 0.; for(int i=0; i<5; i++){ s += a * n(p); p *= 2.02; a *= .5; } return s; }
+    void main() {
+      vec3 d = normalize(vD); float y = max(d.y, 0.); vec3 col = mix(hor, top, pow(y, .55));
+      float sd = max(dot(d, sunDir), 0.); col += sunCol * (pow(sd, 600.) * 4. + pow(sd, 14.) * .4 + pow(sd, 3.) * .12);
+      if(d.y > 0.) { vec2 uv = d.xz / (d.y + .12) * 1.2 + vec2(time * .01, time * .004); float c = fb(uv * 1.3); float cov = smoothstep(1. - cloud, 1. - cloud + .28, c) * smoothstep(0., .12, d.y); vec3 cc = cloudCol * (.75 + .5 * pow(sd, 2.)); col = mix(col, cc, cov * .9); }
+      else col = mix(hor, hor * .7, clamp(-d.y * 3., 0., 1.));
+      gl_FragColor = vec4(col, 1.);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(1500, 32, 16), skyMat);
+sky.frustumCulled = false; sky.renderOrder = -10; scene.add(sky);
+
+// --- Water Shader ---
+function makeWater(alpha) {
+  return new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    uniforms: { time: { value: 0 }, rain: { value: 0 }, alpha: { value: alpha }, fogD: { value: .001 }, sunDir: { value: new THREE.Vector3() }, sunCol: { value: new THREE.Color() }, hor: { value: new THREE.Color() }, top: { value: new THREE.Color() }, fogCol: { value: new THREE.Color() }, deepCol: { value: C(0x3a4a36) } },
+    vertexShader: `varying vec3 wp; void main() { vec4 w = modelMatrix * vec4(position, 1.); wp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `
+      uniform float time, rain, alpha, fogD; uniform vec3 sunDir, sunCol, hor, top, fogCol, deepCol; varying vec3 wp;
+      void main() {
+        vec2 p = wp.xz; float dx = 0., dz = 0.; float amp = 1. + rain * 1.6;
+        for(int i=0; i<5; i++) { float fi = float(i); vec2 d = vec2(cos(fi * 1.9 + .4), sin(fi * 1.3 + .9)); float f = .16 + fi * .31; float ph = dot(d, p) * f + time * (.7 + fi * .45); float a = .06 * amp / (1. + fi * .7); dx += d.x * cos(ph) * a * f; dz += d.y * cos(ph) * a * f; }
+        vec3 n = normalize(vec3(-dx, 1., -dz)); vec3 V = normalize(cameraPosition - wp); float fr = pow(1. - max(dot(n, V), 0.), 3.);
+        vec3 skyc = mix(hor, top, clamp(reflect(-V, n).y, 0., 1.) * .8); vec3 col = mix(deepCol, skyc, clamp(.12 + fr * .85, 0., 1.));
+        vec3 R = reflect(-sunDir, n); col += sunCol * pow(max(dot(R, V), 0.), 150.) * 2.2;
+        float dist = length(cameraPosition - wp); float f = 1. - exp(-fogD * fogD * dist * dist); col = mix(col, fogCol, clamp(f, 0., 1.));
+        gl_FragColor = vec4(col, mix(.9, 1., fr) * alpha);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`
+  });
+}
+const waterMat = makeWater(1);
+const waterGeo = new THREE.PlaneGeometry(4000, 4000); waterGeo.rotateX(-Math.PI / 2);
+const water = new THREE.Mesh(waterGeo, waterMat); water.renderOrder = 1; scene.add(water);
+
+// --- Terrain & Morphing Sandbar ---
+const tg = new THREE.PlaneGeometry(560, 240, touch ? 128 : 224, touch ? 64 : 96); tg.rotateX(-Math.PI / 2);
+const tp = tg.attributes.position;
+const colSand = new Float32Array(tp.count * 3);
+const colGrass = new Float32Array(tp.count * 3);
+
+for (let i = 0; i < tp.count; i++) {
+  const x = tp.getX(i), z = tp.getZ(i), h = groundY(x, z);
+  tp.setY(i, h);
+  const n = vn(x * .15, z * .15), r = vn(x * 1.3, z * .25), wet = 1 - sstep(.2, .9, h);
+  const sa = [.84 + n * .1 + r * .04, .72 + n * .08 + r * .03, .5 + n * .06];
+  const c = [lerp(sa[0], .5, wet), lerp(sa[1], .43, wet), lerp(sa[2], .31, wet)];
+  colSand.set(c, i * 3);
+  
+  const w = sstep(.5, 1.1, h), gr = [.26 + n * .1, .48 + n * .12, .15 + n * .04];
+  colGrass.set([lerp(c[0], gr[0], w), lerp(c[1], gr[1], w), lerp(c[2], gr[2], w)], i * 3);
+}
+tg.setAttribute('color', new THREE.BufferAttribute(colSand, 3));
+tg.computeVertexNormals();
+
+const terrainMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, transparent: true });
+const terrain = new THREE.Mesh(tg, terrainMat); terrain.receiveShadow = true; scene.add(terrain);
+
+// Secondary grass mesh that fades in
+const gg = tg.clone(); gg.setAttribute('color', new THREE.BufferAttribute(colGrass, 3));
+const grassMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, transparent: true, opacity: 0, polygonOffset: true, polygonOffsetFactor: -1 });
+const grass = new THREE.Mesh(gg, grassMat); grass.position.y = .04; grass.receiveShadow = true; grass.visible = false; scene.add(grass);
+
+// --- Lights ---
+const hemi = new THREE.HemisphereLight(0xbfd8ff, 0x8a7550, .8); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(touch ? 1024 : 2048, touch ? 1024 : 2048);
+Object.assign(sun.shadow.camera, { left: -80, right: 80, top: 80, bottom: -80, near: 1, far: 600 });
+sun.shadow.bias = -.0004; sun.shadow.normalBias = .3;
+scene.add(sun, sun.target);
+
+// --- Vegetation System (Grows over time) ---
+const foliageGeo = new THREE.IcosahedronGeometry(1, 1);
+{ const p = foliageGeo.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), k = 1 + .45 * (hash(x * 7.3 + y * 3.1, z * 5.7) - .5); p.setXYZ(i, x * k, y * k * .85, z * k); } foliageGeo.computeVertexNormals(); }
+const folMat = toon(0xffffff, { emissive: 0x1b3a10, emissiveIntensity: .35 });
+const trunkGeo = new THREE.CylinderGeometry(.18, .3, 1, 6); trunkGeo.translate(0, .5, 0);
+const trunkMat = toon(0x6b4a30);
+
+function inst(geo, mat, n) { const m = new THREE.InstancedMesh(geo, mat, n); m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false; m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(m); return m; }
+
+const TN = Math.floor(1300 * Q), BN = Math.floor(800 * Q);
+const treeTrunk = inst(trunkGeo, trunkMat, TN);
+const treeFolA = inst(foliageGeo, folMat, TN);
+const treeFolB = inst(foliageGeo, folMat, TN);
+const bamStalk = inst(new THREE.CylinderGeometry(.04, .06, 1, 5).translate(0, .5, 0), toon(0x9bb83e), BN * 4);
+const bamFol = inst(foliageGeo, folMat, BN);
+
+const ok = (x, z, mg) => { if (groundY(x, z) < mg) return false; if (Math.abs(z - cz(x)) < 10 && x > -135 && x < 85) return false; if (x > -48 && x < 17 && z > -5 && z < 10) return false; if (Math.hypot(x - 32, z - 6) < 16) return false; return true; };
+function spot(mg) { for (let t = 0; t < 60; t++) { const x = (rnd() * 2 - 1) * 235, z = (rnd() * 2 - 1) * 82; if (ok(x, z, mg)) return [x, z]; } return [200, 0]; }
+
+const greens = [0x2f7d32, 0x3b8f3a, 0x4b9a3c, 0x5aa63a, 0x6aa62f].map(C);
+const trees = [], bambs = [];
+for (let i = 0; i < TN; i++) { const [x, z] = spot(.9), d = Math.hypot(x, z * 1.6); trees.push({ x, z, y: groundY(x, z), H: 9 + rnd() * 7, R: 3.2 + rnd() * 2.2, pa: 2.5 + d * .055 + rnd() * 2.5, gd: 6 + rnd() * 4, rot: rnd() * 6.28, ph: rnd() * 6.28 }); treeFolA.setColorAt(i, greens[i % 5]); treeFolB.setColorAt(i, greens[(i + 2) % 5]); }
+const heroes = [[1.65, 0, 0], [3.1, .6, .25], [2.3, -1.4, .4], [4.2, -.5, .55], [5.3, 1.2, 1.2], [6.6, -.9, 5.45], [7.3, .4, 6.45]];
+for (let i = 0; i < BN; i++) { let x, z, pa; const h = heroes[i]; if (h) { x = h[0]; z = h[1]; pa = h[2]; } else { [x, z] = spot(.9); pa = .8 + Math.hypot(x, z * 1.6) * .045 + rnd() * 1.5; } bambs.push({ x, z, y: groundY(x, z), H: h ? 8.5 : 7 + rnd() * 3.5, pa, gd: 3 + rnd(), rot: rnd() * 6.28, ph: rnd() * 6.28, l: [0, 1, 2, 3].map(() => .06 + rnd() * .14), hf: [0, 1, 2, 3].map(() => .8 + rnd() * .25) }); bamFol.setColorAt(i, greens[i % 5]); }
+for (const m of [treeFolA, treeFolB, bamFol]) m.instanceColor.needsUpdate = true;
+
+const dummy = new THREE.Object3D();
+const grow = (age, pa, gd) => age < pa ? 0 : (.03 + .97 * E(clamp((age - pa) / gd))) * Math.min(1, (age - pa) / .04 + .001);
+
+function updateVeg(age, T) {
+  const vis = age > -.5;
+  for (const m of [treeTrunk, treeFolA, treeFolB, bamStalk, bamFol]) m.visible = vis;
+  if (!vis) return;
+  for (let i = 0; i < TN; i++) {
+    const t = trees[i], s = grow(age, t.pa, t.gd), sw = Math.sin(T * .9 + t.ph) * .012 * s, th = .45 + .55 * s, S = Math.max(s, .0001);
+    dummy.position.set(t.x, t.y - .05, t.z); dummy.rotation.set(sw, t.rot, sw * .7); dummy.scale.set(th, Math.max(.0001, t.H * s), th); dummy.updateMatrix(); treeTrunk.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(t.x + sw * t.H * s, t.y + t.H * s * .94, t.z); dummy.rotation.set(0, t.rot, 0); dummy.scale.set(t.R * S, t.R * S * .82, t.R * S); dummy.updateMatrix(); treeFolA.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(t.x + Math.cos(t.rot) * t.R * S * .5, t.y + t.H * s * .76, t.z + Math.sin(t.rot) * t.R * S * .4); dummy.scale.set(t.R * S * .72, t.R * S * .6, t.R * S * .72); dummy.updateMatrix(); treeFolB.setMatrixAt(i, dummy.matrix);
+  }
+  for (let i = 0; i < BN; i++) {
+    const b = bambs[i], s = grow(age, b.pa, b.gd), sw = Math.sin(T * 1.3 + b.ph) * .03 * s, S = Math.max(s, .0001);
+    for (let j = 0; j < 4; j++) {
+      const phi = b.rot + j * 1.57, o = .35 * (.3 + .7 * s);
+      dummy.position.set(b.x + Math.cos(phi) * o, b.y - .05, b.z + Math.sin(phi) * o); dummy.rotation.set(b.l[j] * Math.sin(phi) + sw, 0, -b.l[j] * Math.cos(phi) + sw * .7);
+      dummy.scale.set(.5 + .5 * s, Math.max(.0001, b.H * b.hf[j] * s), .5 + .5 * s); dummy.updateMatrix(); bamStalk.setMatrixAt(i * 4 + j, dummy.matrix);
+    }
+    dummy.position.set(b.x + sw * b.H * s, b.y + b.H * s * .9, b.z); dummy.rotation.set(0, b.rot, 0); dummy.scale.set(2.2 * S, 1.4 * S, 2.2 * S); dummy.updateMatrix(); bamFol.setMatrixAt(i, dummy.matrix);
+  }
+  for (const m of [treeTrunk, treeFolA, treeFolB, bamStalk, bamFol]) m.instanceMatrix.needsUpdate = true;
+}
+
+// --- Character Rigging ---
+const eyeMat = toon(0x0b0806);
+function makePerson(o) {
+  const P = { seed: rnd() * 6, o }; const g = new THREE.Group(); P.g = g;
+  const root = new THREE.Group(); g.add(root); P.root = root;
+  const upper = new THREE.Group(); upper.position.y = .78; root.add(upper); P.upper = upper;
+  const skin = toon(o.skin), shirt = toon(o.shirt), pants = toon(o.pants), hair = toon(o.hair);
+  const add = (geo, mat, par, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; par.add(m); return m; };
+  
+  const torso = add(new THREE.CapsuleGeometry(.19, .36, 4, 12), shirt, upper, 0, .34, 0); torso.scale.set(1.12, 1, .78);
+  add(new THREE.CylinderGeometry(.055, .065, .14, 8), skin, upper, 0, .76, 0);
+  const head = new THREE.Group(); head.position.y = .9; upper.add(head); P.head = head;
+  const hm = add(new THREE.SphereGeometry(.135, 20, 16), skin, head); hm.scale.set(.92, 1.1, 1);
+  const hr = add(new THREE.SphereGeometry(.142, 20, 12, 0, Math.PI * 2, 0, Math.PI * .58), hair, head, 0, .018, -.01); hr.rotation.x = -.28;
+  for (const sx of [-1, 1]) add(new THREE.SphereGeometry(.016, 8, 6), eyeMat, head, sx * .048, .02, .125);
+  add(new THREE.SphereGeometry(.02, 8, 6), skin, head, 0, -.01, .135);
+  
+  if (o.must) { P.must = add(new THREE.CapsuleGeometry(.011, .075, 3, 6), toon(o.must), head, 0, -.04, .13); P.must.rotation.z = Math.PI / 2; }
+  if (o.scarf) { const t = add(new THREE.TorusGeometry(.115, .035, 6, 14), toon(0xc8261e), upper, 0, .7, 0); t.rotation.x = Math.PI / 2; add(new THREE.BoxGeometry(.08, .3, .03), toon(0xeeeeee), upper, .08, .55, .14); }
+  
+  const limb = (par, x, y, len, r, mat) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); par.add(pv); add(new THREE.CapsuleGeometry(r, len, 4, 8), mat, pv, 0, -(len / 2 + r * .8), 0); return pv; };
+  P.legL = limb(root, -.1, .78, .62, .085, pants); P.legR = limb(root, .1, .78, .62, .085, pants);
+  P.armL = limb(upper, -.27, .62, .44, .055, shirt); P.armR = limb(upper, .27, .62, .44, .055, shirt);
+  for (const a of [P.armL, P.armR]) add(new THREE.SphereGeometry(.05, 10, 8), skin, a, 0, -.55, 0);
+  for (const l of [P.legL, P.legR]) add(new THREE.BoxGeometry(.1, .05, .22), skin, l, 0, -.75, .05);
+  
+  g.scale.setScalar(o.scale || 1); P.stoop = o.stoop || 0; scene.add(g); return P;
+}
+
+// Characters
+const PI = Math.PI;
+const YJ = makePerson({ skin: 0x8c5a3a, shirt: 0x8a7a5a, pants: 0xb8aa8c, hair: 0x120d0b, must: 0x1a1210, scale: .9 }); // Young Jadav
+const OJ = makePerson({ skin: 0x7a4c30, shirt: 0xe8dcc0, pants: 0xf0ece0, hair: 0xe6e6e6, must: 0xf2f2f2, scarf: true, scale: .97, stoop: .1 }); // Older Jadav
+const OFF = makePerson({ skin: 0x9a6a46, shirt: 0x6f7a4e, pants: 0x3f4a35, hair: 0x151010, scale: 1.03 }); // Official
+
+const listeners = []; for (let i = 0; i < 6; i++) listeners.push(makePerson({ skin: [0x8c5a3a, 0x9a6a46, 0x7a4c30, 0xa4734d][i % 4], shirt: [0x9a4a3a, 0x3f6a8a, 0x6a8a4a, 0xc9a24a][i % 4], pants: 0x3a3a4a, hair: 0x151010, scale: .95 }));
+const students = []; for (let i = 0; i < 11; i++) students.push(makePerson({ skin: [0x8c5a3a, 0x9a6a46, 0x7a4c30, 0xa4734d][i % 4], shirt: 0xf2f2f2, pants: 0x24407a, hair: 0x120d0b, scale: .74 }));
+
+// Poses Logic
+function pose(P, s, T) {
+  P.g.visible = !!s.vis; if (!s.vis) return;
+  const w = s.walk || 0, k = s.kneel || 0, sit = s.sit || 0, ph = (s.dist || 0) * 3.6, sw = Math.sin(ph) * .75 * w;
+  P.g.position.set(s.x, s.y, s.z); P.g.rotation.y = s.ry;
+  let l1 = lerp(sw, -1.35, k), l2 = lerp(-sw, 1, k); l1 = lerp(l1, -1.45, sit); l2 = lerp(l2, -1.45, sit);
+  P.legL.rotation.x = l1; P.legR.rotation.x = l2;
+  P.root.position.y = Math.abs(Math.cos(ph)) * .025 * w - .55 * k - .66 * sit;
+  P.upper.rotation.x = k * .55 + P.stoop; P.upper.position.y = .78 + Math.sin(T * 1.8 + P.seed) * .004;
+  P.armL.rotation.x = s.aL !== undefined ? s.aL : -sw * .8; P.armR.rotation.x = s.aR !== undefined ? s.aR : sw * .8;
+  P.armL.rotation.z = -.08; P.armR.rotation.z = .08;
+  P.head.rotation.x = s.hx || 0; P.head.rotation.y = s.hy || 0;
+}
+
+// --- Mood & Lighting Engine ---
+const M = (t, el, az, si, sc, top, hor, fog, fd, hi, ex, cl, cc, rain) => ({ t, el, az, si, sc: C(sc), top: C(top), hor: C(hor), fog: C(fog), fd, hi, ex, cl, cc: C(cc), rain });
+const MK = [
+  M(0, 60, 215, 3.4, 0xfff0d2, 0x3d84c8, 0xf2dfb4, 0xebdcb4, .0011, .8, 1.05, .12, 0xffffff, 0), // Start
+  M(30, 50, 215, 3.2, 0xfff0d2, 0x3d84c8, 0xf2dfb4, 0xebdcb4, .0011, .8, 1.05, .15, 0xffffff, 0),
+  M(62, 46, 200, 3.2, 0xfff0d2, 0x3d84c8, 0xf2dfb4, 0xebdcb4, .0012, .8, 1.05, .25, 0xffffff, 0),
+  M(67.8, 40, 200, 1.2, 0xdfe6f0, 0x5d6a76, 0xa3abae, 0xa4abad, .0035, 1, 1.1, .9, 0x9aa2a8, .7), // Storm
+  M(73.4, 38, 200, 2.6, 0xfff1d6, 0x4a8fd0, 0xe8e2c4, 0xe2dcc0, .0016, .85, 1.05, .4, 0xffffff, 0),
+  M(79.2, 40, 200, .8, 0xdfe6f0, 0x4d5762, 0x8f989b, 0x8d9699, .006, 1.1, 1.15, 1, 0x7d858b, 0), // Mist
+  M(84.8, 38, 220, 3.1, 0xfff4d8, 0x3a90d8, 0xd9ecdb, 0xd6e8d6, .0018, .9, 1, .3, 0xffffff, 0),
+  M(87.6, 12, 100, 1.7, 0xffd9a8, 0x7fa3c8, 0xf5e3cc, 0xe8e4dc, .012, .75, 1.05, .3, 0xffffff, 0), // Golden Hour
+  M(130, 20, 250, 3.2, 0xffcf94, 0x5a8fd0, 0xfbd9aa, 0xefdcb2, .0028, .9, 1, .35, 0xffffff, 0),
+  M(180, 36, 140, 3.4, 0xfff0d0, 0x3f8fe0, 0xe8f3e6, 0xe0eedd, .0022, .95, 1, .3, 0xffffff, 0)
+];
+
+const mood = { sc: new THREE.Color(), top: new THREE.Color(), hor: new THREE.Color(), fog: new THREE.Color(), cc: new THREE.Color() };
+const sunDir = new THREE.Vector3();
+
+function applyMood(T) {
+  let i = 0; while (i < MK.length - 2 && T >= MK[i + 1].t) i++;
+  const a = MK[i], b = MK[i + 1], u = sstep(a.t, b.t, T);
+  for (const k of ['el', 'az', 'si', 'fd', 'hi', 'ex', 'cl', 'rain']) mood[k] = lerp(a[k], b[k], u);
+  for (const k of ['sc', 'top', 'hor', 'fog', 'cc']) mood[k].copy(a[k]).lerp(b[k], u);
+
+  const el = mood.el * Math.PI / 180, az = mood.az * Math.PI / 180;
+  sunDir.set(Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az));
+  
+  sun.color.copy(mood.sc); sun.intensity = mood.si;
+  hemi.color.copy(mood.top).lerp(white, .35); hemi.intensity = mood.hi;
+  scene.fog.color.copy(mood.fog); scene.fog.density = mood.fd;
+  renderer.toneMappingExposure = mood.ex;
+
+  const su = skyMat.uniforms;
+  su.top.value.copy(mood.top); su.hor.value.copy(mood.hor); su.sunDir.value.copy(sunDir); su.sunCol.value.copy(mood.sc); su.cloudCol.value.copy(mood.cc); su.cloud.value = mood.cl; su.time.value = T;
+
+  for (const m of [waterMat]) {
+    const w = m.uniforms;
+    w.time.value = T; w.rain.value = mood.rain; w.fogD.value = mood.fd; w.sunDir.value.copy(sunDir); w.sunCol.value.copy(mood.sc); w.hor.value.copy(mood.hor); w.top.value.copy(mood.top); w.fogCol.value.copy(mood.fog);
+  }
+
+  // Morph terrain based on age
+  const age = ageOf(T);
+  const grassOpacity = sstep(0, 10, age); // Fades grass in over time
+  grassMat.opacity = grassOpacity;
+  grass.visible = grassOpacity > 0.01;
+  
+  // Fade sand to green
+  const sandDarken = 1 - sstep(0, 15, age) * 0.6;
+  terrainMat.color.setRGB(sandDarken, sandDarken, sandDarken);
+}
+
+function ageOf(T) {
+  if (T < 52.4) return -1; // Barren
+  if (T < 60) return (T - 52.4) / 7.6 * .6; // First plantings
+  if (T < 95) return .6 + (T - 60) / 35 * 11.4; // Growing
+  if (T < 130) return 12 + (T - 95) / 35 * 26; // Forest
+  return 38 + (T - 130) * .1; // Final
+}
+
+// --- Camera Cinematography ---
+const keyframes = [
+  { t: 0, p: [0, 150, 250], tg: [0, 0, 20] },      // Aerial
+  { t: 10, p: [0, 50, 120], tg: [0, 0, 20] },      // Descend
+  { t: 22, p: [10, 5, 40], tg: [5, 1, 25] },       // Close on young Jadav
+  { t: 35, p: [15, 4, 35], tg: [10, 1, 28] },      // The decision
+  { t: 50, p: [10, 3, 25], tg: [8, 1, 26] },       // Planting
+  { t: 60, p: [20, 6, 40], tg: [5, 2, 25] },       // Montage start
+  { t: 75, p: [35, 15, 60], tg: [0, 5, 20] },      // Growth pullback
+  { t: 90, p: [40, 20, 80], tg: [0, 8, 15] },      // Forest reveal
+  { t: 110, p: [25, 15, 50], tg: [0, 6, 20] },     // Forest beauty
+  { t: 130, p: [15, 8, 30], tg: [5, 3, 25] },      // Older Jadav
+  { t: 150, p: [12, 5, 25], tg: [8, 3, 24] },      // Recognition
+  { t: 165, p: [20, 10, 40], tg: [0, 4, 20] },     // Students
+  { t: 180, p: [40, 30, 80], tg: [0, 8, 15] }      // Final pullback
+];
+
+function updateCamera(T) {
+  let prev = keyframes[0], next = keyframes[keyframes.length - 1];
+  for (let i = 0; i < keyframes.length - 1; i++) {
+    if (T >= keyframes[i].t && T <= keyframes[i + 1].t) { prev = keyframes[i]; next = keyframes[i + 1]; break; }
+  }
+  const u = E(clamp((T - prev.t) / (next.t - prev.t)));
+  camera.position.set(
+    lerp(prev.p[0], next.p[0], u),
+    lerp(prev.p[1], next.p[1], u),
+    lerp(prev.p[2], next.p[2], u)
+  );
+  const target = new THREE.Vector3(
+    lerp(prev.tg[0], next.tg[0], u),
+    lerp(prev.tg[1], next.tg[1], u),
+    lerp(prev.tg[2], next.tg[2], u)
+  );
+  camera.lookAt(target);
+  sun.target.position.copy(target);
+}
+
+// --- Subtitles & Timeline Script ---
+const subtitles = [
+  { t: 2, d: 6, text: "In 1979, on the banks of the mighty Brahmaputra River in Assam..." },
+  { t: 9, d: 8, text: "...a young boy witnessed something that would change his life forever." },
+  { t: 18, d: 6, text: "The land was barren. No trees, no shade, no shelter." },
+  { t: 31, d: 8, text: "Jadav approached the forest authorities, hoping for help." },
+  { t: 40, d: 8, text: "But there was no simple solution. He was advised to plant bamboo." },
+  { t: 49, d: 8, text: "Instead of waiting for someone else... Jadav decided to begin himself." },
+  { t: 62, d: 10, text: "Days turned into months. Months turned into years." },
+  { t: 74, d: 10, text: "There were no grand celebrations. Just years of patience and hard work." },
+  { t: 86, d: 8, text: "And slowly, the land began to change." },
+  { t: 98, d: 10, text: "Decades passed. The growing vegetation developed into a large forest ecosystem." },
+  { t: 110, d: 10, text: "Covering 550 hectares, it became known as Molai Forest." },
+  { t: 122, d: 8, text: "Animals, birds, and countless forms of life found shelter among the trees." },
+  { t: 135, d: 10, text: "Eventually, the world began to notice his extraordinary contribution." },
+  { t: 147, d: 8, text: "In 2015, the Government of India honoured him with the Padma Shri." },
+  { t: 158, d: 8, text: "But for Jadav, the greatest achievement was seeing life return." },
+  { t: 168, d: 6, text: "You don't need millions of rupees to make a difference." },
+  { t: 174, d: 6, text: "Sometimes, all it takes is one person, one decision, and the determination to continue." }
+];
+
+function updateSubtitles(T) {
+  const sub = $('#sub');
+  let active = null;
+  for (let s of subtitles) {
+    if (T >= s.t && T < s.t + s.d) { active = s; break; }
+  }
+  if (active) {
+    if (sub.textContent !== active.text) {
+      sub.style.opacity = 0;
+      setTimeout(() => { sub.textContent = active.text; sub.style.opacity = 1; }, 300);
+    } else {
+      sub.style.opacity = 1;
+    }
+  } else {
+    sub.style.opacity = 0;
+  }
+}
+
+// --- Animation Loop ---
+let clock = new THREE.Clock();
+let timelineTime = 0;
+let isPlaying = false;
+let animFrame;
+
+function animate() {
+  if (!isPlaying) return;
+  const delta = clock.getDelta();
+  timelineTime += delta;
+
+  if (timelineTime > TOTAL) timelineTime = TOTAL;
+
+  updateCamera(timelineTime);
+  applyMood(timelineTime);
+  updateVeg(ageOf(timelineTime), timelineTime);
+  updateSubtitles(timelineTime);
+  updateCharacters(timelineTime);
+
+  // Animate water
+  waterMat.uniforms.time.value = timelineTime;
+
+  renderer.render(scene, camera);
+
+  if (timelineTime < TOTAL) {
+    animFrame = requestAnimationFrame(animate);
+  } else {
+    showEndSequence();
+  }
+}
+
+// --- Character Animation Choreography ---
+function updateCharacters(T) {
+  // Reset
+  YJ.g.visible = false; OJ.g.visible = false; OFF.g.visible = false;
+  listeners.forEach(l => l.g.visible = false);
+  students.forEach(s => s.g.visible = false);
+
+  // Scene 1: Young Jadav walking
+  if (T > 10 && T < 32) {
+    const p = clamp((T - 12) / 18);
+    pose(YJ, { vis: true, x: lerp(20, 5, p), y: groundY(lerp(20, 5, p), 25), z: 25, ry: PI, walk: p > 0 && p < 1 ? 1 : 0, dist: p * 15 }, T);
+    YJ.head.rotation.x = -0.2; // Looking down
+  }
+
+  // Scene 2: Talking to Official
+  if (T > 32 && T < 52) {
+    pose(YJ, { vis: true, x: 8, y: groundY(8, 20), z: 20, ry: 0.5, walk: 0 }, T);
+    pose(OFF, { vis: true, x: 10, y: groundY(10, 18), z: 18, ry: -0.5, walk: 0 }, T);
+    YJ.armR.rotation.x = Math.sin(T * 3) * 0.2 + 0.5; // Gesturing
+  }
+
+  // Scene 2b: Planting
+  if (T > 48 && T < 60) {
+    const p = clamp((T - 48) / 12);
+    pose(YJ, { vis: true, x: 8, y: groundY(8, 26), z: 26, ry: -0.2, kneel: p > 0.5 ? 1 : 0, aR: p > 0.5 ? -1.2 : 0 }, T);
+  }
+
+  // Scene 3: Montage - Watering, then growing up
+  if (T > 60 && T < 95) {
+    const p = clamp((T - 60) / 35);
+    const age = p; // 0 to 1
+    // Transition from young to older teen
+    YJ.g.scale.setScalar(lerp(0.9, 0.95, p));
+    if (p < 0.5) {
+      pose(YJ, { vis: true, x: 8, y: groundY(8, 26), z: 26, ry: -0.2, walk: 0, aR: -1.2, aL: -0.5 }, T);
+    } else {
+      pose(YJ, { vis: true, x: 10, y: groundY(10, 28), z: 28, ry: 0.8, walk: 1, dist: p * 20 }, T);
+    }
+  }
+
+  // Scene 4: Older Jadav walking in forest (Birth of Molai)
+  if (T > 95 && T < 130) {
+    const p = clamp((T - 95) / 35);
+    OJ.g.scale.setScalar(0.97);
+    pose(OJ, { vis: true, x: lerp(15, 5, p), y: groundY(lerp(15, 5, p), 26), z: 26, ry: PI, walk: 1, dist: p * 15 }, T);
+  }
+
+  // Scene 5: Recognition (Older Jadav stationary)
+  if (T > 130 && T < 150) {
+    pose(OJ, { vis: true, x: 8, y: groundY(8, 24), z: 24, ry: 0.2, walk: 0 }, T);
+    OJ.armL.rotation.x = -0.5; // Touching tree
+  }
+
+  // Scene 6: Students (Ending)
+  if (T > 150 && T < TOTAL) {
+    pose(OJ, { vis: true, x: 15, y: groundY(15, 30), z: 30, ry: -0.5, walk: 0 }, T);
+    
+    // Students group
+    for (let i = 0; i < students.length; i++) {
+      const s = students[i];
+      const angle = (i / students.length) * PI * 2;
+      const r = 4 + (i % 3) * 1.5;
+      const px = 25 + Math.cos(angle) * r;
+      const pz = 15 + Math.sin(angle) * r;
+      const isWatering = (i === 5);
+      pose(s, { vis: true, x: px, y: groundY(px, pz), z: pz, ry: angle + PI, walk: 0, aR: isWatering ? -1.5 : 0, aL: isWatering ? -0.8 : 0 }, T);
+    }
+  }
+
+  // Fade out black overlay
+  if (T < 5) {
+    $('#fade').style.opacity = 1 - (T / 5);
+  } else {
+    $('#fade').style.opacity = 0;
+  }
+}
+
+// --- End Sequence ---
+function showEndSequence() {
+  $('#fade').style.opacity = 1;
+  
+  setTimeout(() => {
+    $('#end').style.opacity = 1;
+    $('#l1').classList.add('on');
+  }, 1500);
+  setTimeout(() => { $('#l2').classList.add('on'); }, 3500);
+  setTimeout(() => { $('#l3').classList.add('on'); }, 5500);
+  
+  setTimeout(() => {
+    $('#l1').classList.remove('on'); $('#l2').classList.remove('on'); $('#l3').classList.remove('on');
+    $('#ask').classList.add('on');
+  }, 8000);
+  
+  setTimeout(() => {
+    $('#ask').classList.remove('on');
+    $('#fin').classList.add('on');
+  }, 11000);
+}
+
+// --- Start & Init ---
+function startExperience() {
+  if (isPlaying) return;
+  started = true;
+
+  // Fullscreen & Landscape Lock
+  const elem = document.documentElement;
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen().then(() => {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(e => console.log('Orientation lock not supported'));
       }
-    }
-  </script>
+    }).catch(e => console.log('Fullscreen failed'));
+  }
 
-  <script type="module">
-    import * as THREE from 'three';
+  $('#menu').style.opacity = 0;
+  setTimeout(() => $('#menu').style.display = 'none', 1500);
+  stage.style.visibility = 'visible';
+  
+  layout();
+  clock.start();
+  isPlaying = true;
+  timelineTime = 0;
+  
+  animate();
+}
 
-    // --- GLOBAL VARIABLES ---
-    let scene, camera, renderer, clock;
-    let animFrame;
-    let isPlaying = false;
-    let timelineTime = 0;
-    const duration = 180; // 3 minutes
-
-    // Environment objects
-    let riverMesh, sandbarGroup, forestGroup, saplingGroup, snakeGroup;
-    let sunLight, ambientLight, hemiLight;
-
-    // Camera Keyframes
-    const keyframes = [
-      { time: 0, pos: [0, 120, 200], target: [0, 0, 20] },
-      { time: 10, pos: [0, 60, 150], target: [0, 0, 20] },
-      { time: 20, pos: [0, 20, 90], target: [0, 2, 20] },
-      { time: 30, pos: [10, 6, 50], target: [5, 1, 25] },
-      { time: 40, pos: [15, 5, 35], target: [10, 1, 30] },
-      { time: 50, pos: [5, 3, 25], target: [8, 1, 28] },
-      { time: 60, pos: [8, 2.5, 22], target: [10, 1, 26] },
-      { time: 70, pos: [20, 8, 40], target: [10, 2, 30] },
-      { time: 80, pos: [30, 12, 50], target: [5, 3, 25] },
-      { time: 90, pos: [40, 15, 60], target: [0, 5, 20] },
-      { time: 95, pos: [35, 12, 50], target: [0, 6, 20] },
-      { time: 105, pos: [40, 25, 80], target: [0, 8, 15] },
-      { time: 115, pos: [30, 20, 60], target: [0, 6, 20] },
-      { time: 125, pos: [25, 15, 50], target: [0, 5, 20] },
-      { time: 130, pos: [20, 12, 40], target: [0, 4, 20] },
-      { time: 140, pos: [15, 8, 30], target: [5, 3, 25] },
-      { time: 150, pos: [12, 6, 28], target: [8, 3, 24] },
-      { time: 160, pos: [18, 10, 35], target: [5, 3, 25] },
-      { time: 170, pos: [25, 18, 50], target: [0, 5, 20] },
-      { time: 180, pos: [30, 25, 70], target: [0, 8, 20] }
-    ];
-
-    // --- INITIALIZATION ---
-    function initScene() {
-      document.getElementById('loading').style.opacity = '1';
-      
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x000000);
-      scene.fog = new THREE.FogExp2(0x0a1a0a, 0.002);
-
-      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(0, 120, 200);
-      camera.lookAt(0, 0, 20);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      document.body.appendChild(renderer.domElement);
-
-      clock = new THREE.Clock();
-
-      // Lights
-      ambientLight = new THREE.AmbientLight(0x404060);
-      scene.add(ambientLight);
-
-      hemiLight = new THREE.HemisphereLight(0xbfd8ff, 0x5a4a3a, 0.8);
-      scene.add(hemiLight);
-
-      sunLight = new THREE.DirectionalLight(0xffeedd, 1.2);
-      sunLight.position.set(60, 80, 40);
-      sunLight.castShadow = true;
-      sunLight.receiveShadow = true;
-      sunLight.shadow.mapSize.width = 1024;
-      sunLight.shadow.mapSize.height = 1024;
-      const d = 120;
-      sunLight.shadow.camera.left = -d;
-      sunLight.shadow.camera.right = d;
-      sunLight.shadow.camera.top = d;
-      sunLight.shadow.camera.bottom = -d;
-      sunLight.shadow.camera.near = 1;
-      sunLight.shadow.camera.far = 300;
-      scene.add(sunLight);
-
-      const fillLight = new THREE.PointLight(0xccddff, 0.4);
-      fillLight.position.set(-30, 40, 60);
-      scene.add(fillLight);
-
-      // Build Environment
-      createRiver();
-      createSandbar();
-      createForest();
-      createSaplings();
-      createDeadSnakes();
-
-      document.getElementById('loading').style.opacity = '0';
-      
-      // Initial render
-      renderer.render(scene, camera);
-    }
-
-    // --- ENVIRONMENT BUILDERS ---
-
-    function createRiver() {
-      const waterGeometry = new THREE.PlaneGeometry(600, 400, 64, 64);
-      const waterMaterial = new THREE.MeshStandardMaterial({
-        color: 0x3a6a8a,
-        emissive: 0x0a1a2a,
-        roughness: 0.2,
-        metalness: 0.4,
-        transparent: true,
-        opacity: 0.85,
-        side: THREE.DoubleSide
-      });
-      riverMesh = new THREE.Mesh(waterGeometry, waterMaterial);
-      riverMesh.rotation.x = -Math.PI / 2;
-      riverMesh.position.y = -1.5;
-      riverMesh.position.z = -20;
-      riverMesh.receiveShadow = true;
-      scene.add(riverMesh);
-    }
-
-    function createSandbar() {
-      sandbarGroup = new THREE.Group();
-      
-      const sandGeo = new THREE.CircleGeometry(120, 32);
-      const sandMat = new THREE.MeshStandardMaterial({
-        color: 0xc2b280,
-        roughness: 0.9,
-        emissive: 0x221100,
-        side: THREE.DoubleSide
-      });
-      const sandMesh = new THREE.Mesh(sandGeo, sandMat);
-      sandMesh.rotation.x = -Math.PI / 2;
-      sandMesh.position.y = -0.9;
-      sandMesh.position.z = 20;
-      sandMesh.receiveShadow = true;
-      sandbarGroup.add(sandMesh);
-
-      for (let i = 0; i < 40; i++) {
-        const crackGeo = new THREE.CircleGeometry(1.5 + Math.random() * 3, 6);
-        const crackMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 1.0 });
-        const crack = new THREE.Mesh(crackGeo, crackMat);
-        crack.rotation.x = -Math.PI / 2;
-        crack.position.set(
-          (Math.random() - 0.5) * 180,
-          -0.85,
-          20 + (Math.random() - 0.5) * 120
-        );
-        crack.scale.set(1, 0.6 + Math.random() * 1.2, 1);
-        crack.receiveShadow = true;
-        sandbarGroup.add(crack);
-      }
-      scene.add(sandbarGroup);
-    }
-
-    function createForest() {
-      forestGroup = new THREE.Group();
-      
-      for (let i = 0; i < 220; i++) {
-        const tree = createTree();
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 20 + Math.random() * 80;
-        const x = Math.cos(angle) * radius;
-        const z = 20 + Math.sin(angle) * radius * 0.7;
-        tree.position.set(x, 0, z);
-        tree.rotation.y = Math.random() * Math.PI * 2;
-        const s = 0.6 + Math.random() * 1.0;
-        tree.scale.set(s, s, s);
-        tree.visible = false;
-        tree.userData.originalScale = s;
-        forestGroup.add(tree);
-      }
-      
-      for (let i = 0; i < 80; i++) {
-        const bamboo = createBambooCluster();
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 10 + Math.random() * 90;
-        const x = Math.cos(angle) * radius;
-        const z = 20 + Math.sin(angle) * radius * 0.8;
-        bamboo.position.set(x, 0, z);
-        bamboo.scale.setScalar(0.8 + Math.random() * 0.8);
-        bamboo.visible = false;
-        forestGroup.add(bamboo);
-      }
-      scene.add(forestGroup);
-    }
-
-    function createTree() {
-      const group = new THREE.Group();
-      const trunkGeo = new THREE.CylinderGeometry(0.4, 0.8, 4 + Math.random() * 4, 6);
-      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4e3a, roughness: 0.9 });
-      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-      trunk.position.y = 2 + Math.random() * 2;
-      trunk.castShadow = true;
-      trunk.receiveShadow = true;
-      group.add(trunk);
-      
-      const greenShades = [0x2d5a27, 0x3e6b3e, 0x4a7a4a, 0x2f5e2f];
-      for (let j = 0; j < 3 + Math.floor(Math.random() * 3); j++) {
-        const foliageGeo = new THREE.SphereGeometry(1.2 + Math.random() * 1.8, 7);
-        const foliageMat = new THREE.MeshStandardMaterial({ 
-          color: greenShades[Math.floor(Math.random() * greenShades.length)],
-          roughness: 0.8,
-          emissive: 0x112211
-        });
-        const foliage = new THREE.Mesh(foliageGeo, foliageMat);
-        foliage.position.set((Math.random() - 0.5) * 2.5, 5 + Math.random() * 3, (Math.random() - 0.5) * 2.5);
-        foliage.castShadow = true;
-        foliage.receiveShadow = true;
-        group.add(foliage);
-      }
-      return group;
-    }
-
-    function createBambooCluster() {
-      const group = new THREE.Group();
-      const count = 3 + Math.floor(Math.random() * 5);
-      for (let i = 0; i < count; i++) {
-        const bambooGeo = new THREE.CylinderGeometry(0.1, 0.15, 3 + Math.random() * 4, 5);
-        const bambooMat = new THREE.MeshStandardMaterial({ color: 0x7a9a5a, roughness: 0.8 });
-        const bamboo = new THREE.Mesh(bambooGeo, bambooMat);
-        bamboo.position.set((Math.random() - 0.5) * 1.2, 1.5 + Math.random() * 2, (Math.random() - 0.5) * 1.2);
-        bamboo.rotation.z = (Math.random() - 0.5) * 0.2;
-        bamboo.rotation.x = (Math.random() - 0.5) * 0.2;
-        bamboo.castShadow = true;
-        bamboo.receiveShadow = true;
-        group.add(bamboo);
-        
-        for (let l = 0; l < 3; l++) {
-          const leafGeo = new THREE.SphereGeometry(0.25, 4);
-          const leafMat = new THREE.MeshStandardMaterial({ color: 0x5a8a3a, emissive: 0x112211 });
-          const leaf = new THREE.Mesh(leafGeo, leafMat);
-          leaf.position.set((Math.random() - 0.5) * 0.8, 3.5 + Math.random() * 2, (Math.random() - 0.5) * 0.8);
-          leaf.scale.set(1, 0.3, 0.8);
-          leaf.castShadow = true;
-          group.add(leaf);
-        }
-      }
-      return group;
-    }
-
-    function createSaplings() {
-      saplingGroup = new THREE.Group();
-      for (let i = 0; i < 30; i++) {
-        const sapling = createSmallSapling();
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 5 + Math.random() * 30;
-        const x = Math.cos(angle) * radius;
-        const z = 20 + Math.sin(angle) * radius * 0.7;
-        sapling.position.set(x, 0, z);
-        sapling.visible = false;
-        saplingGroup.add(sapling);
-      }
-      scene.add(saplingGroup);
-    }
-
-    function createSmallSapling() {
-      const group = new THREE.Group();
-      const stemGeo = new THREE.CylinderGeometry(0.08, 0.12, 0.8 + Math.random() * 0.6, 4);
-      const stemMat = new THREE.MeshStandardMaterial({ color: 0x6a8a4a });
-      const stem = new THREE.Mesh(stemGeo, stemMat);
-      stem.position.y = 0.5;
-      stem.castShadow = true;
-      group.add(stem);
-      
-      const leafGeo = new THREE.SphereGeometry(0.2, 4);
-      const leafMat = new THREE.MeshStandardMaterial({ color: 0x4a8a3a, emissive: 0x112211 });
-      for (let i = 0; i < 3; i++) {
-        const leaf = new THREE.Mesh(leafGeo, leafMat);
-        leaf.position.set((Math.random() - 0.5) * 0.3, 0.8 + Math.random() * 0.4, (Math.random() - 0.5) * 0.3);
-        leaf.scale.set(1, 0.5, 1);
-        leaf.castShadow = true;
-        group.add(leaf);
-      }
-      return group;
-    }
-
-    function createDeadSnakes() {
-      snakeGroup = new THREE.Group();
-      for (let i = 0; i < 5; i++) {
-        const snakeGeo = new THREE.TorusKnotGeometry(0.2, 0.06, 20, 4);
-        const snakeMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.9 });
-        const snake = new THREE.Mesh(snakeGeo, snakeMat);
-        snake.rotation.x = Math.PI / 2;
-        snake.rotation.z = Math.random() * Math.PI;
-        snake.position.set((Math.random() - 0.5) * 8, -0.7, 20 + (Math.random() - 0.5) * 8);
-        snake.scale.set(1, 0.3, 1);
-        snake.castShadow = true;
-        snakeGroup.add(snake);
-      }
-      scene.add(snakeGroup);
-    }
-
-    // --- ANIMATION & LOOPS ---
-    function animate() {
-      if (!isPlaying) return;
-      
-      const delta = clock.getDelta();
-      timelineTime += delta;
-      
-      if (timelineTime > duration) timelineTime = duration;
-      
-      updateCamera(timelineTime);
-      updateEnvironment(timelineTime);
-      animateRiver(delta);
-      
-      renderer.render(scene, camera);
-      
-      if (timelineTime < duration) {
-        animFrame = requestAnimationFrame(animate);
-      } else {
-        // End scene render loop
-        animFrame = requestAnimationFrame(() => {
-          renderer.render(scene, camera);
-        });
-      }
-    }
-
-    function updateCamera(t) {
-      let prev = keyframes[0];
-      let next = keyframes[keyframes.length - 1];
-      for (let i = 0; i < keyframes.length - 1; i++) {
-        if (t >= keyframes[i].time && t <= keyframes[i+1].time) {
-          prev = keyframes[i];
-          next = keyframes[i+1];
-          break;
-        }
-      }
-      
-      const range = next.time - prev.time;
-      const factor = range > 0 ? (t - prev.time) / range : 0;
-      const smoothFactor = factor * factor * (3 - 2 * factor);
-      
-      const px = prev.pos[0] + (next.pos[0] - prev.pos[0]) * smoothFactor;
-      const py = prev.pos[1] + (next.pos[1] - prev.pos[1]) * smoothFactor;
-      const pz = prev.pos[2] + (next.pos[2] - prev.pos[2]) * smoothFactor;
-      
-      const tx = prev.target[0] + (next.target[0] - prev.target[0]) * smoothFactor;
-      const ty = prev.target[1] + (next.target[1] - prev.target[1]) * smoothFactor;
-      const tz = prev.target[2] + (next.target[2] - prev.target[2]) * smoothFactor;
-      
-      camera.position.set(px, py, pz);
-      camera.lookAt(tx, ty, tz);
-    }
-
-    function updateEnvironment(t) {
-      if (t < 10) {
-        scene.background.setHSL(0, 0, 0);
-        scene.fog.color.setHSL(0, 0, 0);
-      } else if (t < 30) {
-        const f = (t - 10) / 20;
-        scene.background.setHSL(0.6, 0.4, 0.02 + f * 0.1);
-        scene.fog.color.setHSL(0.6, 0.4, 0.02 + f * 0.1);
-      } else if (t < 60) {
-        const f = Math.min(1, (t - 30) / 30);
-        scene.background.setHSL(0.55, 0.3, 0.12 + f * 0.05);
-        scene.fog.color.setHSL(0.55, 0.3, 0.12 + f * 0.05);
-      } else {
-        const f = Math.min(1, (t - 60) / 40);
-        scene.background.setHSL(0.3, 0.4, 0.08 + f * 0.04);
-        scene.fog.color.setHSL(0.3, 0.4, 0.08 + f * 0.04);
-      }
-      
-      sunLight.intensity = Math.max(0.3, 0.8 + Math.sin(t * 0.02) * 0.2);
-      sunLight.color.setHSL(0.1, 0.6, 0.7 + Math.sin(t * 0.05) * 0.1);
-      
-      const sandFade = Math.max(0, 1 - (t - 50) / 60);
-      sandbarGroup.traverse(child => {
-        if (child.isMesh && child.material) {
-          if (!child.userData.originalOpacity) child.userData.originalOpacity = child.material.opacity;
-          child.material.transparent = true;
-          child.material.opacity = child.userData.originalOpacity * Math.max(0.1, sandFade);
-        }
-      });
-      
-      const snakeFade = Math.max(0, 1 - (t - 30) / 30);
-      snakeGroup.traverse(child => {
-        if (child.isMesh && child.material) {
-          child.material.transparent = true;
-          child.material.opacity = snakeFade;
-        }
-      });
-      snakeGroup.visible = t < 60;
-      
-      saplingGroup.children.forEach((sapling, idx) => {
-        const individualProgress = Math.min(1, Math.max(0, (t - 30 - idx * 0.5) / 20));
-        sapling.visible = individualProgress > 0;
-        sapling.scale.setScalar(individualProgress * (0.8 + idx % 3 * 0.2));
-      });
-      
-      forestGroup.children.forEach((tree, idx) => {
-        const individualProgress = Math.min(1, Math.max(0, (t - 60 - idx * 0.1) / 40));
-        tree.visible = individualProgress > 0.05;
-        const s = tree.userData.originalScale || 1;
-        tree.scale.setScalar(individualProgress * s * 1.2);
-      });
-      
-      hemiLight.intensity = 0.3 + Math.min(1, Math.max(0, (t - 40) / 60)) * 0.6;
-    }
-
-    function animateRiver(delta) {
-      if (!riverMesh) return;
-      const positions = riverMesh.geometry.attributes.position.array;
-      const time = performance.now() * 0.001;
-      for (let i = 0; i < positions.length; i += 3) {
-        const x = positions[i];
-        const y = positions[i+1];
-        positions[i+2] = Math.sin(x * 0.05 + time) * 0.3 + Math.cos(y * 0.03 + time * 0.7) * 0.2;
-      }
-      riverMesh.geometry.attributes.position.needsUpdate = true;
-    }
-
-    // --- START EXPERIENCE ---
-    function startExperience() {
-      if (isPlaying) return;
-      
-      // Fullscreen & Landscape Lock
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen().then(() => {
-          if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(e => console.log('Orientation lock not supported:', e));
-          }
-        }).catch(e => console.log('Fullscreen failed:', e));
-      }
-      
-      document.getElementById('start-overlay').classList.add('hidden');
-      document.getElementById('fullscreen-hint').style.opacity = '0';
-      
-      timelineTime = 0;
-      isPlaying = true;
-      
-      clock.start();
-      
-      if (animFrame) cancelAnimationFrame(animFrame);
-      animate();
-    }
-
-    // --- EVENT LISTENERS ---
-    window.addEventListener('load', () => {
-      initScene();
-      
-      document.getElementById('watchBtn').addEventListener('click', startExperience);
-      
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-    });
-
-  </script>
+window.addEventListener('load', () => {
+  layout();
+  $('#watch').addEventListener('click', startExperience);
+  
+  // Pre-render one frame to initialize textures
+  applyMood(0);
+  renderer.render(scene, camera);
+});
+</script>
 </body>
 </html>
