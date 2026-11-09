@@ -60,6 +60,7 @@
       margin-bottom: 2.5rem;
       color: #9fbf9f;
       text-transform: uppercase;
+      text-align: center;
     }
     .watch-btn {
       padding: 18px 60px;
@@ -91,6 +92,7 @@
       font-size: 0.9rem;
       color: #7f9f7f;
       letter-spacing: 4px;
+      text-align: center;
     }
     #fullscreen-hint {
       position: absolute;
@@ -103,6 +105,15 @@
       opacity: 0.6;
       pointer-events: none;
     }
+    #loading {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: #fff;
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.5s;
+    }
   </style>
 </head>
 <body>
@@ -114,6 +125,7 @@
     <div class="hint">3-MINUTE CINEMATIC ANIMATED DOCUMENTARY</div>
   </div>
   <div id="fullscreen-hint">⛶ CLICK WATCH FOR FULLSCREEN LANDSCAPE</div>
+  <div id="loading">Preparing engine...</div>
 
   <!-- Three.js from CDN -->
   <script type="importmap">
@@ -126,31 +138,53 @@
 
   <script type="module">
     import * as THREE from 'three';
-    import { OrbitControls } from 'https://unpkg.com/three@0.128.0/examples/jsm/controls/OrbitControls.js';
 
     // --- GLOBAL VARIABLES ---
     let scene, camera, renderer, clock;
     let animFrame;
     let isPlaying = false;
-    let timelineTime = 0; // total elapsed seconds since start
-    const duration = 180; // 3 minutes = 180 seconds
+    let timelineTime = 0;
+    const duration = 180; // 3 minutes
 
     // Environment objects
     let riverMesh, sandbarGroup, forestGroup, saplingGroup, snakeGroup;
     let sunLight, ambientLight, hemiLight;
 
-    // Camera path control
-    let cameraPathPoints = [];
-    let cameraTargetPoints = [];
+    // Camera Keyframes
+    const keyframes = [
+      { time: 0, pos: [0, 120, 200], target: [0, 0, 20] },
+      { time: 10, pos: [0, 60, 150], target: [0, 0, 20] },
+      { time: 20, pos: [0, 20, 90], target: [0, 2, 20] },
+      { time: 30, pos: [10, 6, 50], target: [5, 1, 25] },
+      { time: 40, pos: [15, 5, 35], target: [10, 1, 30] },
+      { time: 50, pos: [5, 3, 25], target: [8, 1, 28] },
+      { time: 60, pos: [8, 2.5, 22], target: [10, 1, 26] },
+      { time: 70, pos: [20, 8, 40], target: [10, 2, 30] },
+      { time: 80, pos: [30, 12, 50], target: [5, 3, 25] },
+      { time: 90, pos: [40, 15, 60], target: [0, 5, 20] },
+      { time: 95, pos: [35, 12, 50], target: [0, 6, 20] },
+      { time: 105, pos: [40, 25, 80], target: [0, 8, 15] },
+      { time: 115, pos: [30, 20, 60], target: [0, 6, 20] },
+      { time: 125, pos: [25, 15, 50], target: [0, 5, 20] },
+      { time: 130, pos: [20, 12, 40], target: [0, 4, 20] },
+      { time: 140, pos: [15, 8, 30], target: [5, 3, 25] },
+      { time: 150, pos: [12, 6, 28], target: [8, 3, 24] },
+      { time: 160, pos: [18, 10, 35], target: [5, 3, 25] },
+      { time: 170, pos: [25, 18, 50], target: [0, 5, 20] },
+      { time: 180, pos: [30, 25, 70], target: [0, 8, 20] }
+    ];
 
     // --- INITIALIZATION ---
     function initScene() {
+      document.getElementById('loading').style.opacity = '1';
+      
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x000000); // start black
+      scene.background = new THREE.Color(0x000000);
       scene.fog = new THREE.FogExp2(0x0a1a0a, 0.002);
 
       camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(0, 20, 80);
+      camera.position.set(0, 120, 200);
+      camera.lookAt(0, 0, 20);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -161,7 +195,7 @@
 
       clock = new THREE.Clock();
 
-      // --- LIGHTS ---
+      // Lights
       ambientLight = new THREE.AmbientLight(0x404060);
       scene.add(ambientLight);
 
@@ -183,27 +217,26 @@
       sunLight.shadow.camera.far = 300;
       scene.add(sunLight);
 
-      // Add a subtle fill light
       const fillLight = new THREE.PointLight(0xccddff, 0.4);
       fillLight.position.set(-30, 40, 60);
       scene.add(fillLight);
 
-      // --- CREATE ENVIRONMENT ---
+      // Build Environment
       createRiver();
       createSandbar();
       createForest();
       createSaplings();
       createDeadSnakes();
 
-      // Camera path points (position and lookAt target)
-      // We'll animate via interpolation between keyframes based on timeline
-      setupCameraPath();
+      document.getElementById('loading').style.opacity = '0';
+      
+      // Initial render
+      renderer.render(scene, camera);
     }
 
     // --- ENVIRONMENT BUILDERS ---
 
     function createRiver() {
-      // Large flat plane with water material
       const waterGeometry = new THREE.PlaneGeometry(600, 400, 64, 64);
       const waterMaterial = new THREE.MeshStandardMaterial({
         color: 0x3a6a8a,
@@ -220,15 +253,11 @@
       riverMesh.position.z = -20;
       riverMesh.receiveShadow = true;
       scene.add(riverMesh);
-
-      // Add some "waves" via vertex displacement? We'll do it in animation loop for gentle movement.
     }
 
     function createSandbar() {
       sandbarGroup = new THREE.Group();
       
-      // Main sandbar shape - using a large plane with some noise? 
-      // Simpler: a large circle/ellipse of sandy color
       const sandGeo = new THREE.CircleGeometry(120, 32);
       const sandMat = new THREE.MeshStandardMaterial({
         color: 0xc2b280,
@@ -243,7 +272,6 @@
       sandMesh.receiveShadow = true;
       sandbarGroup.add(sandMesh);
 
-      // Add cracked earth patches (darker)
       for (let i = 0; i < 40; i++) {
         const crackGeo = new THREE.CircleGeometry(1.5 + Math.random() * 3, 6);
         const crackMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 1.0 });
@@ -258,38 +286,27 @@
         crack.receiveShadow = true;
         sandbarGroup.add(crack);
       }
-
       scene.add(sandbarGroup);
     }
 
     function createForest() {
       forestGroup = new THREE.Group();
-      // We'll populate with trees and grass that fade in based on timeline
-      // For performance, we'll create a bunch of simple tree meshes and control visibility/scale.
       
-      const treeCount = 220;
-      for (let i = 0; i < treeCount; i++) {
+      for (let i = 0; i < 220; i++) {
         const tree = createTree();
-        // Position within an ellipse on the sandbar
         const angle = Math.random() * Math.PI * 2;
         const radius = 20 + Math.random() * 80;
         const x = Math.cos(angle) * radius;
         const z = 20 + Math.sin(angle) * radius * 0.7;
         tree.position.set(x, 0, z);
-        
-        // Random rotation and scale
         tree.rotation.y = Math.random() * Math.PI * 2;
         const s = 0.6 + Math.random() * 1.0;
         tree.scale.set(s, s, s);
-        
-        // Initially invisible for early timeline
         tree.visible = false;
         tree.userData.originalScale = s;
-        
         forestGroup.add(tree);
       }
       
-      // Add some extra bamboo clusters
       for (let i = 0; i < 80; i++) {
         const bamboo = createBambooCluster();
         const angle = Math.random() * Math.PI * 2;
@@ -301,14 +318,11 @@
         bamboo.visible = false;
         forestGroup.add(bamboo);
       }
-      
       scene.add(forestGroup);
     }
 
     function createTree() {
       const group = new THREE.Group();
-      
-      // Trunk
       const trunkGeo = new THREE.CylinderGeometry(0.4, 0.8, 4 + Math.random() * 4, 6);
       const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b4e3a, roughness: 0.9 });
       const trunk = new THREE.Mesh(trunkGeo, trunkMat);
@@ -317,7 +331,6 @@
       trunk.receiveShadow = true;
       group.add(trunk);
       
-      // Canopy - multiple spheres
       const greenShades = [0x2d5a27, 0x3e6b3e, 0x4a7a4a, 0x2f5e2f];
       for (let j = 0; j < 3 + Math.floor(Math.random() * 3); j++) {
         const foliageGeo = new THREE.SphereGeometry(1.2 + Math.random() * 1.8, 7);
@@ -327,16 +340,11 @@
           emissive: 0x112211
         });
         const foliage = new THREE.Mesh(foliageGeo, foliageMat);
-        foliage.position.set(
-          (Math.random() - 0.5) * 2.5,
-          5 + Math.random() * 3,
-          (Math.random() - 0.5) * 2.5
-        );
+        foliage.position.set((Math.random() - 0.5) * 2.5, 5 + Math.random() * 3, (Math.random() - 0.5) * 2.5);
         foliage.castShadow = true;
         foliage.receiveShadow = true;
         group.add(foliage);
       }
-      
       return group;
     }
 
@@ -347,27 +355,18 @@
         const bambooGeo = new THREE.CylinderGeometry(0.1, 0.15, 3 + Math.random() * 4, 5);
         const bambooMat = new THREE.MeshStandardMaterial({ color: 0x7a9a5a, roughness: 0.8 });
         const bamboo = new THREE.Mesh(bambooGeo, bambooMat);
-        bamboo.position.set(
-          (Math.random() - 0.5) * 1.2,
-          1.5 + Math.random() * 2,
-          (Math.random() - 0.5) * 1.2
-        );
+        bamboo.position.set((Math.random() - 0.5) * 1.2, 1.5 + Math.random() * 2, (Math.random() - 0.5) * 1.2);
         bamboo.rotation.z = (Math.random() - 0.5) * 0.2;
         bamboo.rotation.x = (Math.random() - 0.5) * 0.2;
         bamboo.castShadow = true;
         bamboo.receiveShadow = true;
         group.add(bamboo);
         
-        // Add small leaves
         for (let l = 0; l < 3; l++) {
           const leafGeo = new THREE.SphereGeometry(0.25, 4);
           const leafMat = new THREE.MeshStandardMaterial({ color: 0x5a8a3a, emissive: 0x112211 });
           const leaf = new THREE.Mesh(leafGeo, leafMat);
-          leaf.position.set(
-            (Math.random() - 0.5) * 0.8,
-            3.5 + Math.random() * 2,
-            (Math.random() - 0.5) * 0.8
-          );
+          leaf.position.set((Math.random() - 0.5) * 0.8, 3.5 + Math.random() * 2, (Math.random() - 0.5) * 0.8);
           leaf.scale.set(1, 0.3, 0.8);
           leaf.castShadow = true;
           group.add(leaf);
@@ -378,7 +377,6 @@
 
     function createSaplings() {
       saplingGroup = new THREE.Group();
-      // Small bamboo saplings that appear early
       for (let i = 0; i < 30; i++) {
         const sapling = createSmallSapling();
         const angle = Math.random() * Math.PI * 2;
@@ -394,7 +392,6 @@
 
     function createSmallSapling() {
       const group = new THREE.Group();
-      // Thin stem
       const stemGeo = new THREE.CylinderGeometry(0.08, 0.12, 0.8 + Math.random() * 0.6, 4);
       const stemMat = new THREE.MeshStandardMaterial({ color: 0x6a8a4a });
       const stem = new THREE.Mesh(stemGeo, stemMat);
@@ -402,16 +399,11 @@
       stem.castShadow = true;
       group.add(stem);
       
-      // Tiny leaves
       const leafGeo = new THREE.SphereGeometry(0.2, 4);
       const leafMat = new THREE.MeshStandardMaterial({ color: 0x4a8a3a, emissive: 0x112211 });
       for (let i = 0; i < 3; i++) {
         const leaf = new THREE.Mesh(leafGeo, leafMat);
-        leaf.position.set(
-          (Math.random() - 0.5) * 0.3,
-          0.8 + Math.random() * 0.4,
-          (Math.random() - 0.5) * 0.3
-        );
+        leaf.position.set((Math.random() - 0.5) * 0.3, 0.8 + Math.random() * 0.4, (Math.random() - 0.5) * 0.3);
         leaf.scale.set(1, 0.5, 1);
         leaf.castShadow = true;
         group.add(leaf);
@@ -421,18 +413,13 @@
 
     function createDeadSnakes() {
       snakeGroup = new THREE.Group();
-      // A few small snake-like shapes on the sand (non-graphic)
       for (let i = 0; i < 5; i++) {
         const snakeGeo = new THREE.TorusKnotGeometry(0.2, 0.06, 20, 4);
         const snakeMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.9 });
         const snake = new THREE.Mesh(snakeGeo, snakeMat);
         snake.rotation.x = Math.PI / 2;
         snake.rotation.z = Math.random() * Math.PI;
-        snake.position.set(
-          (Math.random() - 0.5) * 8,
-          -0.7,
-          20 + (Math.random() - 0.5) * 8
-        );
+        snake.position.set((Math.random() - 0.5) * 8, -0.7, 20 + (Math.random() - 0.5) * 8);
         snake.scale.set(1, 0.3, 1);
         snake.castShadow = true;
         snakeGroup.add(snake);
@@ -440,63 +427,17 @@
       scene.add(snakeGroup);
     }
 
-    // --- CAMERA PATH SETUP ---
-    // Keyframe: { time, pos, target }
-    const keyframes = [
-      // Scene 1: 0-30s - start high, descend to sandbar
-      { time: 0, pos: [0, 120, 200], target: [0, 0, 20] },          // high aerial
-      { time: 10, pos: [0, 60, 150], target: [0, 0, 20] },
-      { time: 20, pos: [0, 20, 90], target: [0, 2, 20] },
-      { time: 30, pos: [10, 6, 50], target: [5, 1, 25] },          // close to sandbar
-      
-      // Scene 2: 30-60s - close-ups, decision, planting
-      { time: 40, pos: [15, 5, 35], target: [10, 1, 30] },
-      { time: 50, pos: [5, 3, 25], target: [8, 1, 28] },
-      { time: 60, pos: [8, 2.5, 22], target: [10, 1, 26] },        // planting close-up
-      
-      // Scene 3: 60-95s - montage, wider shots, growing
-      { time: 70, pos: [20, 8, 40], target: [10, 2, 30] },
-      { time: 80, pos: [30, 12, 50], target: [5, 3, 25] },
-      { time: 90, pos: [40, 15, 60], target: [0, 5, 20] },
-      { time: 95, pos: [35, 12, 50], target: [0, 6, 20] },
-      
-      // Scene 4: 95-130s - birth of forest, aerial reveal
-      { time: 105, pos: [40, 25, 80], target: [0, 8, 15] },
-      { time: 115, pos: [30, 20, 60], target: [0, 6, 20] },
-      { time: 125, pos: [25, 15, 50], target: [0, 5, 20] },
-      { time: 130, pos: [20, 12, 40], target: [0, 4, 20] },
-      
-      // Scene 5: 130-155s - world notices, close to Jadav
-      { time: 140, pos: [15, 8, 30], target: [5, 3, 25] },
-      { time: 150, pos: [12, 6, 28], target: [8, 3, 24] },
-      
-      // Scene 6: 155-180s - students, final wide shot
-      { time: 160, pos: [18, 10, 35], target: [5, 3, 25] },
-      { time: 170, pos: [25, 18, 50], target: [0, 5, 20] },
-      { time: 180, pos: [30, 25, 70], target: [0, 8, 20] }
-    ];
-
-    // --- ANIMATION LOOP ---
+    // --- ANIMATION & LOOPS ---
     function animate() {
-      if (!isPlaying) {
-        // Still render but don't advance time
-        renderer.render(scene, camera);
-        return;
-      }
+      if (!isPlaying) return;
       
       const delta = clock.getDelta();
       timelineTime += delta;
       
-      // Clamp to duration
       if (timelineTime > duration) timelineTime = duration;
       
-      // Update camera based on timeline
       updateCamera(timelineTime);
-      
-      // Update environment based on timeline
       updateEnvironment(timelineTime);
-      
-      // Gentle river wave animation (always)
       animateRiver(delta);
       
       renderer.render(scene, camera);
@@ -504,7 +445,7 @@
       if (timelineTime < duration) {
         animFrame = requestAnimationFrame(animate);
       } else {
-        // End of film - keep rendering final frame
+        // End scene render loop
         animFrame = requestAnimationFrame(() => {
           renderer.render(scene, camera);
         });
@@ -512,7 +453,6 @@
     }
 
     function updateCamera(t) {
-      // Find surrounding keyframes
       let prev = keyframes[0];
       let next = keyframes[keyframes.length - 1];
       for (let i = 0; i < keyframes.length - 1; i++) {
@@ -523,10 +463,9 @@
         }
       }
       
-      // Interpolate
       const range = next.time - prev.time;
       const factor = range > 0 ? (t - prev.time) / range : 0;
-      const smoothFactor = factor * factor * (3 - 2 * factor); // smoothstep
+      const smoothFactor = factor * factor * (3 - 2 * factor);
       
       const px = prev.pos[0] + (next.pos[0] - prev.pos[0]) * smoothFactor;
       const py = prev.pos[1] + (next.pos[1] - prev.pos[1]) * smoothFactor;
@@ -541,7 +480,6 @@
     }
 
     function updateEnvironment(t) {
-      // Background color transition: black -> dark blue -> warm daylight
       if (t < 10) {
         scene.background.setHSL(0, 0, 0);
         scene.fog.color.setHSL(0, 0, 0);
@@ -554,18 +492,14 @@
         scene.background.setHSL(0.55, 0.3, 0.12 + f * 0.05);
         scene.fog.color.setHSL(0.55, 0.3, 0.12 + f * 0.05);
       } else {
-        // Forest time - greenish tint
         const f = Math.min(1, (t - 60) / 40);
         scene.background.setHSL(0.3, 0.4, 0.08 + f * 0.04);
         scene.fog.color.setHSL(0.3, 0.4, 0.08 + f * 0.04);
       }
       
-      // Sun light intensity and color
-      const sunIntensity = 0.8 + Math.sin(t * 0.02) * 0.2;
-      sunLight.intensity = Math.max(0.3, sunIntensity);
+      sunLight.intensity = Math.max(0.3, 0.8 + Math.sin(t * 0.02) * 0.2);
       sunLight.color.setHSL(0.1, 0.6, 0.7 + Math.sin(t * 0.05) * 0.1);
       
-      // Sandbar: fade out gradually as forest grows
       const sandFade = Math.max(0, 1 - (t - 50) / 60);
       sandbarGroup.traverse(child => {
         if (child.isMesh && child.material) {
@@ -575,7 +509,6 @@
         }
       });
       
-      // Snake visibility: fade out after 40s
       const snakeFade = Math.max(0, 1 - (t - 30) / 30);
       snakeGroup.traverse(child => {
         if (child.isMesh && child.material) {
@@ -585,110 +518,71 @@
       });
       snakeGroup.visible = t < 60;
       
-      // Saplings: appear gradually between 30s and 60s
-      const saplingProgress = Math.min(1, Math.max(0, (t - 30) / 30));
       saplingGroup.children.forEach((sapling, idx) => {
         const individualProgress = Math.min(1, Math.max(0, (t - 30 - idx * 0.5) / 20));
         sapling.visible = individualProgress > 0;
         sapling.scale.setScalar(individualProgress * (0.8 + idx % 3 * 0.2));
       });
       
-      // Forest trees: appear gradually starting at 60s
-      const forestProgress = Math.min(1, Math.max(0, (t - 60) / 60));
       forestGroup.children.forEach((tree, idx) => {
         const individualProgress = Math.min(1, Math.max(0, (t - 60 - idx * 0.1) / 40));
         tree.visible = individualProgress > 0.05;
-        // Scale from 0.2 to full original scale
         const s = tree.userData.originalScale || 1;
         tree.scale.setScalar(individualProgress * s * 1.2);
       });
       
-      // Adjust hemi light intensity for forest
       hemiLight.intensity = 0.3 + Math.min(1, Math.max(0, (t - 40) / 60)) * 0.6;
-      
-      // Add birds? Could add simple animated birds later, but keep focus.
     }
 
     function animateRiver(delta) {
       if (!riverMesh) return;
-      // Subtle vertex movement
       const positions = riverMesh.geometry.attributes.position.array;
       const time = performance.now() * 0.001;
       for (let i = 0; i < positions.length; i += 3) {
         const x = positions[i];
         const y = positions[i+1];
-        // Only modify vertices that are not on edges? Simple sine wave
         positions[i+2] = Math.sin(x * 0.05 + time) * 0.3 + Math.cos(y * 0.03 + time * 0.7) * 0.2;
       }
       riverMesh.geometry.attributes.position.needsUpdate = true;
     }
 
-    // --- START PLAYBACK ---
+    // --- START EXPERIENCE ---
     function startExperience() {
       if (isPlaying) return;
       
-      // Request fullscreen and landscape
+      // Fullscreen & Landscape Lock
       const elem = document.documentElement;
       if (elem.requestFullscreen) {
         elem.requestFullscreen().then(() => {
           if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(() => {});
+            screen.orientation.lock('landscape').catch(e => console.log('Orientation lock not supported:', e));
           }
-        }).catch(() => {});
+        }).catch(e => console.log('Fullscreen failed:', e));
       }
       
-      // Hide overlay
       document.getElementById('start-overlay').classList.add('hidden');
+      document.getElementById('fullscreen-hint').style.opacity = '0';
       
-      // Reset timeline
       timelineTime = 0;
       isPlaying = true;
       
-      // Reset clock to avoid large delta
       clock.start();
       
-      // Start animation loop
       if (animFrame) cancelAnimationFrame(animFrame);
       animate();
     }
 
-    // --- WINDOW RESIZE ---
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    // --- BOOTSTRAP ---
+    // --- EVENT LISTENERS ---
     window.addEventListener('load', () => {
       initScene();
       
-      // Set initial camera position (black screen)
-      camera.position.set(0, 120, 200);
-      camera.lookAt(0, 0, 20);
-      
-      // Render once to show black
-      renderer.render(scene, camera);
-      
-      // Bind watch button
       document.getElementById('watchBtn').addEventListener('click', startExperience);
       
-      window.addEventListener('resize', onWindowResize);
-      
-      // Also start on any click on overlay (for convenience)
-      document.getElementById('start-overlay').addEventListener('click', (e) => {
-        if (e.target.id !== 'watchBtn') {
-          startExperience();
-        }
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
       });
-    });
-
-    // --- FALLBACK: if import fails ---
-    window.addEventListener('error', (e) => {
-      if (e.message && e.message.includes('three')) {
-        console.warn('Three.js failed to load, showing static fallback.');
-        document.getElementById('start-overlay').innerHTML += '<p style="color:#f88;margin-top:2rem;">⚠️ Could not load 3D engine. Please check network.</p>';
-      }
     });
 
   </script>
