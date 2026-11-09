@@ -6,33 +6,31 @@
 <title>Just Like a Whisper — Prologue</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Georgia,"Times New Roman",serif;color:#fff;-webkit-user-select:none;user-select:none}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Georgia,"Times New Roman",serif;color:#fff;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #menu{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 35%,#2a1a14 0%,#0a0706 62%,#020202 100%);transition:opacity 1s}
-#menu .k{letter-spacing:.5em;font-size:12px;opacity:.55;margin-bottom:18px}
-#menu h1{font-weight:400;font-size:clamp(26px,6.5vw,66px);letter-spacing:.18em;line-height:1.15}
-#menu h2{font-weight:400;font-style:italic;font-size:clamp(13px,2.2vw,20px);opacity:.75;margin:14px 0 36px;max-width:520px;line-height:1.6}
-#watch{cursor:pointer;border:1.5px solid #d8b48a;background:rgba(140,80,40,.2);color:#fff;font:inherit;font-size:19px;letter-spacing:.35em;padding:15px 42px 15px 50px;border-radius:50px;transition:.3s}
+#menu .k{letter-spacing:.5em;font-size:11px;opacity:.55;margin-bottom:18px}
+#menu h1{font-weight:400;font-size:clamp(26px,6.5vw,64px);letter-spacing:.18em;line-height:1.15}
+#menu h2{font-weight:400;font-style:italic;font-size:clamp(13px,2.2vw,19px);opacity:.75;margin:14px 0 36px;max-width:520px;line-height:1.7}
+#watch{cursor:pointer;border:1.5px solid #d8b48a;background:rgba(140,80,40,.2);color:#fff;font:inherit;font-size:18px;letter-spacing:.35em;padding:15px 42px 15px 50px;border-radius:50px;transition:.3s}
 #watch:hover{background:rgba(200,120,60,.42);transform:scale(1.05)}
 #menu small{margin-top:24px;opacity:.5;font-size:12px;max-width:430px;line-height:1.7}
 #rot{position:fixed;inset:0;z-index:60;background:#050805;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;color:#e8d8c0}
 #rot.show{display:flex}
-#rot svg{width:90px;height:90px;margin-bottom:22px;animation:rw 2.2s ease-in-out infinite}
-@keyframes rw{0%,100%{transform:rotate(-90deg)}50%{transform:rotate(0)}}
 #rot p{font-size:18px;letter-spacing:.25em;line-height:1.8}
 #stage{position:fixed;left:0;top:0;width:100vw;height:100vh;background:#000;overflow:hidden;visibility:hidden;transform-origin:0 0}
 #c{position:absolute;inset:0;width:100%;height:100%;display:block}
 .ov{position:absolute;inset:0;pointer-events:none}
-#vign{background:radial-gradient(ellipse 62% 78% at 50% 48%,transparent 42%,rgba(0,0,0,.6) 100%);z-index:2}
+#vign{background:radial-gradient(ellipse 62% 78% at 50% 48%,transparent 42%,rgba(0,0,0,.62) 100%);z-index:2}
 .bar{position:absolute;left:0;right:0;height:7%;background:#000;z-index:3}
 #fade{background:#000;opacity:1;z-index:8}
-#sub{position:absolute;left:12%;right:12%;bottom:9%;text-align:center;font-size:clamp(11px,1.8vw,21px);line-height:1.4;text-shadow:0 2px 10px #000,0 0 3px #000,0 0 2px #000;z-index:5;opacity:0;transition:opacity .5s;font-style:italic}
+#sub{position:absolute;left:10%;right:10%;bottom:8.5%;text-align:center;font-size:clamp(11px,1.75vw,20px);line-height:1.4;text-shadow:0 2px 10px #000,0 0 3px #000,0 0 2px #000;z-index:5;opacity:0;transition:opacity .35s;font-style:italic;font-weight:300}
 #sub.on{background:linear-gradient(90deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.6) 12%,rgba(0,0,0,.6) 88%,rgba(0,0,0,0) 100%);padding:.35em 1.2em;border-radius:.4em}
-#whisper{position:absolute;left:0;right:0;top:44%;text-align:center;font-size:clamp(13px,2.2vw,26px);letter-spacing:.55em;z-index:6;opacity:0;transition:opacity 1.2s;font-style:italic;color:#d8c8b0;text-shadow:0 0 20px #000}
+#whisper{position:absolute;left:0;right:0;top:44%;text-align:center;font-size:clamp(12px,2.1vw,24px);letter-spacing:.55em;z-index:6;opacity:0;transition:opacity 1.2s;font-style:italic;color:#d8c8b0;text-shadow:0 0 20px #000}
 #end{position:absolute;inset:0;background:#000;z-index:9;opacity:0;transition:opacity 1.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
-#end>*{opacity:0;transition:opacity 2.4s;position:absolute}
+#end>*{opacity:0;transition:opacity 2s;position:absolute}
 #end>.on{opacity:1}
-#titlecard{font-size:clamp(20px,4.5vw,52px);letter-spacing:.42em;font-weight:400;top:47%;color:#efe0c8}
-#tagline{font-size:clamp(11px,1.5vw,18px);letter-spacing:.35em;font-style:italic;top:60%;color:#a89478;opacity:0;transition:opacity 2.4s}
+#titlecard{font-size:clamp(18px,4.2vw,48px);letter-spacing:.42em;font-weight:400;top:47%;color:#efe0c8}
+#tagline{font-size:clamp(11px,1.4vw,17px);letter-spacing:.35em;font-style:italic;top:60%;color:#a89478}
 #hud{position:absolute;top:8%;right:3%;z-index:20;display:flex;gap:10px;opacity:0;transition:opacity .4s}
 #hud.show{opacity:1}
 #hud button{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer}
@@ -45,9 +43,9 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
   <h1>JUST LIKE<br>A WHISPER</h1>
   <h2>A story of two children, a war without end, and a bond that even death could not break.</h2>
   <button id="watch">▶ &nbsp;BEGIN</button>
-  <small>Best experienced in landscape. Sound on for narration and music.</small>
+  <small>Best experienced in landscape, with sound. Narration uses your device's built-in voice.</small>
 </div>
-<div id="rot"><svg viewBox="0 0 100 100" fill="none" stroke="#d8b48a" stroke-width="4"><rect x="14" y="26" width="72" height="48" rx="8"/><circle cx="50" cy="50" r="4" fill="#d8b48a"/></svg><p>PLEASE ROTATE YOUR DEVICE</p></div>
+<div id="rot"><p>PLEASE ROTATE YOUR DEVICE</p></div>
 <div id="stage">
   <canvas id="c"></canvas>
   <div class="ov" id="vign"></div>
@@ -57,7 +55,7 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
   <div class="ov" id="fade"></div>
   <div id="end">
     <div id="titlecard">JUST LIKE A WHISPER</div>
-    <div id="tagline">The story begins.</div>
+    <div id="tagline">the story begins</div>
   </div>
   <div id="hud"><button id="snd">🔊</button><button id="exit">✕</button></div>
 </div>
@@ -73,11 +71,11 @@ const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a));return t*t*(3-2*t)};
 const E=u=>u*u*(3-2*u);
 const C=h=>new THREE.Color(h);
 let _s=1337;const rnd=()=>((_s=(_s*16807)%2147483647)-1)/2147483646;
-const vn=(x,y)=>{const h=(x,y)=>{const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.floor(s)};const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);return h(xi,yi)*(1-u)*(1-v)+h(xi+1,yi)*u*(1-v)+h(xi,yi+1)*(1-u)*v+h(xi+1,yi+1)*u*v};
-const fbm=(x,y)=>{let a=.5,f=1,s=0;for(let i=0;i<4;i++){s+=a*vn(x*f,y*f);f*=2;a*=.5}return s};
-const gY=(x,z)=>.6*Math.sin(x*.15)*Math.cos(z*.13)-.3+0;
+const hash=(x,y)=>{const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.floor(s)};
+const vn=(x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);return hash(xi,yi)*(1-u)*(1-v)+hash(xi+1,yi)*u*(1-v)+hash(xi,yi+1)*(1-u)*v+hash(xi+1,yi+1)*u*v};
+const gY=(x,z)=>.4*Math.sin(x*.15)*Math.cos(z*.13)-.25;
 
-/* ---------- renderer ---------- */
+/* ========== renderer ========== */
 const renderer=new THREE.WebGLRenderer({canvas,antialias:!touch,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio||1,touch?1.5:2));
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -102,12 +100,12 @@ function layout(){
 }
 addEventListener('resize',layout);
 
-/* ---------- materials ---------- */
+/* ========== materials ========== */
 const toonGrad=(()=>{const t=new THREE.DataTexture(new Uint8Array([70,140,210,255]),4,1,THREE.RedFormat);t.minFilter=t.magFilter=THREE.NearestFilter;t.needsUpdate=true;return t})();
 const toon=(c,o={})=>new THREE.MeshToonMaterial({color:c,gradientMap:toonGrad,...o});
 const spriteTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.4,'rgba(255,255,255,.6)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
 
-/* ---------- sky ---------- */
+/* ========== sky ========== */
 const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
   uniforms:{top:{value:C(0x3d84c8)},hor:{value:C(0xf2dfb4)},sunDir:{value:new THREE.Vector3(0,1,0)},sunCol:{value:C(0xffffff)},cloudCol:{value:C(0xffffff)},time:{value:0},cloud:{value:.3}},
   vertexShader:`varying vec3 vD;void main(){vD=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
@@ -125,7 +123,7 @@ gl_FragColor=vec4(col,1.);
 }`});
 const sky=new THREE.Mesh(new THREE.SphereGeometry(1500,32,16),skyMat);sky.frustumCulled=false;sky.renderOrder=-10;scene.add(sky);
 
-/* ---------- water ---------- */
+/* ========== water ========== */
 function makeWater(alpha){
   return new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
   uniforms:{time:{value:0},alpha:{value:alpha},fogD:{value:.001},sunDir:{value:new THREE.Vector3()},sunCol:{value:new THREE.Color()},hor:{value:new THREE.Color()},top:{value:new THREE.Color()},fogCol:{value:new THREE.Color()},deepCol:{value:C(0x2c3a3a)},shallowCol:{value:C(0x5a7a6a)}},
@@ -155,46 +153,41 @@ const waterMat=makeWater(1);
 const waterGeo=new THREE.PlaneGeometry(4000,4000);waterGeo.rotateX(-Math.PI/2);
 const water=new THREE.Mesh(waterGeo,waterMat);water.renderOrder=1;scene.add(water);
 
-/* ---------- ground (three separate patches we move between) ---------- */
-function makeGround(color1,color2,rough=1){
+/* ========== grounds ========== */
+function makeGround(c1,c2){
   const g=new THREE.PlaneGeometry(400,200,80,40);g.rotateX(-Math.PI/2);
   const p=g.attributes.position,col=new Float32Array(p.count*3);
-  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),h=.6*Math.sin(x*.15)*Math.cos(z*.13)-.3;p.setY(i,h);
-    const n=vn(x*.2,z*.2);col.set([lerp(color1[0],color2[0],n),lerp(color1[1],color2[1],n),lerp(color1[2],color2[2],n)],i*3)}
+  for(let i=0;i<p.count;i++){const x=p.getX(i),z=p.getZ(i),h=.4*Math.sin(x*.15)*Math.cos(z*.13)-.25;p.setY(i,h);
+    const n=vn(x*.2,z*.2);col.set([lerp(c1[0],c2[0],n),lerp(c1[1],c2[1],n),lerp(c1[2],c2[2],n)],i*3)}
   g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();
-  return new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:rough}))}
+  return new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}))}
 const SOUTH=[.62,.55,.36],SOUTH2=[.78,.7,.5];
 const NORTH=[.55,.6,.62],NORTH2=[.72,.76,.78];
 const BURNT=[.14,.12,.11],BURNT2=[.28,.24,.22];
 const groundS=makeGround(SOUTH,SOUTH2);groundS.receiveShadow=true;scene.add(groundS);
-const groundN=makeGround(NORTH,NORTH2,.9);groundN.receiveShadow=true;groundN.visible=false;scene.add(groundN);
+const groundN=makeGround(NORTH,NORTH2);groundN.receiveShadow=true;groundN.visible=false;scene.add(groundN);
 const groundB=makeGround(BURNT,BURNT2);groundB.receiveShadow=true;groundB.visible=false;scene.add(groundB);
 
-/* ---------- lights ---------- */
+/* ========== lights ========== */
 const hemi=new THREE.HemisphereLight(0xbfd8ff,0x8a7550,.8);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffffff,3);sun.castShadow=true;
 sun.shadow.mapSize.set(touch?1024:2048,touch?1024:2048);
 Object.assign(sun.shadow.camera,{left:-60,right:60,top:60,bottom:-60,near:1,far:400});
 sun.shadow.bias=-.0004;sun.shadow.normalBias=.3;scene.add(sun,sun.target);
 
-/* ---------- moods ---------- */
+/* ========== mood system ========== */
 const M=(t,el,az,si,sc,top,hor,fog,fd,hi,ex,cl,cc,rain)=>({t,el,az,si,sc:C(sc),top:C(top),hor:C(hor),fog:C(fog),fd,hi,ex,cl,cc:C(cc),rain});
 const MK=[
-M(0,50,215,3.2,0xfff0d2,0x3d84c8,0xf2dfb4,0xebdcb4,.0011,.8,1.05,.1,0xffffff,0),
-M(4,40,215,2.6,0xffd8a0,0x4a88c4,0xf0d0a0,0xe0c898,.0012,.85,1.05,.3,0xffe8d0,0),
-M(10,25,240,1.2,0xff8850,0x2a3a5a,0xc86040,0x7a3a28,.0028,.4,.95,.9,0xffa060,0),
+M(0,30,240,.8,0x806040,0x1a1a20,0x2a2420,0x1a1814,.006,.2,.75,1,0x2a2420,0),
+M(3.5,35,220,3.4,0xffd8a0,0x4a88c4,0xf0d0a0,0xe0c898,.0012,.9,1.05,.3,0xffe8d0,0),
+M(11,25,240,1.2,0xff8850,0x2a3a5a,0xc86040,0x7a3a28,.0028,.4,.95,.9,0xffa060,0),
 M(15,20,240,.6,0xff6030,0x101828,0x8a3020,0x3a1810,.0045,.2,.8,1,0x402020,0),
-M(16,35,240,1.6,0xb8c8d8,0x2a3440,0x5a6470,0x4a545e,.0032,.35,1,1,0x3a4048,0),
-M(21,38,240,1.5,0xb8c8d8,0x2a3440,0x5a6470,0x4a545e,.0032,.35,1,1,0x3a4048,0),
+M(17,35,240,1.6,0xb8c8d8,0x2a3440,0x5a6470,0x4a545e,.0032,.35,1,1,0x3a4048,0),
 M(22,30,240,1.4,0xa8b8c8,0x3a4450,0x6a7078,0x5a6068,.0045,.3,.95,1,0x505860,.4),
-M(29,35,240,1.6,0xc8d0d8,0x3a4450,0x8090a0,0x6a7a8a,.0035,.4,1,1,0x707880,.15),
-M(30,20,240,2.4,0xffb070,0x4a5a70,0xd89060,0xb08058,.0022,.6,1.05,.6,0xffc890,0),
-M(33,15,250,2,0xffa060,0x3a4a60,0xc87050,0x905840,.0026,.5,1,.8,0xffb070,0),
-M(37,12,250,1.6,0xff8050,0x2a2a40,0xa04030,0x602820,.0032,.35,.9,1,0xff7040,0),
-M(38,30,260,1.2,0xd0a880,0x4a4a4a,0x8a8070,0x6a6258,.004,.4,.85,1,0x605848,.15),
-M(43,20,260,1,0xa09080,0x3a3a3a,0x6a6058,0x4a4438,.005,.35,.8,1,0x403830,0),
-M(44,40,260,2.4,0xc8d8e0,0x4a6a80,0x8aa0b0,0x7a8a98,.003,.6,1,.8,0xa0b8c8,0),
-M(50,60,260,3,0xe0e8f0,0x4a7890,0x90b0c8,0x8098a8,.002,.8,1.05,.4,0xb8c8d8,0)];
+M(29,20,240,2.6,0xffc890,0x4a5a70,0xd89060,0xb08058,.0022,.6,1.05,.6,0xffc890,0),
+M(36,15,250,1.2,0xa09080,0x2a2a30,0x5a5048,0x403830,.005,.3,.8,1,0x302820,0),
+M(42,40,260,2.2,0x9aacbc,0x3a5060,0x708090,0x607080,.0035,.6,1,.7,0x8098a8,0),
+M(46,60,260,2.6,0xd0d8e0,0x30506a,0x6090b0,0x507888,.0025,.7,1.05,.4,0x90b0c0,0)];
 const mood={sc:new THREE.Color(),top:new THREE.Color(),hor:new THREE.Color(),fog:new THREE.Color(),cc:new THREE.Color()};
 const sunDir=new THREE.Vector3();
 const _sd=new THREE.Vector3(),_sdl=new THREE.Vector3();let sunLock=-1;
@@ -215,7 +208,7 @@ function applyMood(T){
   const w=waterMat.uniforms;w.time.value=T;w.fogD.value=mood.fd;w.sunDir.value.copy(sunDir);w.sunCol.value.copy(mood.sc);w.hor.value.copy(mood.hor);w.top.value.copy(mood.top);w.fogCol.value.copy(mood.fog);
 }
 
-/* ---------- person factory (from Forest Man) ---------- */
+/* ========== character ========== */
 const eyeMat=toon(0x0b0806);
 function makePerson(o){
   const P={seed:rnd()*6,o};const g=new THREE.Group();P.g=g;
@@ -229,8 +222,9 @@ function makePerson(o){
   const hm=add(new THREE.SphereGeometry(.135,20,16),skin,head);hm.scale.set(.92,1.1,1);
   const hr=add(new THREE.SphereGeometry(.142,20,12,0,Math.PI*2,0,Math.PI*.58),hair,head,0,.018,-.01);hr.rotation.x=-.28;
   for(const sx of[-1,1])add(new THREE.SphereGeometry(.016,8,6),eyeMat,head,sx*.048,.02,.125);
-  if(o.robe){add(new THREE.CylinderGeometry(.25,.4,1.2,12),toon(o.robe),root,0,.6,0)}
-  if(o.cape){const cp=add(new THREE.PlaneGeometry(.5,1.1),toon(o.cape,{side:THREE.DoubleSide}),upper,0,-.1,-.22);cp.rotation.x=.1}
+  add(new THREE.SphereGeometry(.02,8,6),skin,head,0,-.01,.135);
+  if(o.robe){add(new THREE.CylinderGeometry(.28,.46,1.25,14),toon(o.robe),root,0,.6,0)}
+  if(o.cape){const cp=add(new THREE.PlaneGeometry(.55,1.15),toon(o.cape,{side:THREE.DoubleSide}),upper,0,-.15,-.24);cp.rotation.x=.08}
   const limb=(par,x,y,len,r,mat)=>{const pv=new THREE.Group();pv.position.set(x,y,0);par.add(pv);add(new THREE.CapsuleGeometry(r,len,4,8),mat,pv,0,-(len/2+r*.8),0);return pv};
   P.legL=limb(root,-.1,.78,.62,.085,pants);P.legR=limb(root,.1,.78,.62,.085,pants);
   P.armL=limb(upper,-.27,.62,.44,.055,shirt);P.armR=limb(upper,.27,.62,.44,.055,shirt);
@@ -254,97 +248,109 @@ const PI=Math.PI;
 const FERIS=makePerson({skin:0x9a6a46,shirt:0x8a7a6a,pants:0x5a4a3a,hair:0x1a1210,scale:.9});
 const JOIE=makePerson({skin:0xa07050,shirt:0xd8c8b0,pants:0x8a6a4a,hair:0x2a1810,scale:.74});
 const KING=makePerson({skin:0x9a8878,shirt:0x1a1a20,pants:0x101018,hair:0x202018,robe:0x1a1820,cape:0x3a1010,scale:1.02,stoop:.05});
-const SOLDIERS=[];
-for(let i=0;i<5;i++)SOLDIERS.push(makePerson({skin:0x8a5a3a,shirt:0x2a2a30,pants:0x1a1a20,hair:0x121010,scale:1}));
-const VILLAGERS=[];
-for(let i=0;i<6;i++)VILLAGERS.push(makePerson({skin:[0x9a6a46,0xa07050,0x8a5a3a][i%3],shirt:[0x9a4a3a,0x6a8a4a,0xc9a24a][i%3],pants:0x4a3a2a,hair:[0x1a1210,0x3a2010,0x6a5040][i%3],scale:.9}));
-const ferS={},joeS={},kingS={},solS=SOLDIERS.map(()=>({})),vilS=VILLAGERS.map(()=>({}));
+const MERCHANT=makePerson({skin:0x9a6a46,shirt:0xd8c8a0,pants:0x4a3a2a,hair:0x1a1210,scale:1});
+const DAUGHTER=makePerson({skin:0xa07050,shirt:0xe8d8c0,pants:0x8a6a4a,hair:0x2a1810,scale:.58});
+const SOLDIERS=[];for(let i=0;i<4;i++)SOLDIERS.push(makePerson({skin:0x8a5a3a,shirt:0x2a2a30,pants:0x1a1a20,hair:0x121010,scale:1}));
+const VILLAGERS=[];for(let i=0;i<6;i++)VILLAGERS.push(makePerson({skin:[0x9a6a46,0xa07050,0x8a5a3a][i%3],shirt:[0x9a4a3a,0x6a8a4a,0xc9a24a][i%3],pants:0x4a3a2a,hair:[0x1a1210,0x3a2010,0x6a5040][i%3],scale:.9}));
+const ferS={},joeS={},kingS={},mercS={},dauS={},solS=SOLDIERS.map(()=>({})),vilS=VILLAGERS.map(()=>({}));
 
-/* ---------- estate (prologue house) ---------- */
+/* ========== estate ========== */
 const estate=new THREE.Group();estate.position.set(-60,0,-40);
 {const wallMat=toon(0xd8c8a0),roofMat=toon(0x8a4a2a);
  const body=new THREE.Mesh(new THREE.BoxGeometry(14,6,10),wallMat);body.position.y=3;body.castShadow=body.receiveShadow=true;estate.add(body);
  const roof=new THREE.Mesh(new THREE.ConeGeometry(11,3,4),roofMat);roof.position.y=7.5;roof.rotation.y=PI/4;roof.castShadow=true;estate.add(roof);
  for(let i=0;i<4;i++){const w=new THREE.Mesh(new THREE.BoxGeometry(.6,1.2,1.2),toon(0x3a2a18));w.position.set(-7+i*4.5,3.5,5.05);estate.add(w)}
  const chimney=new THREE.Mesh(new THREE.BoxGeometry(1.2,4,1.2),roofMat);chimney.position.set(4,8,-2);estate.add(chimney);
- // river in front
  const dock=new THREE.Mesh(new THREE.BoxGeometry(8,.4,2),toon(0x6a4a2a));dock.position.set(0,.2,12);estate.add(dock);
 }
 scene.add(estate);
 
-/* ---------- fire (on estate) ---------- */
-const fireGroup=new THREE.Group();fireGroup.position.set(-60,0,-40);
-const fireMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
+/* ========== fire ========== */
+const fireMat=new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
  uniforms:{time:{value:0},alpha:{value:0}},
- vertexShader:`varying vec2 uv;void main(){uv=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
- fragmentShader:`uniform float time,alpha;varying vec2 uv;
+ vertexShader:`varying vec2 uv;varying vec3 vN;void main(){uv=uv;uv=position.xy*.5+.5;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform float time,alpha;varying vec2 uv;varying vec3 vN;
  float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
  float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
- float fb(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n(p);p*=2.03;a*=.5;}return s;}
- void main(){vec2 p=uv*1.5;float f=fb(p*2.+vec2(time*1.2,-time*2.5));
- float shape=smoothstep(.3,.7,f+ (1.-uv.y)*.8);
- float glow=1.-smoothstep(.4,1.,length(uv-vec2(0.,.1)));
- vec3 col=mix(vec3(1.,.3,.1),vec3(1.,.9,.4),glow);
- gl_FragColor=vec4(col,shape*glow*alpha);
+ float fb(vec2 p){float a=.5,s=0.;for(int i=0;i<5;i++){s+=a*n(p);p*=2.03;a*=.5;}return s;}
+ void main(){vec2 p=uv;vec2 flow=vec2(p.x*3.+time*1.2,p.y*4.-time*2.8);
+ float f=fb(flow);
+ float shape=smoothstep(.35,.75,f);
+ float glow=1.-smoothstep(.0,1.,length(p-vec2(.5,.35)));
+ float core=pow(glow,2.);
+ vec3 col=mix(vec3(1.,.15,.02),vec3(1.,.85,.35),core);
+ float a=shape*glow*alpha;
+ gl_FragColor=vec4(col,a);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
  }`});
-for(let i=0;i<8;i++){const f=new THREE.Mesh(new THREE.PlaneGeometry(3+i*1.5,4+i*1.8),fireMat);f.position.set((i%4-1.5)*4,2.5+i%3*1.5,(Math.floor(i/4)-.5)*3);f.renderOrder=5;fireGroup.add(f)}
+const fireGroup=new THREE.Group();fireGroup.position.set(-60,0,-40);
+for(let i=0;i<10;i++){const f=new THREE.Mesh(new THREE.PlaneGeometry(2+i*1.4,3+i*1.6),fireMat);f.position.set((i%5-2)*3,1.5+(i%3)*1.3,(Math.floor(i/5)-.5)*2.5);f.renderOrder=5;fireGroup.add(f)}
 fireGroup.visible=false;scene.add(fireGroup);
+const fireLight=new THREE.PointLight(0xff8040,0,50);fireLight.position.set(-60,4,-40);scene.add(fireLight);
 
-/* ---------- throne room / frozen court (S4 King) ---------- */
+/* ========== court ========== */
 const court=new THREE.Group();court.position.set(0,0,-200);
 {const wallMat=toon(0x2a2e34),floorMat=toon(0x1a1c20);
  const floor=new THREE.Mesh(new THREE.BoxGeometry(40,.4,40),floorMat);floor.receiveShadow=true;court.add(floor);
- for(const[a,b,c]of[[0,6,-18],[0,6,18],[-18,6,0],[18,6,0]]){const w=new THREE.Mesh(new THREE.BoxGeometry(a||40,12,b||40),wallMat);w.position.set(c>0?18:c<-18?-18:0,6,c>0?18:c<-18?-18:0);if(a===0)w.scale.set(.2,1,1);if(c===0)w.scale.set(1,1,.2);w.position.set(c,6,a||0);court.add(w)}
- // pillars
  for(let i=0;i<6;i++){for(const s of[-1,1]){const p=new THREE.Mesh(new THREE.CylinderGeometry(.6,.7,10,10),toon(0x3a3a40));p.position.set(-12+i*5,5,s*16);court.add(p)}}
- // throne
  const throne=new THREE.Mesh(new THREE.BoxGeometry(3,4,2),toon(0x1a0a0a));throne.position.set(0,2,-15);court.add(throne);
  const banner=new THREE.Mesh(new THREE.PlaneGeometry(6,8),toon(0x6a1a1a,{side:THREE.DoubleSide}));banner.position.set(0,8,-17);court.add(banner);
  const crown=new THREE.Mesh(new THREE.ConeGeometry(.5,1,6),toon(0xc9a24a));crown.position.set(0,10,-15);court.add(crown);
 }
 court.visible=false;scene.add(court);
+const courtLight=new THREE.PointLight(0xff8050,0,40);courtLight.position.set(0,8,-10);scene.add(courtLight);
 
-/* ---------- Northern village / iron (S5) ---------- */
+/* ========== north ========== */
 const northVill=new THREE.Group();northVill.position.set(200,0,-80);
 {const hutMat=toon(0x4a4a50),roofMat=toon(0x2a2a30);
  for(let i=0;i<5;i++){const h=new THREE.Mesh(new THREE.BoxGeometry(4,3,4),hutMat);h.position.set(-10+i*5,1.5,0);h.rotation.y=i*.7;h.castShadow=true;northVill.add(h);
   const r=new THREE.Mesh(new THREE.ConeGeometry(3.5,1.8,4),roofMat);r.position.set(-10+i*5,3.9,0);r.rotation.y=i*.7+PI/4;northVill.add(r)}
- // iron banner
  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.1,.12,8,6),toon(0x2a2a2a));pole.position.set(0,4,8);northVill.add(pole);
  const ban=new THREE.Mesh(new THREE.PlaneGeometry(2,3),toon(0x3a1a1a,{side:THREE.DoubleSide}));ban.position.set(1,6.5,8);northVill.add(ban);
 }
 northVill.visible=false;scene.add(northVill);
 
-/* ---------- Southern village (S6/S7) ---------- */
+/* ========== uncle's house ========== */
+const uncleHouse=new THREE.Group();uncleHouse.position.set(400,0,0);
+{const wallMat=toon(0xd8c8a0),roofMat=toon(0x8a4a2a);
+ const body=new THREE.Mesh(new THREE.BoxGeometry(7,4,6),wallMat);body.position.y=2;body.castShadow=true;uncleHouse.add(body);
+ const roof=new THREE.Mesh(new THREE.ConeGeometry(6,2.4,4),roofMat);roof.position.y=5.2;roof.rotation.y=PI/4;uncleHouse.add(roof);
+ const door=new THREE.Mesh(new THREE.BoxGeometry(.9,1.8,.1),toon(0x4a2a18));door.position.set(0,1.4,3.05);uncleHouse.add(door);
+ // warm lamp glow
+ const lamp=new THREE.PointLight(0xffb060,.6,10);lamp.position.set(0,2,3.5);uncleHouse.add(lamp);
+ const glow=document.createElement('canvas');glow.width=glow.height=64;
+}
+uncleHouse.visible=false;scene.add(uncleHouse);
+
+/* ========== south village (post burn) ========== */
 const southVill=new THREE.Group();southVill.position.set(400,0,0);
 const villageHouses=[];
 {const wallMat=toon(0xd8c8a0),roofMat=toon(0x6a4a2a);
- for(let i=0;i<6;i++){const hx=-15+i*6,hz=(i%2?4:-4);
-  const h=new THREE.Mesh(new THREE.BoxGeometry(5,4,4),wallMat);h.position.set(hx,2,hz);h.castShadow=h.receiveShadow=true;southVill.add(h);
-  const r=new THREE.Mesh(new THREE.ConeGeometry(4,2.4,4),roofMat);r.position.set(hx,5.2,hz);r.rotation.y=PI/4;southVill.add(r);
-  const d=new THREE.Mesh(new THREE.BoxGeometry(.9,1.8,.1),toon(0x4a2a18));d.position.set(hx,1.4,hz+2.05);southVill.add(d);
+ for(let i=0;i<5;i++){const hx=-10+i*5,hz=(i%2?3:-3);
+  const h=new THREE.Mesh(new THREE.BoxGeometry(4,3,4),wallMat);h.position.set(hx,1.5,hz);h.castShadow=h.receiveShadow=true;southVill.add(h);
+  const r=new THREE.Mesh(new THREE.ConeGeometry(3,2,4),roofMat);r.position.set(hx,4.2,hz);r.rotation.y=PI/4;southVill.add(r);
+  const d=new THREE.Mesh(new THREE.BoxGeometry(.8,1.6,.1),toon(0x4a2a18));d.position.set(hx,1.2,hz+2.05);southVill.add(d);
   villageHouses.push({h,r,d})}
 }
 southVill.visible=false;scene.add(southVill);
 
-/* ---------- forest (S8 backdrop) ---------- */
+/* ========== forest ========== */
 const forest=new THREE.Group();forest.position.set(600,0,0);
 {const trunkMat=toon(0x2a1e14),folMat=toon(0x1a2e1a);
  for(let i=0;i<30;i++){const t=new THREE.Mesh(new THREE.CylinderGeometry(.2,.35,4+rnd()*3,6),trunkMat);t.position.set((rnd()-.5)*50,2,(rnd()-.5)*30);t.castShadow=true;forest.add(t);
   const f=new THREE.Mesh(new THREE.IcosahedronGeometry(1.8+rnd()*.8,1),folMat);f.position.set(t.position.x,4+rnd()*2,t.position.z);f.scale.y=.85;forest.add(f)}}
 forest.visible=false;scene.add(forest);
 
-/* ---------- particles: ash / snow / embers ---------- */
+/* ========== particles ========== */
 function particleSystem(count,color,size,vy,wind){
   const g=new THREE.BufferGeometry(),pos=new Float32Array(count*3);
   for(let i=0;i<count;i++){pos[i*3]=(rnd()-.5)*60;pos[i*3+1]=rnd()*20;pos[i*3+2]=(rnd()-.5)*60}
   g.setAttribute('position',new THREE.BufferAttribute(pos,3));
   const m=new THREE.PointsMaterial({map:spriteTex,color,size,transparent:true,opacity:.8,depthWrite:false});
-  const p=new THREE.Points(g,m);p.userData={count,vy,wind,pos};p.frustumCulled=false;return p}
+  const p=new THREE.Points(g,m);p.userData={count,vy,wind};p.frustumCulled=false;return p}
 const ash=particleSystem(400,0xaaaaaa,.15,.3,0);
-const embers=particleSystem(300,0xffa050,.2,.8,1);
+const embers=particleSystem(400,0xffa050,.25,1.6,1);
 const snow=particleSystem(600,0xffffff,.22,.4,0);
 scene.add(ash,embers,snow);
 function updateParticles(p,dt,active,center){
@@ -356,206 +362,244 @@ function updateParticles(p,dt,active,center){
   d.needsUpdate=true;
 }
 
-/* ---------- lighting rig for court ---------- */
-const courtLight=new THREE.PointLight(0xff8050,0,40);courtLight.position.set(0,8,-10);scene.add(courtLight);
-
-/* ---------- state + camera ---------- */
-let T=0,dt=.016,playing=false,last=0,soundOn=true,lastShot=-1,cueI=0,subEnd=0,whisperEl=$('#whisper');
-const S=[ferS,joeS,kingS,...solS,...vilS];
-const put=(s,x,z,ry)=>{s.x=x;s.z=z;s.y=gY(x,z);s.ry=ry;s.walk=0};
-const mv=(s,x,z,spd)=>{const dx=x-s.x,dz=z-s.z,d=Math.hypot(dx,dz);if(d>1e-4){s.ry=Math.atan2(dx,dz);s.dist=(s.dist||0)+d;s.walk=clamp(d/dt/spd)}else s.walk=0;s.x=x;s.z=z;s.y=gY(x,z)};
+/* ========== camera ========== */
+let T=0,dt=.016,playing=false,last=0,soundOn=true,lastShot=-1,subEnd=0;
 const cp=new THREE.Vector3(0,420,260),cl=new THREE.Vector3(),dp=new THREE.Vector3(),dl=new THREE.Vector3();
 const lv=(v,a,b,u)=>v.set(lerp(a[0],b[0],u),lerp(a[1],b[1],u),lerp(a[2],b[2],u));
 function shot(id,k){if(id!==lastShot){lastShot=id;cp.copy(dp);cl.copy(dl)}else{cp.lerp(dp,k);cl.lerp(dl,k)}}
+const put=(s,x,z,ry)=>{s.x=x;s.z=z;s.y=gY(x,z);s.ry=ry;s.walk=0};
+const mv=(s,x,z,spd)=>{const dx=x-s.x,dz=z-s.z,d=Math.hypot(dx,dz);if(d>1e-4){s.ry=Math.atan2(dx,dz);s.dist=(s.dist||0)+d;s.walk=clamp(d/dt/spd)}else s.walk=0;s.x=x;s.z=z;s.y=gY(x,z)};
 
-/* ---------- narration ---------- */
-const CUES=[
-[1,"They say it is only a rumor… but the people whisper."],
-[16,"The King of the North was not always a tyrant. Once, he had a wife, a daughter… and a home by the river."],
-[22,"But the North had iron and frost. The South had gold and summer. And he convinced his people the South was the cause of all their suffering."],
-[34,"On this night, his army reached the children's village."],
-[44,"Two children survived. And in the depths of the forest… their real story begins."]];
-function say(s){if(!soundOn||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.rate=.92;u.pitch=.8;const vs=speechSynthesis.getVoices(),v=vs.find(v=>/en[-_]IN/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)}
+/* ========== NARRATION — bulletproof ========== */
+const NARR=[
+{t:0.8,end:5.2,text:"One night, the Northern Kingdom's army burned an entire village to the ground."},
+{t:5.5,end:11,text:"They say it is only a rumor — but the people whisper."},
+{t:11.5,end:17.2,text:"The King was not always a tyrant. Once, he had a wife, a daughter, and a home by the river."},
+{t:17.6,end:22.3,text:"But one night, his rivals burned his estate to the ground. His family died in the fire."},
+{t:22.8,end:26,text:"Something inside him broke."},
+{t:26.3,end:29.5,text:"The North had iron and frost. The South had gold and summer."},
+{t:29.8,end:36,text:"Two children — Feris and Joie — were not in the village that night."},
+{t:36.4,end:42,text:"When they returned the next morning, there was nothing left of their home."},
+{t:42.3,end:46,text:"Two children. One knife. A world at war."},
+{t:46.4,end:49.8,text:"And in the depths of the forest… their real story begins."}];
 
-/* ---------- audio ---------- */
-let AC=null,mg,windG,fireG,padG,padF,pads=[],lastStep=-1,lastBar=-1;
+let voiceReady=false,voice=null;
+function pickVoice(){
+  if(!window.speechSynthesis)return;
+  const vs=speechSynthesis.getVoices();
+  if(!vs.length)return;
+  voice=vs.find(v=>/en[-_]IN/i.test(v.lang)&&/female/i.test(v.name))
+    ||vs.find(v=>/en[-_]IN/i.test(v.lang))
+    ||vs.find(v=>/en[-_]GB/i.test(v.lang))
+    ||vs.find(v=>/^en/i.test(v.lang))
+    ||vs[0];
+  voiceReady=true;
+}
+if(window.speechSynthesis){
+  speechSynthesis.onvoiceschanged=pickVoice;
+  pickVoice();
+}
+const said=new Set();
+function speakOnce(i){
+  if(said.has(i))return;
+  said.add(i);
+  const line=NARR[i];
+  $('#sub').textContent=line.text;
+  $('#sub').classList.add('on');
+  subEnd=line.end;
+  if(!soundOn||!window.speechSynthesis)return;
+  try{
+    const u=new SpeechSynthesisUtterance(line.text);
+    u.rate=.92;u.pitch=.8;u.volume=1;
+    if(voice)u.voice=voice;
+    u.onerror=()=>{};
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ========== audio bed ========== */
+let AC=null,mg,windG,fireA,padG,padF,pads=[],lastStep=-1,lastBar=-1;
 const CH=[[50,53,57],[48,52,55],[45,48,52],[50,53,57]];
 const mf=n=>440*Math.pow(2,(n-69)/12);
-function audioInit(){try{AC=new(window.AudioContext||window.webkitAudioContext)();mg=AC.createGain();mg.gain.value=.8;mg.connect(AC.destination);
-const nb=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
-const mkN=(f,q,type)=>{const s=AC.createBufferSource();s.buffer=nb;s.loop=true;const fl=AC.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=AC.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(mg);s.start();return g};
-windG=mkN(300,.4,'lowpass');fireG=mkN(800,.5,'bandpass');
-padF=AC.createBiquadFilter();padF.type='lowpass';padF.frequency.value=600;padG=AC.createGain();padG.gain.value=0;padF.connect(padG);padG.connect(mg);
-pads=[];for(let i=0;i<4;i++){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=200;o.detune.value=(i-1.5)*6;o.connect(padF);o.start();pads.push(o)}}catch(e){AC=null}}
+function audioInit(){
+  try{
+    AC=new(window.AudioContext||window.webkitAudioContext)();
+    mg=AC.createGain();mg.gain.value=.75;mg.connect(AC.destination);
+    const nb=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),d=nb.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const mkN=(f,q,type)=>{const s=AC.createBufferSource();s.buffer=nb;s.loop=true;const fl=AC.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=AC.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(mg);s.start();return g};
+    windG=mkN(280,.4,'lowpass');fireA=mkN(900,.5,'bandpass');
+    padF=AC.createBiquadFilter();padF.type='lowpass';padF.frequency.value=600;
+    padG=AC.createGain();padG.gain.value=0;padF.connect(padG);padG.connect(mg);
+    pads=[];
+    for(let i=0;i<4;i++){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=200;o.detune.value=(i-1.5)*6;o.connect(padF);o.start();pads.push(o)}
+  }catch(e){AC=null}
+}
 function tone(f,v,d){if(!AC)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(mg);o.start(t);o.stop(t+d+.05)}
-function audio(){if(!AC||!soundOn)return;const t=AC.currentTime;
-const intensity=sstep(0,20,T)*.6+sstep(30,50,T)*.4;
-mg.gain.setTargetAtTime(.8*(1-sstep(48,50,T)),t,.3);
-windG.gain.setTargetAtTime(T<16?.06:T<30?.03:.04,t,.5);
-fireG.gain.setTargetAtTime(T>10&&T<15?.14:T>36&&T<43?.08:0,t,.3);
-padG.gain.setTargetAtTime(.012+.05*intensity,t,.8);padF.frequency.setTargetAtTime(400+1200*intensity,t,.5);
-const bar=Math.floor(T/3.5)%4,step=Math.floor(T/1.75);
-if(bar!==lastBar){lastBar=bar;pads.forEach((o,i)=>o.frequency.setTargetAtTime(mf(CH[bar][i%3]-12+(i===3?12:0)),t,.5))}
-if(step!==lastStep){lastStep=step;if(T>2&&T<46)tone(mf(CH[bar][step%3]+12),.05+.03*intensity,1.8)}}
+function audio(){
+  if(!AC||!soundOn)return;
+  const t=AC.currentTime;
+  const intensity=sstep(0,20,T)*.6+sstep(30,50,T)*.4;
+  mg.gain.setTargetAtTime(.75*(1-sstep(48,50,T)),t,.3);
+  windG.gain.setTargetAtTime(T<11?.06:T<17?.02:T<29?.04:.05,t,.5);
+  fireA.gain.setTargetAtTime(T>11&&T<17?.16:T>36&&T<42?.1:0,t,.3);
+  padG.gain.setTargetAtTime(.012+.05*intensity,t,.8);
+  padF.frequency.setTargetAtTime(400+1200*intensity,t,.5);
+  const bar=Math.floor(T/3.5)%4,step=Math.floor(T/1.75);
+  if(bar!==lastBar){lastBar=bar;pads.forEach((o,i)=>o.frequency.setTargetAtTime(mf(CH[bar][i%3]-12+(i===3?12:0)),t,.5))}
+  if(step!==lastStep){lastStep=step;if(T>2&&T<46)tone(mf(CH[bar][step%3]+12),.05+.03*intensity,1.8)}
+}
 
-/* ---------- update ---------- */
+/* ========== main update ========== */
 function update(){
   applyMood(T);
-  // Reset actors
-  for(const s of S){s.vis=false;s.aL=s.aR=s.hx=s.hy=s.kneel=undefined}
-  // Reset scene groups
+  for(const s of [ferS,joeS,kingS,mercS,dauS,...solS,...vilS]){s.vis=false;s.aL=s.aR=s.hx=s.hy=s.kneel=undefined}
   groundS.visible=groundN.visible=groundB.visible=false;
-  estate.visible=fireGroup.visible=court.visible=northVill.visible=southVill.visible=forest.visible=false;
-  courtLight.intensity=0;
-  const showAsh=T<4||T>=37&&T<44, showEmbers=T>=10&&T<16, showSnow=T>=16&&T<30;
+  estate.visible=fireGroup.visible=court.visible=northVill.visible=uncleHouse.visible=southVill.visible=forest.visible=false;
+  fireLight.intensity=0;courtLight.intensity=0;
+  const showAsh=T<3.5||(T>=42&&T<46),showEmbers=T>=11&&T<17,showSnow=T>=17&&T<29;
   updateParticles(ash,dt,showAsh,cp);
   updateParticles(embers,dt,showEmbers,cp);
   updateParticles(snow,dt,showSnow,cp);
-  ash.material.color.set(showAsh&&T<4?0x888888:0xbbaa99);
+  ash.material.color.set(T<3.5?0x888888:0xbbaa99);
 
-  /* ---- S1: 0–4 BLACK ASH ---- */
-  if(T<4){
+  /* ---- S1: 0–3.5 BLACK ASH ---- */
+  if(T<3.5){
     dp.set(0,1.5,6);dl.set(0,1.2,0);shot(1,1);
-    whisperEl.textContent='they say it is only a rumor';
-    whisperEl.style.opacity=sstep(0,.8,T)*(1-sstep(3,3.9,T))*.9;
+    $('#whisper').textContent='they say it is only a rumor';
+    $('#whisper').style.opacity=sstep(0,.6,T)*(1-sstep(3,3.4,T))*.9;
   }
-  else if(T<10){ /* ---- S2: ESTATE GOLDEN ---- */
-    whisperEl.style.opacity=0;
+  else if(T<11){ /* ---- S2: ESTATE GOLDEN ---- */
+    $('#whisper').style.opacity=0;
     groundS.visible=true;estate.visible=true;water.visible=true;
-    VILLAGERS.forEach((P,i)=>{const a=i/6*PI*2+.3;vilS[i]={vis:true,x:-60+Math.cos(a)*9,z:-40+7+Math.sin(a)*5,ry:-a+PI};});
-    put(ferS,-60+2,-40+9,PI);put(joeS,-60-1,-40+9,PI);
-    // small smoke from chimney
-    embers.visible=true;embers.material.opacity=.3;updateParticles(embers,dt,true,{x:-56,z:-40});
-    const u=E(T/10);
-    lv(dp,[-70,6,-15],[-55,3,5],u);lv(dl,[-60,4,-40],[-60,3,-30],u);shot(2,1);
+    mercS.vis=true;put(mercS,-60+3,-40+7,PI);mercS.hx=.1;
+    dauS.vis=true;const dph=(T-3.5)*.8;put(dauS,-60+3+Math.sin(dph)*3,-40+3+Math.cos(dph)*2,Math.sin(dph));dauS.dist=dph*5;
+    const u=E((T-3.5)/7.5);
+    lv(dp,[-85,5,-10],[-55,3.5,5],u);lv(dl,[-60,4,-40],[-60,3.5,-30],u);shot(2,1);
   }
-  else if(T<16){ /* ---- S3: FIRE ---- */
+  else if(T<17){ /* ---- S3: FIRE ---- */
     groundS.visible=true;estate.visible=true;water.visible=true;fireGroup.visible=true;
-    fireMat.uniforms.time.value=T;fireMat.uniforms.alpha.value=sstep(10,11.5,T);
+    fireMat.uniforms.time.value=T;fireMat.uniforms.alpha.value=sstep(11,12,T);
+    fireLight.intensity=lerp(0,8,sstep(11,13,T))*(0.85+Math.sin(T*14)*.15);
     scene.fog.density=mood.fd;
-    // silhouettes run
-    VILLAGERS.forEach((P,i)=>{const ph=(T-10)*.6+i*1.3;vilS[i]={vis:true,x:-60+Math.cos(ph)*12+i*2,z:-40+Math.sin(ph)*8,ry:ph+PI,walk:1,dist:ph*10}});
-    put(ferS,1000,0,0);put(joeS,1000,0,0); // hide children
-    const u=E((T-10)/6);
-    lv(dp,[-60,2.5,-25],[-60,1.8,-28],u);lv(dl,[-60,3,-40],[-60,3,-40],u);shot(3,1);
-    // doll on fire foreground (S3 beat)
+    mercS.vis=true;put(mercS,-60+3,-40+7,PI);mercS.kneel=sstep(12,14,T);mercS.hx=.6;
+    VILLAGERS.forEach((P,i)=>{const ph=(T-11)*.8+i*1.3;vilS[i]={vis:true,x:-60+Math.cos(ph)*13+i*2,z:-40+Math.sin(ph)*8,ry:ph+PI,walk:1,dist:ph*10}});
+    const u=E((T-11)/6);
+    lv(dp,[-60,2.2,-27],[-60,1.6,-30],u);lv(dl,[-60,3,-40],[-60,3.2,-40],u);shot(3,1);
   }
   else if(T<22){ /* ---- S4: KING ---- */
-    court.visible=true;courtLight.intensity=lerp(2,3,sstep(16,22,T));
-    KING.g.visible=true;kingS.vis=true;put(kingS,0,-13,0);kingS.hx=.15;kingS.aL=-.3;kingS.aR=.4;kingS.stoop=.1;
-    // shadowed court look
-    const u=E((T-16)/6);
-    lv(dp,[-2,1.65,-9],[0,1.7,-9.5],u);lv(dl,[0,1.5,-13],[0,1.5,-13],u);shot(4,1);
+    court.visible=true;courtLight.intensity=lerp(2,3.5,sstep(17,22,T));
+    KING.g.visible=true;kingS.vis=true;put(kingS,0,-13,0);kingS.hx=.2;kingS.aL=-.3;kingS.aR=.4;kingS.stoop=.1;
+    const u=E((T-17)/5);
+    lv(dp,[-2,1.6,-9.2],[0,1.7,-9.6],u);lv(dl,[0,1.5,-13],[0,1.5,-13],u);shot(4,1);
   }
-  else if(T<30){ /* ---- S5: NORTH ---- */
+  else if(T<29){ /* ---- S5: NORTH ---- */
     groundN.visible=true;northVill.visible=true;
-    // starving villagers
-    VILLAGERS.forEach((P,i)=>{vilS[i]={vis:true,x:200+(-8+i*3),z:-80+3+(i%2)*2,ry:PI,hx:.3};});
+    VILLAGERS.forEach((P,i)=>{vilS[i]={vis:true,x:200+(-8+i*3),z:-80+3+(i%2)*2,ry:PI,hx:.3}});
     KING.g.visible=true;kingS.vis=true;put(kingS,200,-2,PI);kingS.aL=-.6;kingS.aR=-.6;kingS.hx=.1;
-    const u=E((T-22)/8);
+    const u=E((T-22)/7);
     if(T<26){lv(dp,[200,5,10],[200,2.5,4],u);lv(dl,[200,2,-4],[200,1.5,-2],u)}
-    else{lv(dp,[200,2.5,4],[195,2,-6],sstep(26,30,T));lv(dl,[200,1.5,-2],[200,1.5,-8],sstep(26,30,T))}
+    else{lv(dp,[200,2.5,4],[197,2,-6],sstep(26,29,T));lv(dl,[200,1.5,-2],[200,1.5,-8],sstep(26,29,T))}
     shot(5,1);
   }
-  else if(T<38){ /* ---- S6: VILLAGE DUSK ---- */
-    groundS.visible=true;southVill.visible=true;
-    FERIS.g.visible=true;JOIE.g.visible=true;
-    // children play at village
-    const ph=(T-30)*.4;
-    ferS.vis=true;put(ferS,400-3+Math.sin(ph)*3,0,Math.cos(ph)*.5);ferS.walk=.6;ferS.dist=ph*8;
-    joeS.vis=true;put(joeS,400+2+Math.sin(ph+1)*3,2,Math.sin(ph)*.5);joeS.walk=.6;joeS.dist=ph*8;
-    VILLAGERS.forEach((P,i)=>{vilS[i]={vis:true,x:400-10+i*4,z:6+(i%2)*2,ry:PI,hx:.2};});
-    // torches on horizon (embers)
-    if(T>=34){embers.visible=true;embers.material.opacity=sstep(34,37,T);updateParticles(embers,dt,true,{x:400,z:-25})}
-    const u=E((T-30)/8);
-    if(T<34){lv(dp,[400,2.5,15],[400-8,2,10],u);lv(dl,[400,1.2,0],[400-4,1.2,0],u)}
-    else{lv(dp,[400-8,2,10],[400,1.8,0],sstep(34,38,T));lv(dl,[400-4,1.2,0],[400,2,-15],sstep(34,38,T))}
-    shot(6,1);
+  else if(T<36){ /* ---- S6: UNCLE'S HOUSE ---- */
+    uncleHouse.visible=true;groundS.visible=true;
+    ferS.vis=true;put(ferS,400+2,0,PI);ferS.hx=.05;
+    joeS.vis=true;put(joeS,400-1,0,PI);joeS.hx=.2;joeS.kneel=sstep(32,34,T)*.6;
+    VILLAGERS.forEach((P,i)=>{vilS[i]={vis:true,x:400+3+Math.sin(i)*3,z:-3+(i%2)*2,ry:PI*.5}});
+    const u=E((T-29)/7);
+    lv(dp,[400,2.4,12],[400,1.8,8],u);lv(dl,[400,1.5,0],[400,1.2,0],u);shot(6,1);
   }
-  else if(T<44){ /* ---- S7: MORNING AFTER ---- */
+  else if(T<42){ /* ---- S7: MORNING AFTER ---- */
     groundB.visible=true;southVill.visible=true;
-    // burn village houses -> swap to charcoal look
-    villageHouses.forEach((v,i)=>{v.h.material.color.set(0x2a2420);v.r.material.color.set(0x1a1410)});
-    FERIS.g.visible=true;JOIE.g.visible=true;
-    ferS.vis=true;put(ferS,400-1,3,PI);ferS.kneel=sstep(38,39.5,T);ferS.hx=.6;
-    joeS.vis=true;put(joeS,400+2,4,PI);joeS.hx=.4;
-    const u=E((T-38)/6);
-    lv(dp,[400,1.4,9],[400,1.2,7],u);lv(dl,[400,.8,3],[400,1,3],u);shot(7,1);
+    villageHouses.forEach(v=>{v.h.material.color.set(0x2a2420);v.r.material.color.set(0x1a1410)});
+    ferS.vis=true;put(ferS,400-1,3,PI);ferS.kneel=sstep(36,38,T);ferS.hx=.7;
+    joeS.vis=true;put(joeS,400+2,4,PI);joeS.hx=.5;
+    const u=E((T-36)/6);
+    lv(dp,[400,1.3,9],[400,1.1,7],u);lv(dl,[400,.8,3],[400,.9,3],u);shot(7,1);
   }
-  else{ /* ---- S8: INTO FOREST + TITLE ---- */
+  else{ /* ---- S8: FOREST + TITLE ---- */
     forest.visible=true;groundS.visible=true;
-    FERIS.g.visible=true;JOIE.g.visible=true;
-    const u=E((T-44)/6);
-    // children walk into forest
-    const wx=600-10+u*8,wz=-6;
-    ferS.vis=true;put(ferS,wx-1,wz,PI);ferS.walk=.6;ferS.dist=u*12;
-    joeS.vis=true;put(joeS,wx+1,wz+1,PI);joeS.walk=.6;joeS.dist=u*12;
+    const u=E((T-42)/4);
+    const wx=600-10+u*6,wz=-6;
+    ferS.vis=true;put(ferS,wx-1,wz,PI);ferS.walk=.6;ferS.dist=u*8;
+    joeS.vis=true;put(joeS,wx+1,wz+1,PI);joeS.walk=.6;joeS.dist=u*8;
     lv(dp,[600+2,3,6],[600-6,8,20],u);lv(dl,[600-10,1.5,-6],[600-12,4,-6],u);shot(8,1);
-    // end fade & title
-    if(T>46.8){whisperEl.textContent='just like a whisper';whisperEl.style.opacity=sstep(46.8,47.8,T);whisperEl.style.color='#efe0c8'}
+    if(T>46.8){$('#whisper').textContent='just like a whisper';$('#whisper').style.opacity=sstep(46.8,47.8,T);$('#whisper').style.color='#efe0c8'}
   }
 
-  /* ---- poses ---- */
-  pose(FERIS,ferS,T);pose(JOIE,joeS,T);pose(KING,kingS,T);
-  SOLDIERS.forEach((P,i)=>pose(P,solS[i],T));
-  VILLAGERS.forEach((P,i)=>pose(P,vilS[i],T));
+  pose(FERIS,ferS,T);pose(JOIE,joeS,T);pose(KING,kingS,T);pose(MERCHANT,mercS,T);pose(DAUGHTER,dauS,T);
+  SOLDIERS.forEach((P,i)=>pose(P,solS[i],T));VILLAGERS.forEach((P,i)=>pose(P,vilS[i],T));
 
-  /* ---- sun & camera ---- */
   sun.target.position.set(cl.x,0,cl.z);sun.position.set(cl.x,0,cl.z).addScaledVector(sunDir,200);
   camera.position.copy(cp);camera.lookAt(cl);
 
-  /* ---- overlays ---- */
-  let f=1-sstep(.2,2.5,T);
-  f=Math.max(f,1-sstep(0,.35,Math.abs(T-10)));
-  f=Math.max(f,1-sstep(0,.35,Math.abs(T-16)));
-  f=Math.max(f,1-sstep(0,.35,Math.abs(T-22)));
-  f=Math.max(f,1-sstep(0,.35,Math.abs(T-30)));
-  f=Math.max(f,1-sstep(0,.35,Math.abs(T-38)));
-  f=Math.max(f,sstep(46,48.5,T));
+  /* overlays */
+  let f=1-sstep(.1,2,T);
+  for(const b of[11,17,22,29,36,42])f=Math.max(f,1-sstep(0,.35,Math.abs(T-b)));
+  f=Math.max(f,sstep(46,48,T));
   $('#fade').style.opacity=f;
 
-  /* ---- end title ---- */
   const endOn=T>=47.2;
   $('#end').style.opacity=endOn?1:0;
   $('#titlecard').classList.toggle('on',T>=47.6);
   $('#tagline').classList.toggle('on',T>=48.8);
 
-  /* ---- subtitles + voice ---- */
-  while(cueI<CUES.length&&T>=CUES[cueI][0]){const c=CUES[cueI++];$('#sub').textContent=c[1];subEnd=T+c[1].split(' ').length/2.4+.6;say(c[1])}
-  const subEl=$('#sub');
-  subEl.style.opacity=T<subEnd&&T>0?1:0;subEl.classList.toggle('on',T<subEnd);
+  /* narration trigger */
+  for(let i=0;i<NARR.length;i++){
+    if(T>=NARR[i].t&&T<=NARR[i].end+0.05&&!said.has(i))speakOnce(i);
+  }
+  const showSub=T<subEnd&&T>0.5;
+  $('#sub').style.opacity=showSub?1:0;
+  $('#sub').classList.toggle('on',showSub);
 }
 
-/* ---------- control ---------- */
-function resetState(){T=0;lastShot=-1;cueI=0;subEnd=0;lastStep=-1;lastBar=-1;sunLock=-1;
-for(const s of S){s.x=s.z=s.y=s.ry=s.dist=s.walk=0}
-$('#sub').style.opacity=0;$('#end').style.opacity=0;
-document.querySelectorAll('#end>*').forEach(e=>e.classList.remove('on'));
-whisperEl.style.opacity=0;whisperEl.textContent='';
-// restore village materials
-villageHouses.forEach(v=>{v.h.material.color.set(0xd8c8a0);v.r.material.color.set(0x6a4a2a)});
-cp.set(0,420,260);cl.set(0,0,0)}
-function start(){started=true;
-try{const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();r&&r.catch&&r.catch(()=>{});
-const o=screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape');o&&o.catch&&o.catch(()=>{})}catch(e){}
-layout();if(needPortrait())return;
-stage.style.visibility='visible';
-audioInit();if(AC&&AC.state==='suspended')AC.resume();
-const m=$('#menu');m.style.opacity=0;setTimeout(()=>{if(started)m.style.display='none'},1000);
-$('#hud').classList.add('show');resetState();playing=true;last=performance.now()}
-function stop(){playing=false;started=false;window.speechSynthesis&&speechSynthesis.cancel();
-if(AC){try{AC.close()}catch(e){}AC=null}
-stage.style.visibility='hidden';$('#hud').classList.remove('show');
-const m=$('#menu');m.style.display='flex';requestAnimationFrame(()=>m.style.opacity=1);
-if(document.fullscreenElement){const r=document.exitFullscreen();r&&r.catch&&r.catch(()=>{})}
-layout()}
+/* ========== control ========== */
+function resetState(){
+  T=0;lastShot=-1;subEnd=0;lastStep=-1;lastBar=-1;sunLock=-1;
+  said.clear();
+  try{speechSynthesis.cancel()}catch(e){}
+  for(const s of [ferS,joeS,kingS,mercS,dauS,...solS,...vilS]){s.x=s.z=s.y=s.ry=s.dist=s.walk=0}
+  $('#sub').style.opacity=0;$('#end').style.opacity=0;
+  document.querySelectorAll('#end>*').forEach(e=>e.classList.remove('on'));
+  $('#whisper').style.opacity=0;$('#whisper').textContent='';
+  villageHouses.forEach(v=>{v.h.material.color.set(0xd8c8a0);v.r.material.color.set(0x6a4a2a)});
+  cp.set(0,420,260);cl.set(0,0,0);
+}
+function start(){
+  started=true;
+  try{const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();r&&r.catch&&r.catch(()=>{})}catch(e){}
+  try{const o=screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape');o&&o.catch&&o.catch(()=>{})}catch(e){}
+  layout();
+  if(needPortrait())return;
+  stage.style.visibility='visible';
+  if(!AC)audioInit();
+  if(AC&&AC.state==='suspended')AC.resume();
+  try{pickVoice()}catch(e){}
+  const m=$('#menu');m.style.opacity=0;setTimeout(()=>{if(started)m.style.display='none'},1000);
+  $('#hud').classList.add('show');
+  resetState();playing=true;last=performance.now();
+}
+function stop(){
+  playing=false;started=false;
+  try{speechSynthesis.cancel()}catch(e){}
+  if(AC){try{AC.close()}catch(e){}AC=null}
+  stage.style.visibility='hidden';$('#hud').classList.remove('show');
+  const m=$('#menu');m.style.display='flex';requestAnimationFrame(()=>m.style.opacity=1);
+  if(document.fullscreenElement){const r=document.exitFullscreen();r&&r.catch&&r.catch(()=>{})}
+  layout();
+}
 $('#watch').onclick=start;
 $('#exit').onclick=stop;
-$('#snd').onclick=()=>{soundOn=!soundOn;$('#snd').textContent=soundOn?'🔊':'🔇';if(!soundOn){window.speechSynthesis&&speechSynthesis.cancel();if(mg)mg.gain.value=0}else if(mg)mg.gain.value=.8};
-function frame(now){requestAnimationFrame(frame);if(!playing)return;
-dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
-if(T>=TOTAL){T=TOTAL-.01;playing=false;setTimeout(stop,4000)}
-update();audio();renderer.render(scene,camera)}
+$('#snd').onclick=()=>{soundOn=!soundOn;$('#snd').textContent=soundOn?'🔊':'🔇';if(!soundOn){try{speechSynthesis.cancel()}catch(e){}if(mg)mg.gain.value=0}else{if(mg)mg.gain.value=.75;if(AC&&AC.resume)AC.resume()}};
+
+function frame(now){
+  requestAnimationFrame(frame);
+  if(!playing)return;
+  dt=Math.min(.05,(now-last)/1000);last=now;T+=dt;
+  if(T>=TOTAL){T=TOTAL-.01;playing=false;setTimeout(stop,3500)}
+  update();audio();renderer.render(scene,camera);
+}
 layout();requestAnimationFrame(frame);
 </script>
 </body>
