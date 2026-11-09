@@ -8,9 +8,10 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Georgia,"Times New Roman",serif;color:#fff;-webkit-user-select:none;user-select:none}
 #menu{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 35%,#2b5a33 0%,#0a1a0f 62%,#030805 100%);transition:opacity 1s}
-#menu .k{letter-spacing:.5em;font-size:12px;opacity:.7;margin-bottom:18px}
+#menu .k{letter-spacing:.4em;font-size:12px;opacity:.7;margin-bottom:18px}
 #menu h1{font-weight:400;font-size:clamp(28px,7vw,72px);letter-spacing:.14em;line-height:1.1}
-#menu h2{font-weight:400;font-style:italic;font-size:clamp(14px,2.4vw,22px);opacity:.8;margin:14px 0 38px}
+#menu h2{font-weight:400;font-style:italic;font-size:clamp(14px,2.4vw,22px);opacity:.8;margin:14px 0 18px}
+#menu .author{font-size:16px;letter-spacing:.3em;color:#9fe08a;margin-bottom:30px;text-transform:uppercase}
 #watch{cursor:pointer;border:1.5px solid #9fe08a;background:rgba(80,170,70,.2);color:#fff;font:inherit;font-size:20px;letter-spacing:.35em;padding:16px 44px 16px 52px;border-radius:50px;transition:.3s}
 #watch:hover{background:rgba(110,210,90,.42);transform:scale(1.05)}
 #menu small{margin-top:26px;opacity:.55;font-size:12px;max-width:430px;line-height:1.7}
@@ -23,13 +24,11 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
 #stage{position:fixed;left:0;top:0;width:100vw;height:100vh;background:#000;overflow:hidden;visibility:hidden;transform-origin:0 0}
 #c{position:absolute;inset:0;width:100%;height:100%;display:block}
 .ov{position:absolute;inset:0;pointer-events:none}
-#vign{background:radial-gradient(ellipse 62% 78% at 50% 48%,transparent 42%,rgba(0,0,0,.55) 100%);z-index:2}
+#vign{background:radial-gradient(ellipse 62% 78% at 50% 48%,transparent 42%,rgba(0,0,0,.6) 100%);z-index:2}
 .bar{position:absolute;left:0;right:0;height:6.5%;background:#000;z-index:3}
 #fade{background:#000;opacity:1;z-index:8}
-/* Subtitles made shorter / smaller */
 #sub{position:absolute;left:12%;right:12%;bottom:9%;text-align:center;font-size:clamp(11px,1.8vw,22px);line-height:1.4;text-shadow:0 2px 10px #000,0 0 3px #000,0 0 2px #000;z-index:5;opacity:0;transition:opacity .5s}
 #sub.on{background:linear-gradient(90deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.55) 12%,rgba(0,0,0,.55) 88%,rgba(0,0,0,0) 100%);padding:.35em 1.2em;border-radius:.4em}
-#tag{position:absolute;left:5%;bottom:10.5%;font-size:clamp(9px,1.3vw,15px);letter-spacing:.35em;opacity:0;transition:opacity 1s;z-index:5;text-shadow:0 1px 6px #000;display:none}
 #wipe{z-index:7;overflow:hidden}
 #wipe div{position:absolute;top:-10%;left:0;width:150%;height:120%;background:linear-gradient(90deg,rgba(20,70,25,0),#1f6a26 25%,#2f8d34 55%,rgba(20,70,25,0));transform:translateX(120%) skewX(-14deg)}
 #wipe svg{position:absolute;top:10%;left:30%;width:40%;height:80%}
@@ -38,20 +37,21 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
 .card canvas{display:block;width:100%;filter:grayscale(1) sepia(.35) contrast(1.15)}
 .card i{display:block;font-size:clamp(7px,1vw,12px);letter-spacing:.2em;margin-top:5px;font-style:normal}
 #p1{right:5%;top:12%;width:27%;--r:4deg}#p2{left:5%;top:14%;width:27%;--r:-3deg}#p3{right:5%;bottom:18%;width:27%;--r:3deg}
-#medal{right:7%;top:20%;width:24%;--r:-2deg;padding:2.2%;background:#1a1408;color:#f2d377;border:2px solid #c9a24a}
-#medal .st{width:46%;aspect-ratio:1;margin:0 auto 6%;background:radial-gradient(circle,#ffe7a0,#c9962f);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
-#medal b{display:block;font-size:clamp(11px,1.9vw,24px);letter-spacing:.3em;font-weight:400}
-#medal span{display:block;font-size:clamp(8px,1.1vw,13px);letter-spacing:.25em;margin-top:5px;opacity:.85}
-#end{position:absolute;inset:0;background:#000;z-index:9;opacity:0;transition:opacity .8s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+#medal{left:50%;top:15%;transform:translateX(-50%) scale(0.8);width:30%;--r:0deg;padding:2.2%;background:#1a1408;color:#f2d377;border:2px solid #c9a24a;text-align:center;box-shadow:0 0 50px rgba(201,162,74,0.3)}
+#medal.on{transform:translateX(-50%) scale(1) rotate(var(--r))}
+#medal .st{width:36%;aspect-ratio:1;margin:0 auto 6%;background:radial-gradient(circle,#ffe7a0,#c9962f);clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)}
+#medal b{display:block;font-size:clamp(14px,2.5vw,32px);letter-spacing:.3em;font-weight:400}
+#medal span{display:block;font-size:clamp(9px,1.2vw,14px);letter-spacing:.25em;margin-top:5px;opacity:.85}
+#end{position:absolute;inset:0;background:#000;z-index:9;opacity:0;transition:opacity 1s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
 #end>*{opacity:0;transition:opacity 1.8s;position:absolute}
 #end>.on{opacity:1}
-#eleaf{width:min(14vh,90px);top:22%}
-.line{font-size:clamp(20px,5vw,56px);letter-spacing:.3em;font-weight:400}
-#l1{top:36%}#l2{top:46%}#l3{top:56%}
-.ask{font-size:clamp(18px,4.2vw,46px);letter-spacing:.25em;color:#b9f2a6;top:66%}
-.final{font-size:clamp(14px,2.6vw,30px);letter-spacing:.3em;line-height:2;top:75%}
+#eleaf{width:min(10vh,70px);top:15%}
+.line{font-size:clamp(18px,4.5vw,48px);letter-spacing:.3em;font-weight:400}
+#l1{top:30%}#l2{top:40%}#l3{top:50%}
+.ask{font-size:clamp(16px,3.5vw,36px);letter-spacing:.25em;color:#b9f2a6;top:62%}
+.final{font-size:clamp(14px,2.6vw,30px);letter-spacing:.3em;line-height:2;top:72%}
 .final b{font-weight:400;font-size:1.5em;letter-spacing:.2em}.final span{opacity:.7;font-size:.8em}
-#credit{position:absolute;left:0;right:0;top:90%;text-align:center;font-size:clamp(10px,1.4vw,16px);letter-spacing:.28em;line-height:1.8;color:#dfe9d0;z-index:10;opacity:0;transition:opacity 2s;pointer-events:none}
+#credit{position:absolute;left:0;right:0;bottom:8%;text-align:center;font-size:clamp(10px,1.4vw,16px);letter-spacing:.28em;line-height:1.8;color:#dfe9d0;z-index:10;opacity:0;transition:opacity 2s;pointer-events:none}
 #credit.on{opacity:1}
 #credit b{font-weight:400;font-size:1.3em;letter-spacing:.22em;color:#b9f2a6}
 #credit span{display:block;opacity:.7;font-size:.8em;letter-spacing:.2em;margin-top:6px}
@@ -68,6 +68,7 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
   <div class="k">A CINEMATIC ANIMATED DOCUMENTARY</div>
   <h1>THE FOREST MAN<br>OF INDIA</h1>
   <h2>The story of Jadav Payeng</h2>
+  <div class="author">A FILM BY ZEESHAN KHAN</div>
   <button id="watch">▶ &nbsp;WATCH</button>
   <small>Best experienced in landscape. Turn sound on for narration and music. Runs in your browser with three.js — needs an internet connection to load the library.</small>
 </div>
@@ -80,9 +81,8 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
   <div class="card" id="p1"><canvas width="480" height="270"></canvas><i>THE FOREST MAN OF INDIA</i></div>
   <div class="card" id="p2"><canvas width="480" height="270"></canvas><i>THE FOREST MAN OF INDIA</i></div>
   <div class="card" id="p3"><canvas width="480" height="270"></canvas><i>THE FOREST MAN OF INDIA</i></div>
-  <div class="card" id="medal"><div class="st"></div><b>PADMA SHRI</b><span>2015 · GOVERNMENT OF INDIA</span></div>
+  <div class="card" id="medal"><div class="st"></div><b>PADMA SHRI</b><span>2015 · PRESENTED BY DR. A.P.J. ABDUL KALAM</span></div>
   <div id="cap"></div>
-  <div id="tag"></div>
   <div id="sub"></div>
   <div class="ov" id="fade"></div>
   <div id="end">
@@ -101,7 +101,7 @@ const $=s=>document.querySelector(s);
 const canvas=$('#c'),stage=$('#stage');
 const touch=matchMedia('(pointer:coarse)').matches;
 const Q=touch?.55:1;
-const TOTAL=210;
+const TOTAL=220;
 
 /* ================= helpers ================= */
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
@@ -171,41 +171,24 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(1500,32,16),skyMat);sky.frustu
 /* ================= water ================= */
 function makeWater(alpha,river){
   return new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
-  uniforms:{
-    time:{value:0},rain:{value:0},alpha:{value:alpha},fogD:{value:.001},
-    sunDir:{value:new THREE.Vector3()},sunCol:{value:new THREE.Color()},
-    hor:{value:new THREE.Color()},top:{value:new THREE.Color()},fogCol:{value:new THREE.Color()},
-    deepCol:{value:river?C(0x2c5a4a):C(0x3a4a36)},
-    shallowCol:{value:river?C(0x6fae8a):C(0x5a7a6a)},
-    flow:{value:river?.9:.35}
-  },
+  uniforms:{ time:{value:0},rain:{value:0},alpha:{value:alpha},fogD:{value:.001}, sunDir:{value:new THREE.Vector3()},sunCol:{value:new THREE.Color()}, hor:{value:new THREE.Color()},top:{value:new THREE.Color()},fogCol:{value:new THREE.Color()}, deepCol:{value:river?C(0x2c5a4a):C(0x3a4a36)}, shallowCol:{value:river?C(0x6fae8a):C(0x5a7a6a)}, flow:{value:river?.9:.35} },
   vertexShader:`varying vec3 wp;varying vec2 uv;void main(){vec4 w=modelMatrix*vec4(position,1.);wp=w.xyz;uv=position.xz;gl_Position=projectionMatrix*viewMatrix*w;}`,
-  fragmentShader:`uniform float time,rain,alpha,fogD,flow;
-uniform vec3 sunDir,sunCol,hor,top,fogCol,deepCol,shallowCol;varying vec3 wp;varying vec2 uv;
+  fragmentShader:`uniform float time,rain,alpha,fogD,flow; uniform vec3 sunDir,sunCol,hor,top,fogCol,deepCol,shallowCol;varying vec3 wp;varying vec2 uv;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
 float fb(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n(p);p*=2.03;a*=.5;}return s;}
-void main(){
-  vec2 p=wp.xz;
-  vec2 fp=p*vec2(1.,1.)+vec2(time*flow*.55,time*flow*.12);
-  float n1=fb(fp*.35), n2=fb(fp*1.1+vec2(3.,7.));
-  float e=.08;
-  float dx=(fb(fp*.35+vec2(e,0.))-n1)/e;
-  float dz=(fb(fp*.35+vec2(0.,e))-n1)/e;
-  float amp=1.+rain*1.4;
-  vec3 nrm=normalize(vec3(-dx*.08,1.,-dz*.08)*amp);
-  vec3 V=normalize(cameraPosition-wp);
-  float fr=pow(1.-max(dot(nrm,V),0.),3.);
+void main(){ vec2 p=wp.xz; vec2 fp=p*vec2(1.,1.)+vec2(time*flow*.55,time*flow*.12);
+  float n1=fb(fp*.35), n2=fb(fp*1.1+vec2(3.,7.)); float e=.08;
+  float dx=(fb(fp*.35+vec2(e,0.))-n1)/e; float dz=(fb(fp*.35+vec2(0.,e))-n1)/e;
+  float amp=1.+rain*1.4; vec3 nrm=normalize(vec3(-dx*.08,1.,-dz*.08)*amp);
+  vec3 V=normalize(cameraPosition-wp); float fr=pow(1.-max(dot(nrm,V),0.),3.);
   vec3 skyc=mix(hor,top,clamp(reflect(-V,nrm).y,0.,1.)*.8);
-  float sl=clamp(.5+.5*n2,0.,1.);
-  vec3 body=mix(deepCol,shallowCol,sl*.55+fr*.25);
+  float sl=clamp(.5+.5*n2,0.,1.); vec3 body=mix(deepCol,shallowCol,sl*.55+fr*.25);
   vec3 col=mix(body,skyc,clamp(.1+fr*.82,0.,1.));
   vec3 R=reflect(-sunDir,nrm);col+=sunCol*pow(max(dot(R,V),0.),180.)*2.4;
   float foam=smoothstep(.72,.94,n2)*smoothstep(.1,.4,1.-fr);
-  col=mix(col,vec3(.86,.94,.92),foam*.28);
-  float dist=length(cameraPosition-wp);float f=1.-exp(-fogD*fogD*dist*dist);
-  col=mix(col,fogCol,clamp(f,0.,1.));
-  gl_FragColor=vec4(col,mix(.9,1.,fr)*alpha);
+  col=mix(col,vec3(.86,.94,.92),foam*.28); float dist=length(cameraPosition-wp);float f=1.-exp(-fogD*fogD*dist*dist);
+  col=mix(col,fogCol,clamp(f,0.,1.)); gl_FragColor=vec4(col,mix(.9,1.,fr)*alpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }`})}
@@ -349,9 +332,11 @@ function updateVeg(age,T){
       dummy.position.set(0,-999,0);dummy.scale.setScalar(0);dummy.updateMatrix();
       treeFolA.setMatrixAt(i,dummy.matrix);treeFolB.setMatrixAt(i,dummy.matrix);
     }else{
-      const swayA=Math.sin(T*1.15+t.ph)*.03*s, swayB=Math.sin(T*1.55+t.ph+1.2)*.045*s;
-      dummy.position.set(t.x+sw*t.H*s+swayA*t.H*.1,t.y+t.H*s*.94,t.z+swayB*t.H*.06);dummy.rotation.set(swayA, t.rot, swayB);dummy.scale.set(t.R*S,t.R*S*.82,t.R*S);dummy.updateMatrix();treeFolA.setMatrixAt(i,dummy.matrix);
-      dummy.position.set(t.x+Math.cos(t.rot)*t.R*S*.5,t.y+t.H*s*.76,t.z+Math.sin(t.rot)*t.R*S*.4);dummy.rotation.set(0,t.rot,0);dummy.scale.set(t.R*S*.72,t.R*S*.6,t.R*S*.72);dummy.updateMatrix();treeFolB.setMatrixAt(i,dummy.matrix)}
+      // Ensure trees always have leaves when grown (never bare trunks)
+      const leafS = Math.max(S, 0.1); // even if tiny, show some canopy
+      const swayA=Math.sin(T*1.15+t.ph)*.03*S, swayB=Math.sin(T*1.55+t.ph+1.2)*.045*S;
+      dummy.position.set(t.x+sw*t.H*S+swayA*t.H*.1,t.y+t.H*S*.94,t.z+swayB*t.H*.06);dummy.rotation.set(swayA, t.rot, swayB);dummy.scale.set(t.R*leafS,t.R*leafS*.82,t.R*leafS);dummy.updateMatrix();treeFolA.setMatrixAt(i,dummy.matrix);
+      dummy.position.set(t.x+Math.cos(t.rot)*t.R*leafS*.5,t.y+t.H*S*.76,t.z+Math.sin(t.rot)*t.R*leafS*.4);dummy.rotation.set(0,t.rot,0);dummy.scale.set(t.R*leafS*.72,t.R*leafS*.6,t.R*leafS*.72);dummy.updateMatrix();treeFolB.setMatrixAt(i,dummy.matrix)}
   }
   palms.forEach((p,k)=>{const t=p.t,s=grow(age,t.pa,t.gd),S=Math.max(s,.0001),H=t.H*s;
     for(let j=0;j<8;j++){const a=j/8*Math.PI*2;const sway=Math.sin(T*1.3+j+t.ph)*.08*s;
@@ -359,13 +344,15 @@ function updateVeg(age,T){
   );
   fruits.forEach(fr=>{const t=fr.t,s=grow(age,t.pa,t.gd);if(s<.85){dummy.position.set(0,-999,0);dummy.scale.setScalar(0);dummy.updateMatrix();fruitDots.setMatrixAt(fr.idx,dummy.matrix);return}
     const a=(fr.off/3)*Math.PI*2+t.rot,R=t.R*s*.9;dummy.position.set(t.x+Math.cos(a)*R*.6,t.y+t.H*s*.85+Math.sin(a*2)*.3,t.z+Math.sin(a)*R*.6);dummy.scale.setScalar(.7);dummy.updateMatrix();fruitDots.setMatrixAt(fr.idx,dummy.matrix)});
+  // Bamboo leaves: ensure they are large enough to look like plants
   for(let i=0;i<BN;i++){const b=bambs[i],s=grow(age,b.pa,b.gd),S=Math.max(s,.0001);
     const sway=Math.sin(T*1.35+b.ph)*.045*s;
     dummy.position.set(b.x,b.y-.05,b.z);dummy.rotation.set(sway*.6,b.rot,sway);dummy.scale.set(.9+.3*s,Math.max(.0001,b.H*b.hf*s),.9+.3*s);dummy.updateMatrix();bamStalk.setMatrixAt(i,dummy.matrix);
     for(let j=0;j<3;j++){const a=b.rot+j*2.09+Math.sin(T*.7+j)*.1;
       dummy.position.set(b.x+Math.cos(a)*.12,b.y+b.H*b.hf*s*.93,b.z+Math.sin(a)*.12);
       dummy.rotation.set(-.4+Math.sin(T*1.5+j)*.12,a+sway,Math.sin(T*1.2+j)*.1);
-      dummy.scale.setScalar((.8+rnd()*0)*s);dummy.updateMatrix();bamLeaf.setMatrixAt(i*3+j,dummy.matrix)}}
+      const lS = Math.max((.8)*s, 0.15); // always show leaf blades
+      dummy.scale.setScalar(lS);dummy.updateMatrix();bamLeaf.setMatrixAt(i*3+j,dummy.matrix)}}
   for(let i=0;i<SN;i++){const h=shrubs[i],s=grow(age,h.pa,h.gd),S=Math.max(s,.0001);dummy.position.set(h.x,h.y+.25*h.r*s,h.z);dummy.rotation.set(0,h.rot,0);dummy.scale.set(h.r*S,h.r*S*.7,h.r*S);dummy.updateMatrix();shrubM.setMatrixAt(i,dummy.matrix)}
   for(const m of[treeTrunk,treeFolA,treeFolB,bamStalk,bamLeaf,shrubM,palmFoliage,fruitDots])m.instanceMatrix.needsUpdate=true;
 }
@@ -396,18 +383,27 @@ function makePerson(o){
   const torso=add(new THREE.CapsuleGeometry(.19,.36,4,12),shirt,upper,0,.34,0);torso.scale.set(1.12,1,.78);
   add(new THREE.CylinderGeometry(.055,.065,.14,8),skin,upper,0,.76,0);
   const head=new THREE.Group();head.position.y=.9;upper.add(head);P.head=head;
-  const hm=add(new THREE.SphereGeometry(.135,20,16),skin,head);hm.scale.set(.92,1.1,1);
-  const hr=add(new THREE.SphereGeometry(.142,20,12,0,Math.PI*2,0,Math.PI*.58),hair,head,0,.018,-.01);hr.rotation.x=-.28;
+  // Better head shape (more oval)
+  const hm=add(new THREE.SphereGeometry(.135,24,18),skin,head);hm.scale.set(.88,1.15,0.95);
+  const hr=add(new THREE.SphereGeometry(.142,24,12,0,Math.PI*2,0,Math.PI*.58),hair,head,0,.018,-.01);hr.rotation.x=-.28;hr.scale.set(.9,1.1,1);
   for(const sx of[-1,1])add(new THREE.SphereGeometry(.016,8,6),eyeMat,head,sx*.048,.02,.125);
   add(new THREE.SphereGeometry(.02,8,6),skin,head,0,-.01,.135);
   if(o.must){P.must=add(new THREE.CapsuleGeometry(.011,.075,3,6),toon(o.must),head,0,-.04,.13);P.must.rotation.z=Math.PI/2}
   if(o.scarf){const t=add(new THREE.TorusGeometry(.115,.035,6,14),toon(0xc8261e),upper,0,.7,0);t.rotation.x=Math.PI/2;add(new THREE.BoxGeometry(.08,.3,.03),toon(0xeeeeee),upper,.08,.55,.14)}
   if(o.cap){add(new THREE.CylinderGeometry(.145,.15,.09,16),toon(o.cap),head,0,.14,0);add(new THREE.BoxGeometry(.2,.015,.12),toon(o.cap),head,0,.1,.15)}
-  const limb=(par,x,y,len,r,mat)=>{const pv=new THREE.Group();pv.position.set(x,y,0);par.add(pv);add(new THREE.CapsuleGeometry(r,len,4,8),mat,pv,0,-(len/2+r*.8),0);return pv};
+  // Limb generator
+  const limb=(par,x,y,len,r,mat,isArm=false)=>{const pv=new THREE.Group();pv.position.set(x,y,0);par.add(pv);
+    // Upper and lower part for more realistic bending (single capsule works fine for stylized)
+    add(new THREE.CapsuleGeometry(r,len,4,12),mat,pv,0,-(len/2+r*.8),0);
+    if(isArm){
+      const hand=add(new THREE.SphereGeometry(r*1.2,10,8),skin,pv,0,-(len+r*1.5),0);
+      hand.scale.set(1,.8,1.4); // hand shape (mitten-like)
+    }else{
+      const foot=add(new THREE.BoxGeometry(r*2.5,.06,len*.6),skin,pv,0,-(len*.9+r*.8),len*.2); // foot extended forward
+    }
+    return pv};
   P.legL=limb(root,-.1,.78,.62,.085,pants);P.legR=limb(root,.1,.78,.62,.085,pants);
-  P.armL=limb(upper,-.27,.62,.44,.055,shirt);P.armR=limb(upper,.27,.62,.44,.055,shirt);
-  for(const a of[P.armL,P.armR])add(new THREE.SphereGeometry(.05,10,8),skin,a,0,-.55,0);
-  for(const l of[P.legL,P.legR])add(new THREE.BoxGeometry(.1,.05,.22),skin,l,0,-.75,.05);
+  P.armL=limb(upper,-.27,.62,.44,.055,shirt,true);P.armR=limb(upper,.27,.62,.44,.055,shirt,true);
   g.scale.setScalar(o.scale||1);P.stoop=o.stoop||0;scene.add(g);return P}
 function setAge(P,a){P.upper.scale.set(lerp(.9,1.04,a),lerp(.96,1,a),lerp(.95,1.02,a));P.g.scale.setScalar(lerp(.88,.95,a));if(P.must)P.must.visible=a>.45}
 function pose(P,s,T){
@@ -439,10 +435,11 @@ const PI=Math.PI;
 const YJ=makePerson({skin:0x8c5a3a,shirt:0x8a7a5a,pants:0xb8aa8c,hair:0x120d0b,must:0x1a1210,scale:.9});
 const OJ=makePerson({skin:0x7a4c30,shirt:0xe8dcc0,pants:0xf0ece0,hair:0xe6e6e6,must:0xf2f2f2,scarf:true,scale:.97,stoop:.1});
 const OFF=makePerson({skin:0x9a6a46,shirt:0x6f7a4e,pants:0x3f4a35,hair:0x151010,cap:0x3f4a35,scale:1.03});
+const KALAM=makePerson({skin:0x8c5a3a,shirt:0xf0f0f0,pants:0x111111,hair:0xffffff,must:0xffffff,scale:1.05,stoop:0.05});
 const skins=[0x8c5a3a,0x9a6a46,0x7a4c30,0xa4734d],shirtsL=[0x9a4a3a,0x3f6a8a,0x6a8a4a,0xc9a24a,0xeeeeee],pantsL=[0x3a3a4a,0x5a4a3a,0x2a3a5a];
 const listeners=[];for(let i=0;i<8;i++)listeners.push(makePerson({skin:skins[i%4],shirt:shirtsL[i%5],pants:pantsL[i%3],hair:i%3?0x151010:0x777777,scale:.92+rnd()*.12}));
 const students=[];for(let i=0;i<11;i++)students.push(makePerson({skin:skins[i%4],shirt:0xf2f2f2,pants:0x24407a,hair:0x120d0b,scale:.74}));
-const yj={},oj={},offS={},stS=students.map(()=>({})),liS=listeners.map(()=>({}));
+const yj={},oj={},offS={},kS={},stS=students.map(()=>({})),liS=listeners.map(()=>({}));
 
 /* props */
 const add2=(geo,mat,par,x=0,y=0,z=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;par.add(m);return m};
@@ -485,6 +482,19 @@ const heroTree=new THREE.Group();heroTree.position.set(37,gY(37,6),6);
 {const tr=new THREE.Mesh(new THREE.CylinderGeometry(.32,.5,9,8),trunkMat);tr.position.y=4.5;tr.castShadow=true;heroTree.add(tr);
 [[0,9.5,0,3.6],[1.8,8.3,.8,2.6],[-1.6,8.6,-.9,2.7]].forEach((a,i)=>{const f=new THREE.Mesh(foliageGeo,toon(greens[i]));f.position.set(a[0],a[1],a[2]);f.scale.set(a[3],a[3]*.8,a[3]);f.castShadow=true;heroTree.add(f)})}
 heroTree.visible=false;scene.add(heroTree);
+
+/* Stage & Award Scene Objects */
+const stageGroup=new THREE.Group();
+{const floor=new THREE.Mesh(new THREE.BoxGeometry(15,1,10),toon(0x5a1a1a));floor.position.y=-0.5;floor.receiveShadow=true;stageGroup.add(floor);
+ const backdrop=new THREE.Mesh(new THREE.PlaneGeometry(15,6),toon(0x1a1a1a));backdrop.position.set(0,3,-4.9);stageGroup.add(backdrop);
+ const emblem=new THREE.Mesh(new THREE.CircleGeometry(1,16),toon(0xd4af37));emblem.position.set(0,4,-4.85);stageGroup.add(emblem);
+ const curtainL=new THREE.Mesh(new THREE.PlaneGeometry(4,8),toon(0x8a1a1a));curtainL.position.set(-5.5,3,-4.8);stageGroup.add(curtainL);
+ const curtainR=new THREE.Mesh(new THREE.PlaneGeometry(4,8),toon(0x8a1a1a));curtainR.position.set(5.5,3,-4.8);stageGroup.add(curtainR);
+ const micStand=new THREE.Group();const pole=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,1,6),toon(0x333));pole.position.y=.5;micStand.add(pole);const mic=new THREE.Mesh(new THREE.SphereGeometry(.05),toon(0x111));mic.position.y=1;micStand.add(mic);
+ micStand.position.set(2,0,0);stageGroup.add(micStand);
+}
+stageGroup.visible=false;scene.add(stageGroup);
+
 const school=new THREE.Group();
 {const y=gY(19.8,6);const w=new THREE.Mesh(new THREE.BoxGeometry(3,3.8,11),toon(0xe8dcc0));w.position.set(19.8,y+1.9,6);const r=new THREE.Mesh(new THREE.BoxGeometry(3.6,.4,11.6),toon(0x9a4a3a));r.position.set(19.8,y+4,6);
 const sc=document.createElement('canvas');sc.width=640;sc.height=360;const x=sc.getContext('2d');const g=x.createLinearGradient(0,0,0,360);g.addColorStop(0,'#8fc3e8');g.addColorStop(1,'#e9ecd0');x.fillStyle=g;x.fillRect(0,0,640,360);x.fillStyle='#2e7a30';for(let k=0;k<20;k++){x.beginPath();x.arc(k*34,250,50+(k%3)*12,0,7);x.fill()}x.fillRect(0,250,640,110);x.fillStyle='#fff';x.font='bold 44px Georgia';x.textAlign='center';x.fillText('THE FOREST MAN',320,70);
@@ -537,7 +547,7 @@ const _p=new THREE.Vector3(),_d=new THREE.Vector3(),_lq=new THREE.Quaternion();
 
 /* state + camera */
 let T=0,dt=.016,playing=false,last=0,soundOn=true,pathU=0,yjK=0,lastShot=-1,cueI=0,subEnd=0;
-const S=[yj,oj,offS,...stS,...liS],subEl=$('#sub'),capEl=$('#cap');
+const S=[yj,oj,offS,kS,...stS,...liS],subEl=$('#sub'),capEl=$('#cap');
 const put=(s,x,z,ry)=>{if(s.ry!==undefined){const da=Math.atan2(Math.sin(ry-s.ry),Math.cos(ry-s.ry));s.turnFacing=clamp(1-Math.abs(da)/1.2,.2,1)}else s.turnFacing=1;s.x=x;s.z=z;s.y=gY(x,z);s.ry=ry;s.walk=0};
 const mv=(s,x,z,spd)=>{const dx=x-s.x,dz=z-s.z,d=Math.hypot(dx,dz);if(d>1e-4){const nr=Math.atan2(dx,dz);if(s.ry!==undefined){const da=Math.atan2(Math.sin(nr-s.ry),Math.cos(nr-s.ry));s.turnFacing=clamp(1-Math.abs(da)/1.2,.2,1)}s.ry=nr;s.dist=(s.dist||0)+d;s.walk=clamp(d/dt/spd)}else s.walk=0;s.x=x;s.z=z;s.y=gY(x,z)};
 const cp=new THREE.Vector3(0,420,260),cl=new THREE.Vector3(),dp=new THREE.Vector3(),dl=new THREE.Vector3();
@@ -557,39 +567,37 @@ const faceP=(x,z)=>Math.atan2(24-x,13.6-z);
 
 /* narration */
 const CUES=[
-[4,"In 1979, on the banks of the mighty Brahmaputra River in Assam, a young boy witnessed something that would change his life forever."],
-[14,"The land was barren. There were no trees to provide shade, no shelter for wildlife."],
-[22,"And one day, he saw something that made him realise just how much nature had lost."],
+[4,"In 1979, a 16-year-old boy named Jadav Payeng witnessed the devastating power of the Brahmaputra River."],
+[14,"The flood had washed away everything, leaving behind only a barren sandbar and dead snakes."],
+[22,"And that day, he realised just how much nature had lost."],
 [30,"He knew something had to change."],
-[33,"Jadav approached the forest authorities, hoping someone would help restore the land."],
-[39,"But there was no simple solution."],
-[42,"He was advised that bamboo could grow in the difficult conditions."],
-[47.5,"And so, instead of waiting for someone else to solve the problem, Jadav decided to begin himself."],
-[56,"He would plant trees."],
+[33,"He approached the forest authorities, hoping for help, but was told it was impossible."],
+[39,"They advised him that only bamboo might survive in such harsh conditions."],
+[47.5,"Instead of giving up, Jadav decided to take matters into his own hands."],
+[56,"He would plant trees. One day at a time."],
 [63,"Days turned into months."],
-[65.5,"Months turned into years."],
-[68,"Jadav continued planting and caring for the growing vegetation."],
-[73,"There were no grand celebrations. No cameras following him. No immediate recognition."],
-[79,"Just years of patience, hard work and an unwavering commitment to nature."],
-[85,"While the world continued moving around him, Jadav kept working."],
-[90,"And slowly, the land began to change."],
-[96,"Decades passed."],
-[99,"And the impossible-looking transformation became a reality."],
-[104,"The growing vegetation developed into a large forest ecosystem."],
-[109,"The forest became known as Molai Forest, named after Jadav Payeng."],
-[114,"Covering approximately 550 hectares, it became an important habitat for wildlife."],
-[120,"Animals, birds and countless other forms of life found shelter among the trees."],
-[126,"The empty sandbar had become a living ecosystem."],
-[133,"Eventually, the world began noticing his extraordinary contribution."],
-[139,"In 2015, the Government of India honoured him with the Padma Shri."],
+[65.5,"And months turned into years of relentless hard work."],
+[68,"He carried water, nurtured saplings, and protected the land."],
+[73,"There were no grand celebrations. No cameras. No immediate recognition."],
+[79,"Just years of patience, sweat, and an unwavering commitment to nature."],
+[85,"While the world moved on, Jadav kept working."],
+[90,"And slowly, the barren sandbar began to transform."],
+[96,"Decades passed. The boy who started at 16 became a man in his sixties."],
+[99,"What was once a wasteland had become a thriving forest."],
+[104,"A massive ecosystem covering over 550 hectares."],
+[109,"It became known as Molai Forest, a testament to one man's vision."],
+[120,"Elephants, tigers, deer, and countless birds found shelter among the trees."],
+[126,"The empty sandbar had become a living, breathing ecosystem."],
+[133,"Eventually, the world began to notice the extraordinary contribution of this silent worker."],
+[139,"In 2015, the former President of India, Dr. A.P.J. Abdul Kalam, honoured him with the Padma Shri."],
 [144,"People began calling him the Forest Man of India."],
-[148.5,"But for Jadav, the greatest achievement was not the recognition."],
-[153.5,"It was seeing life return to a place that had once been barren."],
+[148.5,"But for Jadav, the greatest achievement was not the award."],
+[153.5,"It was seeing life return to a place that had once been dead."],
 [158.5,"Jadav Payeng's story teaches us something extraordinary."],
 [162.5,"You don't need millions of rupees to make a difference."],
 [166.5,"You don't need a powerful position."],
 [169.3,"And you don't need to wait for someone else to begin."],
-[173.6,"Sometimes, all it takes is one person, one decision and the determination to continue."],
+[173.6,"Sometimes, all it takes is one person, one decision, and the determination to continue."],
 [179.5,"Imagine what millions of determined students could accomplish together."],
 [183.5,"Because the future doesn't change through promises alone. It changes through actions."]];
 function say(s){if(!soundOn||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.rate=1;u.pitch=.85;const vs=speechSynthesis.getVoices(),v=vs.find(v=>/en[-_]IN/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)}
@@ -608,7 +616,7 @@ function chirp(){const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTim
 function bell(){const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.08,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+2.5);o.connect(g);g.connect(mg);o.start(t);o.stop(t+2.6)}
 function audio(){if(!AC||!soundOn)return;const t=AC.currentTime;
 const I=T<62?.25+.15*sstep(30,62,T):T<95?.4+.3*sstep(62,95,T):T<132?.7+.3*sstep(95,115,T):T<158?.65:.65+.35*sstep(160,186,T);
-mg.gain.setTargetAtTime(.85*(1-sstep(202,210,T)),t,.2);
+mg.gain.setTargetAtTime(.85*(1-sstep(212,220,T)),t,.2);
 riverG.gain.setTargetAtTime(T<62?.14:T<95?.06:.025,t,.5);rainG.gain.setTargetAtTime(mood.rain*.1,t,.3);windG.gain.setTargetAtTime(T<62?.07:.025,t,.5);
 padG.gain.setTargetAtTime(T<30?0:.012+.06*(I-.2)*(T>62?1:.4),t,1);padF.frequency.setTargetAtTime(500+1800*I,t,.5);
 const bar=Math.floor(T/4)%4,step=Math.floor(T/.5);
@@ -629,8 +637,8 @@ for(const s of S){s.vis=false;s.aL=s.aR=s.hx=s.hy=s.kneel=undefined;s.walk=0}
 act.fill(0);
 [...deer,...ele].forEach(q=>q.g.visible=false);birds.forEach(b=>b.g.visible=false);bfl.forEach(b=>b.g.visible=false);
 leafProp.visible=false;dew.visible=false;snakes.visible=T<32;heroTree.visible=T>=95;firstSapling.visible=false;
-school.visible=plant.visible=false;groundCan.visible=false;bundle.visible=false;heroCan.visible=false;joinCans.forEach(c=>c.visible=false);
-setAge(OJ,1);
+school.visible=plant.visible=false;stageGroup.visible=false;groundCan.visible=false;bundle.visible=false;heroCan.visible=false;joinCans.forEach(c=>c.visible=false);
+setAge(OJ,1);setAge(KALAM,1);
 if(snakes.visible){snakeMeshes.forEach((s,i)=>{const rear=sstep(27,29,T)*(1-sstep(30,31.5,T));s.m.position.y=s.base+rear*.35;if(rear>0)s.m.rotation.z=Math.sin(T*3+i)*.25*rear})}
 
 if(T<32){ /* SCENE 1 */
@@ -707,20 +715,24 @@ if(T<32){ /* SCENE 1 */
  if(T<104){const u=E((T-95)/9);lv(dp,[80,260,140],[-90,5,cz(-90)+3],u);lv(dl,[0,0,0],[-76,3,cz(-76)],u);shot(40,1)}
  else if(T<126){const x=-90+(T-104)*(100/22);dp.set(x,3.1+Math.sin(T*.8)*.25,cz(x)+Math.sin(T*.4)*2.2);dl.set(x+14,2.6,cz(x+14)+.5);shot(41,1)}
  else{const u=E((T-126)/6);lv(dp,[10,3,cz(10)],[30,75,45],u);lv(dl,[24,2.6,cz(24)],[0,0,0],u);shot(42,1)}
-}else if(T<158){ /* SCENE 5 */
- oj.vis=true;const gt=gY(37,6),ox=35.9;
- if(T<132.05)put(oj,27,6,PI/2);
- mv(oj,lerp(27,ox,clamp((T-132)/7)),6,1.2);
- let r=PI/2;if(T>=146)r=lerp(PI/2,-PI/2,E(clamp((T-146)/2)));if(T>=152)r=lerp(-PI/2,PI/2,E(clamp((T-152)/2)));
- if(T>=139)oj.ry=r;
- if(T>=139&&T<146)oj.aR=lerp(0,-1.45,sstep(139,140.5,T));
- else if(T>=146&&T<152){oj.aL=-.5+Math.sin(T*2)*.25;oj.aR=-.3}
- oj.hx=.05-.25*sstep(152,154,T);
- liS.forEach((s,i)=>{if(T>=139.2){const a=-.9+i*.257,x=ox-5*Math.cos(a),z=6+5*Math.sin(a);put(s,x,z,Math.atan2(ox-x,6-z));s.vis=true;s.hx=Math.sin(T*1.3+i)*.05;s.hy=Math.sin(T+i)*.08}});
+}else if(T<158){ /* SCENE 5 (AWARD ON STAGE) */
+ stageGroup.visible=true;KALAM.vis=true;oj.vis=true;
+ // Stage position
+ const stageZ = cz(37)+10; // push stage into the forest clearing
+ stageGroup.position.set(37, gY(37,stageZ), stageZ);
+ kS.x=35.5; kS.z=stageZ+1; kS.y=gY(kS.x,kS.z)+0.5; // Kalam on stage
+ oj.x=39; oj.z=stageZ+1; oj.y=gY(oj.x,oj.z)+0.5; // OJ on stage
+ kS.ry=-PI/2; oj.ry=PI/2;
+ oj.hx=.05;
+ if(T>=139&&T<145){KALAM.aR=-1.2-0.2*Math.sin(T*2); oj.aL=-1.2-0.2*Math.sin(T*2)} // Handshake
+ else {KALAM.aR=-0.1; oj.aL=0}
+ if(T>=146){oj.hx=-0.2; oj.hy=Math.sin(T*1.5)*0.2} // Looking at audience
+ 
+ liS.forEach((s,i)=>{if(T>=139.2){const a=-0.6+i*0.17,x=37-8*Math.cos(a),z=stageZ-8*Math.sin(a);put(s,x,z,Math.atan2(37-x,stageZ-z));s.vis=true;s.hx=Math.sin(T*1.3+i)*.05;s.hy=Math.sin(T+i)*.08}});
  if(T<139){dp.set(oj.x+.5,oj.y+1.5,oj.z-6);dl.set(oj.x+.8,oj.y+1.3,oj.z);shot(50,1-Math.exp(-dt*2.5))}
- else if(T<146){dp.set(35,gt+1.5,3.4);dl.set(36.3,gt+1.3,6);shot(51,1)}
- else if(T<152){dp.set(38.2,gt+1.8,8.4);dl.set(30,gt+1.4,6);shot(52,1)}
- else{dp.set(35.9,gt+1.6,4.2);dl.set(35.9,gt+1.6+.1*sstep(152,158,T),6);shot(53,1)}
+ else if(T<146){dp.set(37,stageGroup.position.y+2.5,stageZ-6);dl.set(37,stageGroup.position.y+1.5,stageZ);shot(51,1)}
+ else if(T<152){dp.set(40,stageGroup.position.y+2,stageZ-4);dl.set(37,stageGroup.position.y+1.2,stageZ);shot(52,1)}
+ else{dp.set(37,stageGroup.position.y+3,stageZ-10);dl.set(37,stageGroup.position.y+1,stageZ);shot(53,1)}
 }else if(T<166){ /* SCENE 6a: leaf */
  const Lx=-20,Lz=cz(-20)+4.5,Ly=gY(Lx,Lz)+1.3,u=E(clamp((T-158)/8));
  leafProp.visible=true;leafProp.position.set(Lx,Ly,Lz);leafProp.rotation.set(0,.6+Math.sin(T*.7)*.1,Math.sin(T*.9)*.08);leafProp.scale.setScalar(.5);
@@ -754,7 +766,7 @@ if(T<32){ /* SCENE 1 */
  else{const u=E(clamp((T-184)/5.5)),gt=gY(36.4,8.2);lv(dp,[27.7,g6+1.9,9.5],[36.4,gt+5.5,8.2],u);lv(dl,[24.2,g6+.8,13.2],[36.4+sunDir.x*30,gt+3+sunDir.y*30,8.2+sunDir.z*30],u);shot(64,1)}
 }
 /* poses */
-pose(YJ,yj,T);pose(OJ,oj,T);pose(OFF,offS,T);
+pose(YJ,yj,T);pose(OJ,oj,T);pose(OFF,offS,T);pose(KALAM,kS,T);
 listeners.forEach((P,i)=>pose(P,liS[i],T));students.forEach((P,i)=>pose(P,stS[i],T));
 /* rain */
 const rr=mood.rain;rainL.visible=rr>.04;
@@ -767,15 +779,15 @@ sun.target.position.set(cl.x,0,cl.z);sun.position.set(cl.x,0,cl.z).addScaledVect
 camCollide(dp,cl);
 camera.position.copy(cp);camera.lookAt(cl);
 /* overlays */
-let f=1-sstep(.4,4.5,T);for(const b of[32,62,132,158])f=Math.max(f,1-sstep(0,.45,Math.abs(T-b)));f=Math.max(f,sstep(196.4,197.6,T));
+let f=1-sstep(.4,4.5,T);for(const b of[32,62,132,158])f=Math.max(f,1-sstep(0,.45,Math.abs(T-b)));f=Math.max(f,sstep(216.4,217.6,T));
 $('#fade').style.opacity=f;
 const wp=clamp((T-93.8)/2);$('#wipe div').style.transform=`translateX(${lerp(120,-120,wp)}%) skewX(-14deg)`;$('#wipe svg').style.opacity=T>93.8&&T<95.8?Math.sin(PI*wp):0;
 const on=(id,c)=>$(id).classList.toggle('on',c);
-on('#medal',T>=143&&T<146);on('#p1',T>=144.2&&T<156);on('#p2',T>=145.7&&T<156);on('#p3',T>=147.2&&T<156);
+on('#medal',T>=142&&T<146);on('#p1',T>=146&&T<158);on('#p2',T>=147.5&&T<158);on('#p3',T>=149&&T<158);
 capEl.textContent='≈ 770 football fields';on('#cap',T>=114.5&&T<120);
-$('#end').style.opacity=T>=197.2?1:0;
-on('#eleaf',T>=198&&T<204.4);on('#l1',T>=199.2&&T<204.4);on('#l2',T>=200.4&&T<204.4);on('#l3',T>=201.6&&T<204.4);on('#ask',T>=203.6&&T<206.4);on('#fin',T>=206.6);on('#credit',T>=207.2);
-if(T>=203.6&&!bellFired&&AC&&soundOn){bellFired=true;bell()}
+$('#end').style.opacity=T>=217.2?1:0;
+on('#eleaf',T>=218&&T<224.4);on('#l1',T>=219.2&&T<224.4);on('#l2',T>=220.4&&T<224.4);on('#l3',T>=221.6&&T<224.4);on('#ask',T>=223.6&&T<226.4);on('#fin',T>=226.6);on('#credit',T>=227.2);
+if(T>=223.6&&!bellFired&&AC&&soundOn){bellFired=true;bell()}
 /* subtitles + voice */
 while(cueI<CUES.length&&T>=CUES[cueI][0]){const c=CUES[cueI++];subEl.textContent=c[1];subEnd=T+c[1].split(' ').length/2.4+.7;say(c[1])}
 subEl.style.opacity=T<subEnd?1:0;subEl.classList.toggle('on',T<subEnd);
