@@ -14,6 +14,12 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
 #watch{cursor:pointer;border:1.5px solid #9fe08a;background:rgba(80,170,70,.2);color:#fff;font:inherit;font-size:20px;letter-spacing:.35em;padding:16px 44px 16px 52px;border-radius:50px;transition:.3s}
 #watch:hover{background:rgba(110,210,90,.42);transform:scale(1.05)}
 #menu small{margin-top:26px;opacity:.55;font-size:12px;max-width:430px;line-height:1.7}
+#rot{position:fixed;inset:0;z-index:60;background:#050805;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;color:#e8f3d8}
+#rot.show{display:flex}
+#rot svg{width:90px;height:90px;margin-bottom:22px;animation:rw 2.2s ease-in-out infinite}
+@keyframes rw{0%,100%{transform:rotate(-90deg)}50%{transform:rotate(0)}}
+#rot p{font-size:18px;letter-spacing:.25em;line-height:1.8}
+#rot small{opacity:.6;font-size:12px;letter-spacing:.15em;margin-top:14px}
 #stage{position:fixed;left:0;top:0;width:100vw;height:100vh;background:#000;overflow:hidden;visibility:hidden;transform-origin:0 0}
 #c{position:absolute;inset:0;width:100%;height:100%;display:block}
 .ov{position:absolute;inset:0;pointer-events:none}
@@ -38,12 +44,18 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
 #end{position:absolute;inset:0;background:#000;z-index:9;opacity:0;transition:opacity .8s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
 #end>*{opacity:0;transition:opacity 1.8s;position:absolute}
 #end>.on{opacity:1}
-#eleaf{width:min(14vh,90px);top:30%}
+#eleaf{width:min(14vh,90px);top:26%}
 .line{font-size:clamp(20px,5vw,56px);letter-spacing:.3em;font-weight:400}
-#l1{top:42%}#l2{top:52%}#l3{top:62%}
+#l1{top:38%}#l2{top:48%}#l3{top:58%}
 .ask{font-size:clamp(18px,4.2vw,46px);letter-spacing:.25em;color:#b9f2a6}
 .final{font-size:clamp(14px,2.6vw,30px);letter-spacing:.3em;line-height:2}
 .final b{font-weight:400;font-size:1.5em;letter-spacing:.2em}.final span{opacity:.7;font-size:.8em}
+#credit{position:absolute;left:0;right:0;bottom:9%;text-align:center;font-size:clamp(10px,1.6vw,18px);letter-spacing:.28em;line-height:2;color:#dfe9d0;z-index:10;opacity:0;transition:opacity 2s;pointer-events:none}
+#credit.on{opacity:1}
+#credit b{font-weight:400;font-size:1.35em;letter-spacing:.22em;color:#b9f2a6}
+#credit span{display:block;opacity:.7;font-size:.8em;letter-spacing:.2em;margin-top:6px}
+#cap{position:absolute;left:5%;right:5%;top:11%;text-align:center;font-size:clamp(11px,1.6vw,20px);letter-spacing:.2em;z-index:6;opacity:0;transition:opacity .8s;color:#e8f3d8;text-shadow:0 2px 8px #000;pointer-events:none}
+#cap.on{opacity:1}
 #hud{position:absolute;top:8%;right:3%;z-index:20;display:flex;gap:10px;opacity:0;transition:opacity .4s}
 #hud.show{opacity:1}
 #hud button{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:50%;width:42px;height:42px;font-size:18px;cursor:pointer}
@@ -56,8 +68,9 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
   <h1>THE FOREST MAN<br>OF INDIA</h1>
   <h2>The story of Jadav Payeng</h2>
   <button id="watch">▶ &nbsp;WATCH</button>
-  <small>Opens full screen in landscape. Turn sound on for narration and music. Runs in your browser with three.js — it needs an internet connection to load the library.</small>
+  <small>Best experienced in landscape. Turn sound on for narration and music. Runs in your browser with three.js — needs an internet connection to load the library.</small>
 </div>
+<div id="rot"><svg viewBox="0 0 100 100" fill="none" stroke="#9fe08a" stroke-width="4"><rect x="14" y="26" width="72" height="48" rx="8"/><circle cx="50" cy="50" r="4" fill="#9fe08a"/></svg><p>PLEASE ROTATE YOUR DEVICE</p><small>This film is presented in landscape</small></div>
 <div id="stage">
   <canvas id="c"></canvas>
   <div class="ov" id="vign"></div>
@@ -67,6 +80,7 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
   <div class="card" id="p2"><canvas width="480" height="270"></canvas><i>THE FOREST MAN OF INDIA</i></div>
   <div class="card" id="p3"><canvas width="480" height="270"></canvas><i>THE FOREST MAN OF INDIA</i></div>
   <div class="card" id="medal"><div class="st"></div><b>PADMA SHRI</b><span>2015 · GOVERNMENT OF INDIA</span></div>
+  <div id="cap"></div>
   <div id="tag"></div>
   <div id="sub"></div>
   <div class="ov" id="fade"></div>
@@ -75,6 +89,7 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
     <div class="line" id="l1">ONE MAN.</div><div class="line" id="l2">ONE MISSION.</div><div class="line" id="l3">ONE FOREST.</div>
     <div class="ask" id="ask">WHAT WILL YOU CHANGE?</div>
     <div class="final" id="fin">JADAV PAYENG<br><b>THE FOREST MAN OF INDIA</b><br><span>1963 – PRESENT</span></div>
+    <div id="credit"><b>ZEESHAN KHAN'S</b><span>HINDI ASSIGNMENT (ANNUAL)</span><span style="margin-top:14px;opacity:.55;font-size:.72em;letter-spacing:.25em">INSPIRED BY A REAL STORY</span></div>
   </div>
   <div id="hud"><button id="snd" title="Sound">🔊</button><button id="exit" title="Exit">✕</button></div>
 </div>
@@ -85,7 +100,7 @@ const $=s=>document.querySelector(s);
 const canvas=$('#c'),stage=$('#stage');
 const touch=matchMedia('(pointer:coarse)').matches;
 const Q=touch?.55:1;
-const TOTAL=204;
+const TOTAL=210;
 
 /* ================= helpers ================= */
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
@@ -111,21 +126,20 @@ renderer.toneMapping=THREE.ACESFilmicToneMapping;
 const scene=new THREE.Scene();
 scene.fog=new THREE.FogExp2(0xd8c9a0,.0011);
 const camera=new THREE.PerspectiveCamera(48,16/9,.05,4000);
-const LB=0.87; // letterbox content ratio
+const LB=0.87;
 
-let started=false,rot=false;
+let started=false;
+function needPortrait(){return started&&touch&&innerHeight>innerWidth}
 function layout(){
   const W=innerWidth,H=innerHeight;
-  rot=started&&touch&&H>W;
-  const w=rot?H:W,h=rot?W:H;
-  stage.style.width=w+'px';stage.style.height=h+'px';
-  stage.style.transform=rot?`translate(${W}px,0) rotate(90deg)`:'none';
+  $('#rot').classList.toggle('show',needPortrait());
+  // Always render landscape: on portrait phones we rotate the stage
+  const portrait=H>W;
+  const w=portrait?H:W,h=portrait?W:H;
+  if(portrait&&touch){stage.style.width=w+'px';stage.style.height=h+'px';stage.style.transform=`translate(${W}px,0) rotate(90deg)`}
+  else{stage.style.width=W+'px';stage.style.height=H+'px';stage.style.transform='none'}
   renderer.setSize(w,h,false);
-  // FOV compensated for letterbox crop
   camera.aspect=w/(h*LB);camera.updateProjectionMatrix();
-  // shift projection vertically so content sits between bars
-  const shift=(1-LB);
-  camera.projectionMatrix.elements[9]=shift*0;
   camera.setViewOffset(w,h*LB,0,h*(1-LB)*.5,w,h*LB);
 }
 addEventListener('resize',layout);addEventListener('orientationchange',()=>setTimeout(layout,300));
@@ -153,22 +167,56 @@ gl_FragColor=vec4(col,1.);
 }`});
 const sky=new THREE.Mesh(new THREE.SphereGeometry(1500,32,16),skyMat);sky.frustumCulled=false;sky.renderOrder=-10;scene.add(sky);
 
-/* ================= water ================= */
-function makeWater(alpha){return new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
-  uniforms:{time:{value:0},rain:{value:0},alpha:{value:alpha},fogD:{value:.001},sunDir:{value:new THREE.Vector3()},sunCol:{value:new THREE.Color()},hor:{value:new THREE.Color()},top:{value:new THREE.Color()},fogCol:{value:new THREE.Color()},deepCol:{value:C(0x3a4a36)}},
-  vertexShader:`varying vec3 wp;void main(){vec4 w=modelMatrix*vec4(position,1.);wp=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
-  fragmentShader:`uniform float time,rain,alpha,fogD;uniform vec3 sunDir,sunCol,hor,top,fogCol,deepCol;varying vec3 wp;
-void main(){vec2 p=wp.xz;float dx=0.,dz=0.;float amp=1.+rain*1.6;
-for(int i=0;i<5;i++){float fi=float(i);vec2 d=vec2(cos(fi*1.9+.4),sin(fi*1.3+.9));float f=.16+fi*.31;float ph=dot(d,p)*f+time*(.7+fi*.45);float a=.06*amp/(1.+fi*.7);dx+=d.x*cos(ph)*a*f;dz+=d.y*cos(ph)*a*f;}
-vec3 n=normalize(vec3(-dx,1.,-dz));vec3 V=normalize(cameraPosition-wp);float fr=pow(1.-max(dot(n,V),0.),3.);
-vec3 skyc=mix(hor,top,clamp(reflect(-V,n).y,0.,1.)*.8);vec3 col=mix(deepCol,skyc,clamp(.12+fr*.85,0.,1.));
-vec3 R=reflect(-sunDir,n);col+=sunCol*pow(max(dot(R,V),0.),150.)*2.2;
-float dist=length(cameraPosition-wp);float f=1.-exp(-fogD*fogD*dist*dist);col=mix(col,fogCol,clamp(f,0.,1.));
-gl_FragColor=vec4(col,mix(.9,1.,fr)*alpha);
-#include <tonemapping_fragment>
-#include <colorspace_fragment>
+/* ================= water =================
+   Rebuilt for visual stability: time-scaled flow (no jitter), stronger
+   riverlike palette, foam streaks near banks, no per-frame uniform jumps. */
+function makeWater(alpha,river){
+  return new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
+  uniforms:{
+    time:{value:0},rain:{value:0},alpha:{value:alpha},fogD:{value:.001},
+    sunDir:{value:new THREE.Vector3()},sunCol:{value:new THREE.Color()},
+    hor:{value:new THREE.Color()},top:{value:new THREE.Color()},fogCol:{value:new THREE.Color()},
+    deepCol:{value:river?C(0x2c5a4a):C(0x3a4a36)},
+    shallowCol:{value:river?C(0x6fae8a):C(0x5a7a6a)},
+    flow:{value:river?.9:.35}
+  },
+  vertexShader:`varying vec3 wp;varying vec2 uv;void main(){vec4 w=modelMatrix*vec4(position,1.);wp=w.xyz;uv=position.xz;gl_Position=projectionMatrix*viewMatrix*w;}`,
+  fragmentShader:`uniform float time,rain,alpha,fogD,flow;
+uniform vec3 sunDir,sunCol,hor,top,fogCol,deepCol,shallowCol;varying vec3 wp;varying vec2 uv;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+float fb(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n(p);p*=2.03;a*=.5;}return s;}
+void main(){
+  vec2 p=wp.xz;
+  // stable flow: single smooth drift, no jitter
+  vec2 fp=p*vec2(1.,1.)+vec2(time*flow*.55,time*flow*.12);
+  float n1=fb(fp*.35), n2=fb(fp*1.1+vec2(3.,7.));
+  // ripples via derivative of noise
+  float e=.08;
+  float dx=(fb(fp*.35+vec2(e,0.))-n1)/e;
+  float dz=(fb(fp*.35+vec2(0.,e))-n1)/e;
+  float amp=1.+rain*1.4;
+  vec3 nrm=normalize(vec3(-dx*.08,1.,-dz*.08)*amp);
+  vec3 V=normalize(cameraPosition-wp);
+  float fr=pow(1.-max(dot(nrm,V),0.),3.);
+  vec3 skyc=mix(hor,top,clamp(reflect(-V,nrm).y,0.,1.)*.8);
+  // river color: mix deep/shallow by slope
+  float sl=clamp(.5+.5*n2,0.,1.);
+  vec3 body=mix(deepCol,shallowCol,sl*.55+fr*.25);
+  vec3 col=mix(body,skyc,clamp(.1+fr*.82,0.,1.));
+  // sun glints
+  vec3 R=reflect(-sunDir,nrm);col+=sunCol*pow(max(dot(R,V),0.),180.)*2.4;
+  // foam streaks — visible near flow bands
+  float foam=smoothstep(.72,.94,n2)*smoothstep(.1,.4,1.-fr);
+  col=mix(col,vec3(.86,.94,.92),foam*.28);
+  // depth fog
+  float dist=length(cameraPosition-wp);float f=1.-exp(-fogD*fogD*dist*dist);
+  col=mix(col,fogCol,clamp(f,0.,1.));
+  gl_FragColor=vec4(col,mix(.9,1.,fr)*alpha);
+  #include <tonemapping_fragment>
+  #include <colorspace_fragment>
 }`})}
-const waterMat=makeWater(1),streamMat=makeWater(0);
+const waterMat=makeWater(1,false),streamMat=makeWater(0,true);
 const waterGeo=new THREE.PlaneGeometry(4000,4000);waterGeo.rotateX(-Math.PI/2);
 const water=new THREE.Mesh(waterGeo,waterMat);water.renderOrder=1;scene.add(water);
 
@@ -190,13 +238,13 @@ const gg=tg.clone();gg.setAttribute('color',new THREE.BufferAttribute(col2,3));
 const grass=new THREE.Mesh(gg,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,transparent:true,opacity:0,polygonOffset:true,polygonOffsetFactor:-1}));
 grass.position.y=.04;grass.receiveShadow=true;grass.visible=false;scene.add(grass);
 
-/* far hills — FIX: renamed to mtnGeo (was mg, conflicted with audio gain) */
+/* far hills */
 const mtnGeo=new THREE.CylinderGeometry(1100,1100,300,128,1,true),mpos=mtnGeo.attributes.position;
 for(let i=0;i<mpos.count;i++){const y=mpos.getY(i),a=Math.atan2(mpos.getZ(i),mpos.getX(i));mpos.setY(i,y>0?-30+(fbm(a*3+7,1)*.9+fbm(a*11,3)*.4)*190:-40)}
 const mtn=new THREE.Mesh(mtnGeo,new THREE.MeshBasicMaterial({color:0x5a7a70,fog:false,side:THREE.DoubleSide}));mtn.frustumCulled=false;mtn.renderOrder=-9;scene.add(mtn);
 const mtnBase=C(0x3f6a62);
 
-/* stream through forest */
+/* stream */
 const stream=(()=>{const xs=[];for(let x=-135;x<=85;x+=2)xs.push(x);const pos=[],idx=[];
   xs.forEach(x=>{const z=cz(x),dz=3*.05*Math.cos(x*.05),l=Math.hypot(dz,1),w=2.2+.8*Math.sin(x*.11);
     for(const s of[-1,1]){const px=x+(-dz/l)*w*s,pz=z+(1/l)*w*s;pos.push(px,groundY(px,pz)+.12,pz)}});
@@ -211,24 +259,20 @@ sun.shadow.mapSize.set(touch?1024:2048,touch?1024:2048);
 Object.assign(sun.shadow.camera,{left:-80,right:80,top:80,bottom:-80,near:1,far:600});
 sun.shadow.bias=-.0004;sun.shadow.normalBias=.3;scene.add(sun,sun.target);
 
-/* ================= moods ================= */
+/* ================= moods (extended rain window) ================= */
 const M=(t,el,az,si,sc,top,hor,fog,fd,hi,ex,cl,cc,rain)=>({t,el,az,si,sc:C(sc),top:C(top),hor:C(hor),fog:C(fog),fd,hi,ex,cl,cc:C(cc),rain});
 const MK=[
 M(0,60,215,3.4,0xfff0d2,0x3d84c8,0xf2dfb4,0xebdcb4,.0011,.8,1.05,.12,0xffffff,0),
 M(30,50,215,3.2,0xfff0d2,0x3d84c8,0xf2dfb4,0xebdcb4,.0011,.8,1.05,.15,0xffffff,0),
 M(62,46,200,3.2,0xfff0d2,0x3d84c8,0xf2dfb4,0xebdcb4,.0012,.8,1.05,.25,0xffffff,0),
 M(66,44,200,3,0xfff0d2,0x4a88c4,0xe6dcc0,0xe0d8c0,.0015,.85,1.05,.4,0xffffff,0),
-M(67.8,40,200,1.2,0xdfe6f0,0x5d6a76,0xa3abae,0xa4abad,.0035,1,1.1,.9,0x9aa2a8,.7),
-M(71.5,40,200,1.3,0xdfe6f0,0x5d6a76,0xa3abae,0xa4abad,.0035,1,1.1,.9,0x9aa2a8,.7),
-M(73.4,38,200,2.6,0xfff1d6,0x4a8fd0,0xe8e2c4,0xe2dcc0,.0016,.85,1.05,.4,0xffffff,0),
-M(77,50,200,3.3,0xfff0d2,0x3f88cc,0xf2e2b8,0xece0ba,.0013,.8,1.05,.2,0xffffff,0),
-M(79.2,40,200,.8,0xdfe6f0,0x4d5762,0x8f989b,0x8d9699,.006,1.1,1.15,1,0x7d858b,0),
-M(80.4,40,200,.8,0xdfe6f0,0x4d5762,0x8f989b,0x8d9699,.006,1.1,1.15,1,0x7d858b,1),
-M(81.8,40,200,.8,0xdfe6f0,0x4d5762,0x8f989b,0x8d9699,.006,1.1,1.15,1,0x7d858b,1),
-M(82.5,40,200,1.4,0xeef0f2,0x7b8a9a,0xb9c0c0,0xb4bbbc,.0035,1,1.1,.85,0xc7ccd0,0),
-M(84.8,38,220,3.1,0xfff4d8,0x3a90d8,0xd9ecdb,0xd6e8d6,.0018,.9,1,.3,0xffffff,0),
-M(87.6,12,100,1.7,0xffd9a8,0x7fa3c8,0xf5e3cc,0xe8e4dc,.012,.75,1.05,.3,0xffffff,0),
-M(94,14,105,1.9,0xffd9a8,0x7fa3c8,0xf5e3cc,0xe8e4dc,.008,.75,1.05,.3,0xffffff,0),
+M(68,42,200,1.6,0xdfe6f0,0x5d6a76,0xa3abae,0xa4abad,.0028,1,1.1,.8,0x9aa2a8,.2),
+M(76,40,200,1.0,0xdfe6f0,0x5d6a76,0xa3abae,0xa4abad,.0038,1,1.1,.95,0x9aa2a8,.8),
+M(80,40,200,.9,0xdfe6f0,0x4d5762,0x8f989b,0x8d9699,.0055,1.1,1.15,1,0x7d858b,1),
+M(84,40,200,1.1,0xdfe6f0,0x5d6a76,0x9aa1a4,0x989fa2,.005,1.05,1.12,.95,0x8f969c,.75),
+M(87.5,40,200,2.2,0xfff0d6,0x7b8a9a,0xc9cfc4,0xc4cabd,.003,1,1.08,.7,0xd6dad0,.15),
+M(89,20,220,3.0,0xfff4d8,0x3a90d8,0xd9ecdb,0xd6e8d6,.0018,.9,1,.3,0xffffff,0),
+M(92,12,100,1.7,0xffd9a8,0x7fa3c8,0xf5e3cc,0xe8e4dc,.012,.75,1.05,.3,0xffffff,0),
 M(96.5,26,120,3.4,0xffdcaa,0x4f9ae0,0xfbe6bf,0xe6e8cf,.0026,.9,1,.35,0xffffff,0),
 M(130,20,250,3.2,0xffcf94,0x5a8fd0,0xfbd9aa,0xefdcb2,.0028,.9,1,.35,0xffffff,0),
 M(155,36,140,3.4,0xfff0d0,0x3f8fe0,0xe8f3e6,0xe0eedd,.0022,.95,1,.3,0xffffff,0),
@@ -244,9 +288,7 @@ function applyMood(T){
   for(const k of['sc','top','hor','fog','cc'])mood[k].copy(a[k]).lerp(b[k],u);
   const el=mood.el*Math.PI/180,az=mood.az*Math.PI/180;
   _sunDir.set(Math.cos(el)*Math.sin(az),Math.sin(el),Math.cos(el)*Math.cos(az));
-  // FIX #5: sun azimuth LOCKED per scene, only intensity/color change
-  const sceneIdx=i;
-  if(sceneIdx!==sunLock){sunLock=sceneIdx;_sunDirLock.copy(_sunDir)}
+  if(i!==sunLock){sunLock=i;_sunDirLock.copy(_sunDir)}
   sunDir.copy(_sunDirLock).lerp(_sunDir,.02);
   sun.color.copy(mood.sc);sun.intensity=mood.si;
   hemi.color.copy(mood.top).lerp(white,.35);hemi.intensity=mood.hi;
@@ -258,50 +300,106 @@ function applyMood(T){
 }
 function ageOf(T){if(T<52.4)return-1;if(T<60)return(T-52.4)/7.6*.6;if(T<95)return .6+(T-60)/35*11.4;if(T<130)return 12+(T-95)/35*26;return 38+(T-130)*.1}
 
-/* ================= vegetation (instanced, grows with "age") ================= */
+/* ================= vegetation ================= */
 const foliageGeo=new THREE.IcosahedronGeometry(1,1);
 {const p=foliageGeo.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),k=1+.45*(hash(x*7.3+y*3.1,z*5.7)-.5);p.setXYZ(i,x*k,y*k*.85,z*k)}foliageGeo.computeVertexNormals()}
 const folMat=toon(0xffffff,{emissive:0x1b3a10,emissiveIntensity:.35});
 const trunkGeo=new THREE.CylinderGeometry(.18,.3,1,6);trunkGeo.translate(0,.5,0);
 const stalkGeo=new THREE.CylinderGeometry(.04,.06,1,5);stalkGeo.translate(0,.5,0);
 const trunkMat=toon(0x6b4a30),stalkMat=toon(0x9bb83e);
+const palmLeafGeo=new THREE.PlaneGeometry(.3,1.6);palmLeafGeo.translate(0,.8,0);
+const fruitGeo=new THREE.SphereGeometry(.14,8,6);
+/* NEW bamboo leaf cluster geometry: 3 small blades fanned at top */
+const bamLeafGeo=(()=>{const sh=new THREE.Shape();sh.moveTo(0,0);sh.bezierCurveTo(.18,.05,.16,.6,0,.9);sh.bezierCurveTo(-.16,.6,-.18,.05,0,0);
+  const g=new THREE.ShapeGeometry(sh,10);g.translate(0,.4,0);return g})();
+const bamLeafMat=toon(0x6ab02c,{side:THREE.DoubleSide,emissive:0x1a3a08,emissiveIntensity:.4});
 function inst(geo,mat,n,shadow=true){const m=new THREE.InstancedMesh(geo,mat,n);m.castShadow=shadow;m.receiveShadow=true;m.frustumCulled=false;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(m);return m}
 const TN=Math.floor(1300*Q),BN=Math.floor(800*Q),SN=Math.floor(1300*Q);
 const treeTrunk=inst(trunkGeo,trunkMat,TN),treeFolA=inst(foliageGeo,folMat,TN),treeFolB=inst(foliageGeo,folMat,TN);
-const bamStalk=inst(stalkGeo,stalkMat,BN*4,false),bamFol=inst(foliageGeo,folMat,BN);
+// bamboo: one clean stalk per instance + top leaves (replaces the 4-stem mess)
+const bamStalk=inst(new THREE.CylinderGeometry(.055,.075,1,6).translate(0,.5,0),toon(0x7fa82a),BN,false);
+const bamLeaf=inst(bamLeafGeo,bamLeafMat,BN*3,false);
 const shrubM=inst(foliageGeo,folMat,SN,false);
+const palmFoliage=inst(palmLeafGeo,toon(0x5fb83a,{side:THREE.DoubleSide}),Math.floor(60*Q),true);
+const fruitDots=inst(fruitGeo,toon(0xd4a520,{emissive:0x3a2500,emissiveIntensity:.4}),Math.floor(120*Q),false);
 const ok=(x,z,mg)=>{if(groundY(x,z)<mg)return false;if(Math.abs(z-cz(x))<10&&x>-135&&x<85)return false;if(x>-48&&x<17&&z>-5&&z<10)return false;if(Math.hypot(x-32,z-6)<16)return false;if(x>-82&&x<-50&&z>2&&z<26)return false;return true};
 function spot(mg){for(let t=0;t<60;t++){const x=(rnd()*2-1)*235,z=(rnd()*2-1)*82;if(ok(x,z,mg))return[x,z]}return[200,0]}
 const greens=[0x2f7d32,0x3b8f3a,0x4b9a3c,0x5aa63a,0x6aa62f].map(C),lights=[0x7cb83a,0x8fc243,0x5fa83a,0x78b840].map(C);
-const trees=[],bambs=[],shrubs=[];
-for(let i=0;i<TN;i++){const[x,z]=spot(.9),d=Math.hypot(x,z*1.6);trees.push({x,z,y:groundY(x,z),H:9+rnd()*7,R:3.2+rnd()*2.2,pa:2.5+d*.055+rnd()*2.5,gd:6+rnd()*4,rot:rnd()*6.28,ph:rnd()*6.28});treeFolA.setColorAt(i,greens[i%5]);treeFolB.setColorAt(i,greens[(i+2)%5])}
+const trees=[],bambs=[],shrubs=[],palms=[],fruits=[];
+for(let i=0;i<TN;i++){
+  const[x,z]=spot(.9),d=Math.hypot(x,z*1.6);
+  let sp=0;const r=rnd();
+  if(d>75)sp=3;else if(r<.35)sp=1;else if(r<.55)sp=2;else sp=0;
+  const t={x,z,y:groundY(x,z),H:9+rnd()*7,R:3.2+rnd()*2.2,pa:2.5+d*.055+rnd()*2.5,gd:6+rnd()*4,rot:rnd()*6.28,ph:rnd()*6.28,sp};
+  if(sp===0){t.H=12+rnd()*5;t.R=2.6+rnd()*1.4}
+  else if(sp===1){t.H=7+rnd()*3;t.R=4.2+rnd()*2}
+  else if(sp===2){t.H=6+rnd()*3;t.R=3.4+rnd()*1.6}
+  else if(sp===3){t.H=8+rnd()*4;t.R=.7;t.palm=true}
+  trees.push(t);
+  treeFolA.setColorAt(i,greens[i%5]);treeFolB.setColorAt(i,greens[(i+2)%5]);
+}
+// bamboo instances (single stalk + 3-leaf top)
 const heroes=[[1.65,0,0],[3.1,.6,.25],[2.3,-1.4,.4],[4.2,-.5,.55],[5.3,1.2,1.2],[6.6,-.9,5.45],[7.3,.4,6.45]];
 for(let i=0;i<BN;i++){let x,z,pa;const h=heroes[i];if(h){x=h[0];z=h[1];pa=h[2]}else{[x,z]=spot(.9);pa=.8+Math.hypot(x,z*1.6)*.045+rnd()*1.5}
-  bambs.push({x,z,y:groundY(x,z),H:h?8.5:7+rnd()*3.5,pa,gd:3+rnd(),rot:rnd()*6.28,ph:rnd()*6.28,l:[0,1,2,3].map(()=>.06+rnd()*.14),hf:[0,1,2,3].map(()=>.8+rnd()*.25)});bamFol.setColorAt(i,lights[i%4])}
+  bambs.push({x,z,y:groundY(x,z),H:h?8.5:6+rnd()*4,pa,gd:3+rnd(),rot:rnd()*6.28,ph:rnd()*6.28,hf:.9+rnd()*.2});bamLeaf.setColorAt(i*3,lights[i%4]);bamLeaf.setColorAt(i*3+1,lights[(i+1)%4]);bamLeaf.setColorAt(i*3+2,lights[(i+2)%4])}
+bamLeaf.instanceColor.needsUpdate=true;
 for(let i=0;i<SN;i++){const[x,z]=spot(.8),d=Math.hypot(x,z*1.6);shrubs.push({x,z,y:groundY(x,z),r:.8+rnd()*.9,pa:.5+d*.05+rnd()*2,gd:3,rot:rnd()*6.28});shrubM.setColorAt(i,i%3?lights[i%4]:greens[i%5])}
-for(const m of[treeFolA,treeFolB,bamFol,shrubM])m.instanceColor.needsUpdate=true;
+for(const m of[treeFolA,treeFolB,shrubM])m.instanceColor.needsUpdate=true;
+let pi=0,fi=0;
+trees.forEach((t,i)=>{if(t.sp===3&&pi<palmFoliage.count){palms.push({idx:pi,t});pi++}
+  else if(t.sp===2){for(let k=0;k<3&&fi<fruitDots.count;k++){fruits.push({idx:fi,t,off:k});fi++}}});
 const dummy=new THREE.Object3D();
-// FIX #13: smoother final grow ease (no pop at end)
 const growEase=t=>t<.8?E(t/.8)*.92:(.92+.08*(1-Math.pow(1-(t-.8)/.2,3)));
 const grow=(age,pa,gd)=>{if(age<pa)return 0;const t=clamp((age-pa)/gd);return(.03+.97*growEase(t))*Math.min(1,(age-pa)/.04+.001)};
 function updateVeg(age,T){
-  const vis=age>-.5;for(const m of[treeTrunk,treeFolA,treeFolB,bamStalk,bamFol,shrubM])m.visible=vis;if(!vis)return;
-  // FIX #9: shadow cast only for instances within sun.shadow.camera bounds
-  const sc=sun.shadow.camera,cx=cl.x,czz=cl.z;
-  for(let i=0;i<TN;i++){const t=trees[i],s=grow(age,t.pa,t.gd),sw=Math.sin(T*.9+t.ph)*.012*s,th=.45+.55*s,S=Math.max(s,.0001);
+  const vis=age>-.5;for(const m of[treeTrunk,treeFolA,treeFolB,bamStalk,bamLeaf,shrubM,palmFoliage,fruitDots])m.visible=vis;if(!vis)return;
+  for(let i=0;i<TN;i++){const t=trees[i],s=grow(age,t.pa,t.gd),sw=Math.sin(T*.9+t.ph)*.014*s,th=.45+.55*s,S=Math.max(s,.0001);
     dummy.position.set(t.x,t.y-.05,t.z);dummy.rotation.set(sw,t.rot,sw*.7);dummy.scale.set(th,Math.max(.0001,t.H*s),th);dummy.updateMatrix();treeTrunk.setMatrixAt(i,dummy.matrix);
-    dummy.position.set(t.x+sw*t.H*s,t.y+t.H*s*.94,t.z);dummy.rotation.set(0,t.rot,0);dummy.scale.set(t.R*S,t.R*S*.82,t.R*S);dummy.updateMatrix();treeFolA.setMatrixAt(i,dummy.matrix);
-    dummy.position.set(t.x+Math.cos(t.rot)*t.R*S*.5,t.y+t.H*s*.76,t.z+Math.sin(t.rot)*t.R*S*.4);dummy.scale.set(t.R*S*.72,t.R*S*.6,t.R*S*.72);dummy.updateMatrix();treeFolB.setMatrixAt(i,dummy.matrix)}
-  for(let i=0;i<BN;i++){const b=bambs[i],s=grow(age,b.pa,b.gd),sw=Math.sin(T*1.3+b.ph)*.03*s,S=Math.max(s,.0001);
-    for(let j=0;j<4;j++){const phi=b.rot+j*1.57,o=.35*(.3+.7*s);
-      dummy.position.set(b.x+Math.cos(phi)*o,b.y-.05,b.z+Math.sin(phi)*o);dummy.rotation.set(b.l[j]*Math.sin(phi)+sw,0,-b.l[j]*Math.cos(phi)+sw*.7);
-      dummy.scale.set(.5+.5*s,Math.max(.0001,b.H*b.hf[j]*s),.5+.5*s);dummy.updateMatrix();bamStalk.setMatrixAt(i*4+j,dummy.matrix)}
-    dummy.position.set(b.x+sw*b.H*s,b.y+b.H*s*.9,b.z);dummy.rotation.set(0,b.rot,0);dummy.scale.set(2.2*S,1.4*S,2.2*S);dummy.updateMatrix();bamFol.setMatrixAt(i,dummy.matrix)}
+    if(t.palm){
+      dummy.position.set(0,-999,0);dummy.scale.setScalar(0);dummy.updateMatrix();
+      treeFolA.setMatrixAt(i,dummy.matrix);treeFolB.setMatrixAt(i,dummy.matrix);
+    }else{
+      // two-layer canopy with slight sway phase difference — livelier
+      const swayA=Math.sin(T*1.15+t.ph)*.03*s, swayB=Math.sin(T*1.55+t.ph+1.2)*.045*s;
+      dummy.position.set(t.x+sw*t.H*s+swayA*t.H*.1,t.y+t.H*s*.94,t.z+swayB*t.H*.06);dummy.rotation.set(swayA, t.rot, swayB);dummy.scale.set(t.R*S,t.R*S*.82,t.R*S);dummy.updateMatrix();treeFolA.setMatrixAt(i,dummy.matrix);
+      dummy.position.set(t.x+Math.cos(t.rot)*t.R*S*.5,t.y+t.H*s*.76,t.z+Math.sin(t.rot)*t.R*S*.4);dummy.rotation.set(0,t.rot,0);dummy.scale.set(t.R*S*.72,t.R*S*.6,t.R*S*.72);dummy.updateMatrix();treeFolB.setMatrixAt(i,dummy.matrix)}
+  }
+  // palms with swaying fronds
+  palms.forEach((p,k)=>{const t=p.t,s=grow(age,t.pa,t.gd),S=Math.max(s,.0001),H=t.H*s;
+    for(let j=0;j<8;j++){const a=j/8*Math.PI*2;const sway=Math.sin(T*1.3+j+t.ph)*.08*s;
+      dummy.position.set(t.x+Math.cos(a)*.15,t.y+H*.9,t.z+Math.sin(a)*.15);dummy.rotation.set(-1.1+Math.sin(T*.8+j)*.06,a+sway,sstep(0,1,S)*(1.1-Math.abs(Math.cos(a))*.3));dummy.scale.set(.6+s*.4,1*s,1);dummy.updateMatrix();palmFoliage.setMatrixAt(p.idx,dummy.matrix)}}
+  );
+  fruits.forEach(fr=>{const t=fr.t,s=grow(age,t.pa,t.gd);if(s<.85){dummy.position.set(0,-999,0);dummy.scale.setScalar(0);dummy.updateMatrix();fruitDots.setMatrixAt(fr.idx,dummy.matrix);return}
+    const a=(fr.off/3)*Math.PI*2+t.rot,R=t.R*s*.9;dummy.position.set(t.x+Math.cos(a)*R*.6,t.y+t.H*s*.85+Math.sin(a*2)*.3,t.z+Math.sin(a)*R*.6);dummy.scale.setScalar(.7);dummy.updateMatrix();fruitDots.setMatrixAt(fr.idx,dummy.matrix)});
+  // NEW BAMBOO: one clean stalk, three leaves at top, gentle sway
+  for(let i=0;i<BN;i++){const b=bambs[i],s=grow(age,b.pa,b.gd),S=Math.max(s,.0001);
+    const sway=Math.sin(T*1.35+b.ph)*.045*s;
+    dummy.position.set(b.x,b.y-.05,b.z);dummy.rotation.set(sway*.6,b.rot,sway);dummy.scale.set(.9+.3*s,Math.max(.0001,b.H*b.hf*s),.9+.3*s);dummy.updateMatrix();bamStalk.setMatrixAt(i,dummy.matrix);
+    // three leaves fanned at the top, rotating gently
+    for(let j=0;j<3;j++){const a=b.rot+j*2.09+Math.sin(T*.7+j)*.1;
+      dummy.position.set(b.x+Math.cos(a)*.12,b.y+b.H*b.hf*s*.93,b.z+Math.sin(a)*.12);
+      dummy.rotation.set(-.4+Math.sin(T*1.5+j)*.12,a+sway,Math.sin(T*1.2+j)*.1);
+      dummy.scale.setScalar((.8+rnd()*0)*s);dummy.updateMatrix();bamLeaf.setMatrixAt(i*3+j,dummy.matrix)}}
   for(let i=0;i<SN;i++){const h=shrubs[i],s=grow(age,h.pa,h.gd),S=Math.max(s,.0001);dummy.position.set(h.x,h.y+.25*h.r*s,h.z);dummy.rotation.set(0,h.rot,0);dummy.scale.set(h.r*S,h.r*S*.7,h.r*S);dummy.updateMatrix();shrubM.setMatrixAt(i,dummy.matrix)}
-  for(const m of[treeTrunk,treeFolA,treeFolB,bamStalk,bamFol,shrubM])m.instanceMatrix.needsUpdate=true;
+  for(const m of[treeTrunk,treeFolA,treeFolB,bamStalk,bamLeaf,shrubM,palmFoliage,fruitDots])m.instanceMatrix.needsUpdate=true;
 }
 
-/* ================= characters ================= */
+/* understory */
+const rocks=[];const rockGeo=new THREE.DodecahedronGeometry(.35,0);
+for(let i=0;i<70;i++){const[x,z]=spot(.6);const r=new THREE.Mesh(rockGeo,toon(0x6a655a));r.position.set(x,groundY(x,z)+.1,z);r.scale.set(.6+rnd()*.9,.4+rnd()*.4,.6+rnd()*.9);r.rotation.set(rnd(),rnd(),rnd());r.castShadow=true;r.visible=false;scene.add(r);rocks.push(r)}
+const mossM=new THREE.PointsMaterial({map:spriteTex,color:0x7fc85a,size:.35,transparent:true,opacity:.8,depthWrite:false});
+const mossGeo=new THREE.BufferGeometry(),mossPos=new Float32Array(400*3);
+for(let i=0;i<400;i++){const[x,z]=spot(.7);mossPos[i*3]=x;mossPos[i*3+1]=groundY(x,z)+.06;mossPos[i*3+2]=z}
+mossGeo.setAttribute('position',new THREE.BufferAttribute(mossPos,3));const moss=new THREE.Points(mossGeo,mossM);moss.visible=false;scene.add(moss);
+const mushM=toon(0xd4e0a8,{emissive:0x3a5020,emissiveIntensity:.3});
+const mushGeo=new THREE.ConeGeometry(.08,.14,6);const mushrooms=[];
+for(let i=0;i<40;i++){const[x,z]=spot(.7);const m=new THREE.Mesh(mushGeo,mushM);m.position.set(x,groundY(x,z)+.07,z);m.visible=false;scene.add(m);mushrooms.push(m)}
+const deadTrees=[];const deadMat=toon(0x4a3a28);
+const deadTreesGroup=new THREE.Group();scene.add(deadTreesGroup);
+for(let i=0;i<5;i++){const[x,z]=spot(1);const g=new THREE.Group();const tr=new THREE.Mesh(new THREE.CylinderGeometry(.15,.28,5+rnd()*3,6),deadMat);tr.rotation.z=(rnd()-.5)*.6;tr.position.y=2.5;g.add(tr);const br=new THREE.Mesh(new THREE.CylinderGeometry(.08,.12,2,5),deadMat);br.position.set(.4,3.5,0);br.rotation.z=.7;g.add(br);g.position.set(x,groundY(x,z),z);g.visible=false;deadTreesGroup.add(g);deadTrees.push(g)}
+const logs=[];for(let i=0;i<4;i++){const[x,z]=spot(1);const lg=new THREE.Mesh(new THREE.CylinderGeometry(.28,.32,4,7),deadMat);lg.rotation.z=Math.PI/2;lg.rotation.y=rnd()*3.14;lg.position.set(x,groundY(x,z)+.28,z);lg.visible=false;lg.castShadow=true;scene.add(lg);logs.push(lg)}
+
+/* characters */
 const eyeMat=toon(0x0b0806);
 function makePerson(o){
   const P={seed:rnd()*6,o};const g=new THREE.Group();P.g=g;
@@ -326,33 +424,33 @@ function makePerson(o){
   for(const l of[P.legL,P.legR])add(new THREE.BoxGeometry(.1,.05,.22),skin,l,0,-.75,.05);
   g.scale.setScalar(o.scale||1);P.stoop=o.stoop||0;scene.add(g);return P}
 function setAge(P,a){P.upper.scale.set(lerp(.9,1.04,a),lerp(.96,1,a),lerp(.95,1.02,a));P.g.scale.setScalar(lerp(.88,.95,a));if(P.must)P.must.visible=a>.45}
-// FIX #2,#3,#4: foot planting, ground contact, real kneel
 function pose(P,s,T){
   P.g.visible=!!s.vis;if(!s.vis)return;
-  const w=s.walk||0,k=s.kneel||0,sit=s.sit||0,ph=(s.dist||0)*3.6,sw=Math.sin(ph)*.75*w;
-  // FIX #2: walk weight damped by facing change — computed in caller via s.turn
-  const tw=w*(s.turnFacing||1);
-  const swA=Math.sin(ph)*.75*tw;
+  const w=s.walk||0,k=s.kneel||0,sit=s.sit||0,ph=(s.dist||0)*3.6,tw=w*(s.turnFacing||1),swA=Math.sin(ph)*.75*tw;
   P.g.position.set(s.x,s.y,s.z);P.g.rotation.y=s.ry;
-  // FIX #4: real kneel — one leg planted, one folded, hips lowered ~0.35
   let lL,lR;
   if(k>0){lL=lerp(swA,-1.05,k);lR=lerp(-swA,1.55,k)}
   else if(sit>0){lL=-1.45*sit;lR=-1.45*sit}
   else{lL=swA;lR=-swA}
-  // FIX #3: foot planting — sample ground at each ankle
   const yFootL=GYF.get(s.x+Math.sin(s.ry)*.1,s.z+Math.cos(s.ry)*.1);
   const yFootR=GYF.get(s.x-Math.sin(s.ry)*.1,s.z-Math.cos(s.ry)*.1);
   const footLift=(1-tw*.6)*.02;
   P.legL.rotation.x=lL;P.legR.rotation.x=lR;
   let rootY=Math.abs(Math.cos(ph))*.025*tw-.35*k-.66*sit;
-  // clamp root so lowest foot doesn't sink
   const lowestFoot=Math.min(yFootL,yFootR)-s.y;
   rootY+=Math.max(0,lowestFoot+footLift)*.6;
-  P.root.position.y=rootY;
-  P.upper.rotation.x=k*.42+P.stoop;P.upper.position.y=.78+Math.sin(T*1.8+P.seed)*.004;
-  P.armL.rotation.x=s.aL!==undefined?s.aL:-swA*.8;P.armR.rotation.x=s.aR!==undefined?s.aR:swA*.8;
+  // breathing idle: subtle torso bob + head sway
+  const idle=Math.sin(T*1.4+P.seed)*.008;
+  P.root.position.y=rootY+idle;
+  P.upper.rotation.x=k*.42+P.stoop+Math.sin(T*1.1+P.seed)*.008;
+  P.upper.position.y=.78+Math.sin(T*1.8+P.seed)*.006;
+  // natural arm swing plus relaxed sway at rest
+  const restSway=Math.sin(T*.9+P.seed)*.05*(1-tw);
+  P.armL.rotation.x=(s.aL!==undefined?s.aL:-swA*.8)+restSway;
+  P.armR.rotation.x=(s.aR!==undefined?s.aR:swA*.8)-restSway;
   P.armL.rotation.z=-.08;P.armR.rotation.z=.08;
-  P.head.rotation.x=s.hx||0;P.head.rotation.y=s.hy||0}
+  P.head.rotation.x=(s.hx||0)+Math.sin(T*.7+P.seed)*.02;
+  P.head.rotation.y=(s.hy||0)+Math.sin(T*.55+P.seed*1.3)*.05}
 const PI=Math.PI;
 const YJ=makePerson({skin:0x8c5a3a,shirt:0x8a7a5a,pants:0xb8aa8c,hair:0x120d0b,must:0x1a1210,scale:.9});
 const OJ=makePerson({skin:0x7a4c30,shirt:0xe8dcc0,pants:0xf0ece0,hair:0xe6e6e6,must:0xf2f2f2,scarf:true,scale:.97,stoop:.1});
@@ -368,8 +466,16 @@ const clay=toon(0xa5502c);
 const pot=new THREE.Group();add2(new THREE.SphereGeometry(.13,12,10),clay,pot).scale.y=.9;add2(new THREE.CylinderGeometry(.05,.07,.08,10),clay,pot,0,.12,0);
 const sp=add2(new THREE.CylinderGeometry(.018,.03,.14,8),clay,pot,0,.04,.14);sp.rotation.x=Math.PI/2;
 const potSpout=new THREE.Object3D();potSpout.position.set(0,.05,.22);pot.add(potSpout);pot.position.set(0,-.6,.14);YJ.armL.add(pot);
-const bundle=new THREE.Group();for(let i=0;i<5;i++){const st=add2(new THREE.CylinderGeometry(.008,.011,.55,5),stalkMat,bundle,(i-2)*.018,.2,0);st.rotation.z=(i-2)*.12;const l=add2(foliageGeo,toon(0x7cb83a),bundle,(i-2)*.07,.5,0);l.scale.set(.05,.03,.05)}
+/* single-stalk sapling bundle to match new bamboo */
+const bundle=new THREE.Group();
+const bStalk=add2(new THREE.CylinderGeometry(.03,.04,.7,6),stalkMat,bundle,0,.35,0);
+for(let i=0;i<3;i++){const a=i*2.09;const lf=add2(bamLeafGeo,bamLeafMat,bundle,Math.cos(a)*.02,.68,Math.sin(a)*.02);lf.rotation.set(-.4,a,0);lf.scale.setScalar(.8)}
 bundle.position.set(0,-.55,.06);bundle.rotation.x=-.5;YJ.armR.add(bundle);
+/* single-stalk sapling for the first plant (heroes[0]) */
+const firstSapling=new THREE.Group();
+const fsStalk=add2(new THREE.CylinderGeometry(.035,.05,.85,6),stalkMat,firstSapling,0,.42,0);
+for(let i=0;i<3;i++){const a=i*2.09;const lf=add2(bamLeafGeo,bamLeafMat,firstSapling,Math.cos(a)*.03,.78,Math.sin(a)*.03);lf.rotation.set(-.4,a,0);lf.scale.setScalar(1.0)}
+firstSapling.position.set(1.65,gY(1.65,0),0);firstSapling.visible=false;scene.add(firstSapling);
 const canMat=toon(0x2f7a8c);
 function makeCan(){const g=new THREE.Group();add2(new THREE.CylinderGeometry(.12,.12,.2,12),canMat,g);const s=add2(new THREE.CylinderGeometry(.015,.02,.3,6),canMat,g,0,.05,.2);s.rotation.x=1.1;const t=add2(new THREE.TorusGeometry(.07,.01,6,10),canMat,g,0,.12,0);t.rotation.y=Math.PI/2;const sp=new THREE.Object3D();sp.position.set(0,.18,.34);sp.rotation.x=.9;g.add(sp);g.userData.spout=sp;return g}
 const heroCan=makeCan();heroCan.position.set(0,-.58,.14);students[5].armL.add(heroCan);
@@ -381,18 +487,15 @@ const leafProp=(()=>{const g=new THREE.Group();const sh=new THREE.Shape();sh.mov
   const geo=new THREE.ShapeGeometry(sh,16),p=geo.attributes.position;for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i);p.setZ(i,x*x*1.1-y*y*.18)}geo.computeVertexNormals();
   const mat=toon(0x6fc03d,{side:THREE.DoubleSide,emissive:0x1f5014,emissiveIntensity:.5});
   const mk=(sx,rz,ry,y)=>{const m=new THREE.Mesh(geo,mat);m.scale.setScalar(sx);m.rotation.set(-.25,ry,rz);m.position.set(0,y,0);m.castShadow=true;g.add(m);return m};
-  const main=mk(.6,0,0,-.3);mk(.42,-.9,.5,-.3);mk(.36,.95,-.4,-.3);
+  mk(.6,0,0,-.3);mk(.42,-.9,.5,-.3);mk(.36,.95,-.4,-.3);
 return g})();
 leafProp.visible=false;scene.add(leafProp);
 const dew=new THREE.Mesh(new THREE.SphereGeometry(1,14,10),new THREE.MeshStandardMaterial({color:0xcfefff,roughness:.05,transparent:true,opacity:.8}));dew.visible=false;scene.add(dew);
-// FIX #7: dew grows from 0
 function setDew(x,y,z,scl,vis){dew.visible=!!vis;if(vis){dew.scale.setScalar(scl);dew.position.set(x,y,z)}}
 const gY=groundY;
 
-/* ================= set pieces ================= */
-// FIX #17: snakes visible — thicker, higher, will rear up in update()
-const snakes=new THREE.Group();
-const snakeMeshes=[];
+/* set pieces */
+const snakes=new THREE.Group();const snakeMeshes=[];
 [[-5.6,.4,.4],[-4.2,2.4,2.2],[-6.4,3,1.1]].forEach(([x,z,r],i)=>{const pts=[];for(let k=0;k<8;k++)pts.push(new THREE.Vector3(Math.cos(r)*k*.13+Math.sin(k*1.1+i)*.08,0,Math.sin(r)*k*.13+Math.cos(k*.9)*.07));const m=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),16,.06,6),toon(0x5a4a3a));m.position.set(x,gY(x,z)+.08,z);snakes.add(m);snakeMeshes.push({m,base:gY(x,z)+.08,x,z,i})});
 scene.add(snakes);
 const heroTree=new THREE.Group();heroTree.position.set(37,gY(37,6),6);
@@ -406,41 +509,42 @@ const scr=new THREE.Mesh(new THREE.PlaneGeometry(6,3.2),new THREE.MeshBasicMater
 w.castShadow=r.castShadow=true;school.add(w,r,scr)}
 school.visible=false;scene.add(school);
 const plant=new THREE.Group();plant.position.set(24,gY(24,13.6),13.6);
-for(let i=0;i<4;i++){const s=new THREE.Mesh(stalkGeo,stalkMat);s.scale.set(1.6,.5+i*.08,1.6);s.rotation.set((i-1.5)*.18,i,0);plant.add(s);const l=new THREE.Mesh(foliageGeo,toon(0x6fc03d));l.scale.set(.14,.08,.14);l.position.set((i-1.5)*.1,.55+i*.03,0);plant.add(l)}
+for(let i=0;i<4;i++){const s=new THREE.Mesh(new THREE.CylinderGeometry(.03,.05,.6+i*.08,6),stalkMat);s.position.set((i-1.5)*.15,.3+i*.04,0);s.rotation.set((i-1.5)*.08,i,0);plant.add(s);const l=new THREE.Mesh(bamLeafGeo,bamLeafMat);l.position.set((i-1.5)*.15,.62+i*.05,0);l.rotation.set(-.3,i*1.2,0);l.scale.setScalar(.6);plant.add(l)}
 plant.visible=false;scene.add(plant);
-document.querySelectorAll('.card canvas').forEach((c,i)=>{const x=c.getContext('2d'),g=x.createLinearGradient(0,0,0,270);g.addColorStop(0,['#9ec7d8','#d9c9a0','#a9c7b0'][i]);g.addColorStop(1,'#e8e0c8');x.fillStyle=g;x.fillRect(0,0,480,270);x.fillStyle='#2f6a30';for(let k=0;k<26;k++){x.beginPath();x.arc(k*20+((k*37)%11),205,26+(k%4)*7,0,7);x.fill()}x.fillRect(0,205,480,65);x.fillStyle='#222';x.font='bold 34px Georgia';x.fillText(['FOREST MAN','MOLAI FOREST','550 HECTARES'][i],20,48);x.font='16px Georgia';x.fillText(['A man, a sandbar, a mission','Born from one sapling','Life returns to Majuli'][i],20,74)});
+document.querySelectorAll('.card canvas').forEach((c,i)=>{const x=c.getContext('2d'),g=x.createLinearGradient(0,0,0,270);g.addColorStop(0,['#9ec7d8','#d9c9a0','#a9c7b0'][i]);g.addColorStop(1,'#e8e0c8');x.fillStyle=g;x.fillRect(0,0,480,270);x.fillStyle='#2f6a30';for(let k=0;k<26;k++){x.beginPath();x.arc(k*20+((k*37)%11),205,26+(k%4)*7,0,7);x.fill()}x.fillRect(0,205,480,65);x.fillStyle='#222';x.font='bold 34px Georgia';x.fillText(['FOREST MAN','MOLAI FOREST','550 HECTARES'][i],20,48);x.font='16px Georgia';x.fillText(['A man, a sandbar, a mission','Born from one sapling','≈ 770 football fields'][i],20,74)});
 
-/* ================= wildlife ================= */
-// FIX #19: elephant trunk + tusk anchors corrected
+/* wildlife */
 function makeQuad(kind){const e=kind==='e',g=new THREE.Group(),m=toon(e?0x7d7a78:0xa5703f),A=(geo,x,y,z,p=g,mt=m)=>{const o=new THREE.Mesh(geo,mt);o.position.set(x,y,z);o.castShadow=true;p.add(o);return o};
 const L=e?1.25:.8;const b=A(new THREE.CapsuleGeometry(e?.75:.26,e?1.2:.7,4,10),0,e?1.9:.95,0);b.rotation.x=PI/2;
 const legs=[];for(const[x,z]of[[-1,.8],[1,.8],[-1,-.8],[1,-.8]]){const pv=new THREE.Group();pv.position.set(x*(e?.5:.15),e?1.45:.82,z*(e?.75:.38));g.add(pv);A(new THREE.CylinderGeometry(e?.2:.05,e?.22:.04,L,6),0,-L/2,0,pv);legs.push(pv)}
 A(new THREE.SphereGeometry(e?.5:.13,12,10),0,e?2.2:1.5,e?1.6:.75);
+const extras={};
 if(e){
-  // trunk: two segments, curving down from head front
   const t1=A(new THREE.CapsuleGeometry(.16,.9,4,8),0,2.05,2.05);t1.rotation.x=.55;
-  const t2=A(new THREE.CapsuleGeometry(.1,.6,4,8),0,1.35,2.55);t2.rotation.x=.25;
+  const t2=A(new THREE.CapsuleGeometry(.1,.6,4,8),0,1.35,2.55);t2.rotation.x=.25;extras.trunk=t2;
   for(const sx of[-1,1]){
     const ear=A(new THREE.SphereGeometry(.5,10,8),sx*.62,2.3,1.35);ear.scale.set(.15,1,.9);
-    // tusk: points FORWARD and slightly down
     const tk=A(new THREE.ConeGeometry(.07,.7,6),sx*.28,2.05,2.35,g,toon(0xf0ead8));tk.rotation.x=-.3;
   }
+  extras.ears=[];g.traverse(o=>{if(o.geometry&&o.geometry.type==='SphereGeometry'&&o.position.y>2)extras.ears.push(o)});
 }else{
   const nk=A(new THREE.CapsuleGeometry(.07,.4,3,6),0,1.25,.58);nk.rotation.x=.7;
   for(const sx of[-1,1]){const er=A(new THREE.SphereGeometry(.05,6,5),sx*.1,1.62,.72);er.scale.set(.5,1.6,.5)}
   A(new THREE.SphereGeometry(.06,6,5),0,.98,-.5,g,toon(0xf2ede0))
 }
-g.scale.setScalar(e?1:1.05);g.visible=false;scene.add(g);return{g,legs}}
+g.scale.setScalar(e?1:1.05);g.visible=false;scene.add(g);return{g,legs,extras}}
 const gait=(q,ph)=>q.legs.forEach((l,i)=>l.rotation.x=Math.sin(ph+(i%2?0:PI)+(i>1?PI:0))*.5);
 const deer=[0,1,2,3].map(()=>makeQuad('d')),ele=[0,1,2].map(()=>makeQuad('e'));
+const calf=(()=>{const q=makeQuad('e');q.g.scale.setScalar(.5);return q})();
+ele.push(calf);
+/* birds: added body tilt, wing flap richer, gentle bob */
 const birds=[];for(let i=0;i<12;i++){const g=new THREE.Group(),m=toon(i%2?0xf3f3ee:0x3a3a3a),b=new THREE.Mesh(new THREE.SphereGeometry(.18,8,6),m);b.scale.set(.8,.7,1.5);g.add(b);const w=[-1,1].map(s=>{const p=new THREE.Group(),wm=new THREE.Mesh(new THREE.BoxGeometry(.5,.02,.22),m);wm.position.x=s*.25;p.add(wm);g.add(p);return p});g.visible=false;scene.add(g);birds.push({g,w})}
-// FIX #18: perch dedupe by tree identity, and only fully-grown trees
 const perchSeen=new Set();
 const perch=trees.filter((t,i)=>{if(t.pa+t.gd>9)return false;if(perchSeen.has(i))return false;perchSeen.add(i);return true}).slice(0,6);
-// FIX #16: butterflies as V-wings (two quads folded ±20°)
+/* butterflies (V-wings) with vertical flutter */
 const bfl=[];for(let i=0;i<14;i++){const g=new THREE.Group(),m=new THREE.MeshBasicMaterial({color:[0xffb347,0xffe14d,0xffffff,0x7fc8ff][i%4],side:THREE.DoubleSide});const w=[-1,1].map(s=>{const p=new THREE.Group();const qL=new THREE.Mesh(new THREE.PlaneGeometry(.13,.16),m);qL.position.set(-.065,0,0);qL.rotation.x=-PI/2;const qR=new THREE.Mesh(new THREE.PlaneGeometry(.13,.16),m);qR.position.set(.065,0,0);qR.rotation.x=-PI/2;const fold=new THREE.Group();fold.add(qL,qR);fold.rotation.z=s*.35;p.add(fold);p.position.x=s*.11;p.rotation.x=-PI/2;g.add(p);return p});g.visible=false;scene.add(g);bfl.push({g,w})}
 
-/* ================= rain + water drops ================= */
+/* rain + drops */
 const RN=1200,rg=new THREE.BufferGeometry(),rb=new Float32Array(RN*6),rs=new Float32Array(RN*3);
 for(let i=0;i<RN;i++){rs[i*3]=(rnd()-.5)*50;rs[i*3+1]=rnd()*30;rs[i*3+2]=(rnd()-.5)*50}
 rg.setAttribute('position',new THREE.BufferAttribute(rb,3));
@@ -450,18 +554,15 @@ const NPD=40,dgeo=new THREE.BufferGeometry(),dpos=new Float32Array(srcs.length*N
 const dropsP=new THREE.Points(dgeo,new THREE.PointsMaterial({map:spriteTex,color:0xbfe6ff,size:.12,transparent:true,depthWrite:false}));dropsP.frustumCulled=false;scene.add(dropsP);
 const _p=new THREE.Vector3(),_d=new THREE.Vector3(),_lq=new THREE.Quaternion();
 
-/* ================= state + camera helpers ================= */
+/* state + camera */
 let T=0,dt=.016,playing=false,last=0,soundOn=true,pathU=0,yjK=0,lastShot=-1,cueI=0,subEnd=0;
-const S=[yj,oj,offS,...stS,...liS],subEl=$('#sub');
-const put=(s,x,z,ry)=>{if(s._px!==undefined){const da=Math.atan2(Math.sin(ry-s.ry),Math.cos(ry-s.ry));s.turnFacing=clamp(1-Math.abs(da)/1.2,.2,1)}else s.turnFacing=1;s.x=x;s.z=z;s.y=gY(x,z);s.ry=ry;s.walk=0};
+const S=[yj,oj,offS,...stS,...liS],subEl=$('#sub'),capEl=$('#cap');
+const put=(s,x,z,ry)=>{if(s.ry!==undefined){const da=Math.atan2(Math.sin(ry-s.ry),Math.cos(ry-s.ry));s.turnFacing=clamp(1-Math.abs(da)/1.2,.2,1)}else s.turnFacing=1;s.x=x;s.z=z;s.y=gY(x,z);s.ry=ry;s.walk=0};
 const mv=(s,x,z,spd)=>{const dx=x-s.x,dz=z-s.z,d=Math.hypot(dx,dz);if(d>1e-4){const nr=Math.atan2(dx,dz);if(s.ry!==undefined){const da=Math.atan2(Math.sin(nr-s.ry),Math.cos(nr-s.ry));s.turnFacing=clamp(1-Math.abs(da)/1.2,.2,1)}s.ry=nr;s.dist=(s.dist||0)+d;s.walk=clamp(d/dt/spd)}else s.walk=0;s.x=x;s.z=z;s.y=gY(x,z)};
 const cp=new THREE.Vector3(0,420,260),cl=new THREE.Vector3(),dp=new THREE.Vector3(),dl=new THREE.Vector3();
 const lv=(v,a,b,u)=>v.set(lerp(a[0],b[0],u),lerp(a[1],b[1],u),lerp(a[2],b[2],u));
 function shot(id,k){if(id!==lastShot){lastShot=id;cp.copy(dp);cl.copy(dl)}else{cp.lerp(dp,k);cl.lerp(dl,k)}}
-// FIX #1: camera collision — pull in if inside a tree AABB (cheap)
 function camCollide(cp,cl){
-  const rad=touch?1.1:1.4;
-  // cheap sphere-vs-instance test using tree positions
   let push=0;
   for(let i=0;i<TN;i++){const t=trees[i];if(t.H<3)continue;
     const dx=cp.x-t.x,dz=cp.z-t.z,d2=dx*dx+dz*dz;
@@ -473,7 +574,7 @@ const sp0=i=>[i<6?30:32.2,i<6?1+i*2:2+(i-6)*2];
 const ring=ph=>[24+1.5*Math.cos(ph),13.6+1.5*Math.sin(ph)];
 const faceP=(x,z)=>Math.atan2(24-x,13.6-z);
 
-/* ================= narration ================= */
+/* narration */
 const CUES=[
 [4,"In 1979, on the banks of the mighty Brahmaputra River in Assam, a young boy witnessed something that would change his life forever."],
 [14,"The land was barren. There were no trees to provide shade, no shelter for wildlife."],
@@ -512,8 +613,8 @@ const CUES=[
 [183.5,"Because the future doesn't change through promises alone. It changes through actions."]];
 function say(s){if(!soundOn||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s);u.rate=1;u.pitch=.85;const vs=speechSynthesis.getVoices(),v=vs.find(v=>/en[-_]IN/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));if(v)u.voice=v;speechSynthesis.speak(u)}
 
-/* ================= audio ================= */
-let AC=null,mg,riverG,rainG,windG,padG,padF,pads=[],lastStep=-1,lastBar=-1;
+/* audio */
+let AC=null,mg,riverG,rainG,windG,padG,padF,pads=[],lastStep=-1,lastBar=-1,lastChirp=-99;
 const CH=[[57,60,64],[53,57,60],[48,52,55],[55,59,62]],mf=n=>440*Math.pow(2,(n-69)/12);
 function audioInit(){try{AC=new(window.AudioContext||window.webkitAudioContext)();mg=AC.createGain();mg.gain.value=.85;mg.connect(AC.destination);
 const nb=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
@@ -523,29 +624,34 @@ padF=AC.createBiquadFilter();padF.type='lowpass';padF.frequency.value=700;padG=A
 pads=[];for(let i=0;i<4;i++){const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=220;o.detune.value=(i-1.5)*7;o.connect(padF);o.start();pads.push(o)}}catch(e){AC=null}}
 function tone(f,v,d){const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(mg);o.start(t);o.stop(t+d+.05)}
 function chirp(){const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime,f=2200+Math.random()*1800;o.frequency.setValueAtTime(f,t);o.frequency.exponentialRampToValueAtTime(f*1.5,t+.1);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(.02,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.14);o.connect(g);g.connect(mg);o.start(t);o.stop(t+.16)}
+function bell(){const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.08,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+2.5);o.connect(g);g.connect(mg);o.start(t);o.stop(t+2.6)}
 function audio(){if(!AC||!soundOn)return;const t=AC.currentTime;
 const I=T<62?.25+.15*sstep(30,62,T):T<95?.4+.3*sstep(62,95,T):T<132?.7+.3*sstep(95,115,T):T<158?.65:.65+.35*sstep(160,186,T);
-mg.gain.setTargetAtTime(.85*(1-sstep(196,204,T)),t,.2);
+mg.gain.setTargetAtTime(.85*(1-sstep(202,210,T)),t,.2);
 riverG.gain.setTargetAtTime(T<62?.14:T<95?.06:.025,t,.5);rainG.gain.setTargetAtTime(mood.rain*.1,t,.3);windG.gain.setTargetAtTime(T<62?.07:.025,t,.5);
 padG.gain.setTargetAtTime(T<30?0:.012+.06*(I-.2)*(T>62?1:.4),t,1);padF.frequency.setTargetAtTime(500+1800*I,t,.5);
 const bar=Math.floor(T/4)%4,step=Math.floor(T/.5);
 if(bar!==lastBar){lastBar=bar;pads.forEach((o,i)=>o.frequency.setTargetAtTime(mf(CH[bar][i%3]-12+(i===3?12:0)),t,.4))}
 if(step!==lastStep){lastStep=step;if(T>3)tone(mf(CH[bar][[0,1,2,1,2,1,0,2][step%8]]+12),.06+.05*I,1.6)}
-if(T>96&&T<158&&Math.random()<dt*1.5)chirp()}
+if(T>96&&T<158&&T-lastChirp>1.2&&Math.random()<dt*1.2){lastChirp=T;chirp()}}
+let bellFired=false;
 
-/* ================= main update ================= */
+/* main update */
 function update(){
 const A=ageOf(T);applyMood(T);updateVeg(A,T);
 grass.visible=A>1;grass.material.opacity=clamp((A-1)/18);
 stream.visible=T>=93;streamMat.uniforms.alpha.value=sstep(93,100,T);
+const under=A>3;
+rocks.forEach(r=>r.visible=under);moss.visible=under;mossM.opacity=clamp((A-3)/10)*.7;mushrooms.forEach(m=>m.visible=A>10&&A<32);
+deadTreesGroup.visible=A>20;deadTrees.forEach(d=>d.visible=A>20);logs.forEach(l=>l.visible=A>20);
 for(const s of S){s.vis=false;s.aL=s.aR=s.hx=s.hy=s.kneel=undefined;s.walk=0}
 act.fill(0);
 [...deer,...ele].forEach(q=>q.g.visible=false);birds.forEach(b=>b.g.visible=false);bfl.forEach(b=>b.g.visible=false);
-leafProp.visible=false;dew.visible=false;snakes.visible=T<32;heroTree.visible=T>=95;
+leafProp.visible=false;dew.visible=false;snakes.visible=T<32;heroTree.visible=T>=95;firstSapling.visible=false;
 school.visible=plant.visible=false;groundCan.visible=false;bundle.visible=false;heroCan.visible=false;joinCans.forEach(c=>c.visible=false);
 setAge(OJ,1);
-// FIX #17: snakes rear up at T 28-31
-if(snakes.visible){snakeMeshes.forEach((s,i)=>{const rear=sstep(27,29,T)*(1-sstep(30,31.5,T));s.m.position.y=s.base+rear*.35;if(rear>0){s.m.rotation.z=Math.sin(T*3+i)*.25*rear}})}
+if(snakes.visible){snakeMeshes.forEach((s,i)=>{const rear=sstep(27,29,T)*(1-sstep(30,31.5,T));s.m.position.y=s.base+rear*.35;if(rear>0)s.m.rotation.z=Math.sin(T*3+i)*.25*rear})}
+
 if(T<32){ /* SCENE 1 */
  const wp=clamp((T-10)/14),jx=lerp(-40,-8,wp),jz=2+Math.sin(jx*.2)*.8;
  yj.vis=T>=6;setAge(YJ,0);
@@ -565,14 +671,22 @@ if(T<32){ /* SCENE 1 */
  }else{
   if(T<46.05)put(yj,-10,0,PI/2);
   if(T<51.6)mv(yj,lerp(-10,.95,clamp((T-46)/5.6)),0,2.2);else if(T<58)mv(yj,.95,0,1);else{const u=sstep(58,62,T);mv(yj,lerp(.95,2,u),lerp(0,5.7,u),1.3)}
-  // FIX #5: hero sapling snaps to 40% at T 53.2 for the planting beat
-  if(T>=52.4&&T<58){const snap=T>=53.2?1:sstep(52.4,53.2,T);yj.aR=-1;yj.aL=-.9;yj.hx=.3;
-    const hs=heroes[0],sa=grow(ageOf(T)-.5,snap*2.5,3);}
-  bundle.visible=T<52.4;yj.kneel=sstep(51.6,52.4,T)*(1-sstep(57.2,58,T));
   const gb=gY(1.65,0);
+  /* FIRST PLANT: sapling appears at T 52.6 and grows to full by T 55.5 */
+  if(T>=52.4&&T<62){firstSapling.visible=true;const sAge=(T-52.6)/2.9;const sg=sAge<=0?0.001:clamp(sAge);firstSapling.scale.setScalar(Math.max(.001,sg));firstSapling.rotation.y=Math.sin(T*.9)*.06}
+  bundle.visible=T<52.4;
+  yj.kneel=sstep(51.6,52.4,T)*(1-sstep(57.2,58,T));
+  if(T>=51.6&&T<58){
+    const bt=(T-51.6)/6.4;
+    if(bt<.10){yj.aL=-.4;yj.aR=-.4;yj.hx=.55}
+    else if(bt<.20){yj.aL=-1.35;yj.aR=-1.35;yj.hx=.35}
+    else if(bt<.32){yj.aL=-1.15;yj.aR=-1.15;yj.hx=.1}
+    else if(bt<.48){yj.aL=-.9;yj.aR=-.9;yj.hx=-.25}
+    else if(bt<.62){yj.aL=-1.35;yj.aR=-1.35;yj.hx=.3}
+    else{yj.aL=-.3;yj.aR=-.3;yj.hx=.1;yj.hy=0}
+  }
   if(T<51.5){dp.set(yj.x-.5,yj.y+1.35,yj.z-6);dl.set(yj.x+1.5,yj.y+.9,yj.z);shot(6,1)}
   else if(T<58){dp.set(1.5,gb+.55,1.1);dl.set(1.65,gb+.12,0);shot(7,1);
-   // FIX #7: dew grows from 0
    if(T>54.4&&T<55.9){const p=clamp((T-54.4)/1.5),sc=Math.sin(Math.min(1,p*1.4)*Math.PI*.5)*.03*(1-sstep(.85,1,p));setDew(1.62,gb+lerp(.7,.06,p*p),.02,Math.max(sc,.001),sc>.002)}}
   else{const u=sstep(58,62,T);lv(dp,[1.5,gb+.55,1.1],[3.6,gb+1.7,3.6],u);dl.set(1.65,gb+lerp(.12,1,u),0);shot(8,1)}
  }
@@ -589,16 +703,27 @@ if(T<32){ /* SCENE 1 */
  else if(T<86){dp.set(-7,gY(-7,9)+3,9);dl.set(3,gl+2.2,2);shot(12,1-Math.exp(-dt*1.5))}
  else if(T<90.5){dp.set(yj.x-5,yj.y+1.1,yj.z-5);dl.set(yj.x+2,yj.y+1.6,yj.z);shot(13,1-Math.exp(-dt*2))}
  else{dp.set(-18,gY(-18,14)+4.5,14);dl.set(4,gl+3.5,2);shot(14,1-Math.exp(-dt*1.2))}
+ if(T>=85&&T<90){deer[0].g.visible=true;deer[1].g.visible=true;
+   const ph2=T-85,x1=-30+ph2*2,x2=-40+ph2*2.2;
+   deer[0].g.position.set(x1,gY(x1,cz(x1)+6),cz(x1)+6);deer[0].g.rotation.y=PI/2;gait(deer[0],T*3.2);
+   deer[1].g.position.set(x2,gY(x2,cz(x2)+8),cz(x2)+8);deer[1].g.rotation.y=PI/2;gait(deer[1],T*2.8+1);
+   if(!birds[11].g.visible){const t=perch[0];if(t){birds[11].g.visible=true;birds[11].g.position.set(t.x,t.y+t.H*.94+t.R*.75,t.z);birds[11].g.rotation.y=t.rot}}
+ }
 }else if(T<132){ /* SCENE 4 */
  const ph=T-96;
- // FIX #18: deer gait synced to elapsed time, not world position
  deer.forEach((q,i)=>{const x=-84+i*2.6+1.1*ph,z=cz(x)+5.2+(i%2)*1.3;q.g.visible=true;q.g.position.set(x,gY(x,z),z);q.g.rotation.y=PI/2+(i%2?.12:-.12);gait(q,T*3.2+i*.7)});
- ele.forEach((q,i)=>{const x=-24+i*3+.8*ph,z=cz(x)-5.8-i*.7;q.g.visible=true;q.g.position.set(x,gY(x,z),z);q.g.rotation.y=PI/2;gait(q,T*2.0+i*.9)});
+ ele.forEach((q,i)=>{let x,z;const isCalf=i===3;
+  if(isCalf){const lead=ele[1];if(lead.g.visible){x=lead.g.position.x-.9;z=lead.g.position.z+.6}else{x=-24+.8*ph;z=cz(x)-5.8}}
+  else{x=-24+i*3+.8*ph;z=cz(x)-5.8-i*.7}
+  q.g.visible=true;q.g.position.set(x,gY(x,z),z);q.g.rotation.y=PI/2;gait(q,T*(isCalf?3.0:2.0)+i*.9);
+  if(i===0&&q.extras.trunk){const curl=sstep(111,113,T)*(1-sstep(114,116,T));q.extras.trunk.rotation.x=.25-curl*.6}
+  if(i===2&&q.extras.ears){q.extras.ears.forEach(e=>{e.scale.y=1+.12*Math.sin(T*2.4)})}
+ });
  birds.forEach((b,i)=>{b.g.visible=true;let f;
-  if(i<6){const cx=-50+i*14,a=T*.35+i*1.3;b.g.position.set(cx+14*Math.cos(a),12+3*Math.sin(a*2+i),cz(cx)+14*Math.sin(a));b.g.rotation.y=Math.atan2(-Math.sin(a),Math.cos(a));f=Math.sin(T*12+i)*.8}
-  else{const t=perch[i-6];if(!t){b.g.visible=false;return}b.g.position.set(t.x,t.y+t.H*.94+t.R*.75,t.z);b.g.rotation.y=t.rot;f=.35+Math.sin(T*.8+i)*.05}
+  if(i<6){const cx=-50+i*14,a=T*.35+i*1.3;b.g.position.set(cx+14*Math.cos(a),12+3*Math.sin(a*2+i),cz(cx)+14*Math.sin(a));b.g.rotation.y=Math.atan2(-Math.sin(a),Math.cos(a));b.g.rotation.z=Math.sin(T*4+i)*.2;b.g.position.y+=Math.sin(T*2.5+i)*.15;f=Math.sin(T*12+i)*.8}
+  else{const t=perch[i-6];if(!t){b.g.visible=false;return}b.g.position.set(t.x,t.y+t.H*.94+t.R*.75+Math.sin(T*1.8+i)*.05,t.z);b.g.rotation.y=t.rot;b.g.rotation.x=Math.sin(T*1.2+i)*.08;f=.35+Math.sin(T*.8+i)*.05}
   b.w[0].rotation.z=-f;b.w[1].rotation.z=f});
- bfl.forEach((b,i)=>{b.g.visible=T>98;const x0=-100+i*9,x=x0+3*Math.sin(T*.7+i);b.g.position.set(x,gY(x,cz(x))+1.4+.6*Math.sin(T*1.3+i*2),cz(x)+(i%2?4.5:-4.5)+2*Math.cos(T*.5+i*1.7));b.g.rotation.y=T*.6+i;const f=Math.sin(T*14+i*3)*.9;b.w[0].rotation.z=-f;b.w[1].rotation.z=f});
+ bfl.forEach((b,i)=>{b.g.visible=T>98;const x0=-100+i*9,x=x0+3*Math.sin(T*.7+i);b.g.position.set(x,gY(x,cz(x))+1.4+.6*Math.sin(T*1.3+i*2),cz(x)+(i%2?4.5:-4.5)+2*Math.cos(T*.5+i*1.7));b.g.rotation.y=T*.6+i;b.g.rotation.z=Math.sin(T*3+i)*.15;const f=Math.sin(T*14+i*3)*.9;b.w[0].rotation.z=-f;b.w[1].rotation.z=f});
  if(T<104){const u=E((T-95)/9);lv(dp,[80,260,140],[-90,5,cz(-90)+3],u);lv(dl,[0,0,0],[-76,3,cz(-76)],u);shot(40,1)}
  else if(T<126){const x=-90+(T-104)*(100/22);dp.set(x,3.1+Math.sin(T*.8)*.25,cz(x)+Math.sin(T*.4)*2.2);dl.set(x+14,2.6,cz(x+14)+.5);shot(41,1)}
  else{const u=E((T-126)/6);lv(dp,[10,3,cz(10)],[30,75,45],u);lv(dl,[24,2.6,cz(24)],[0,0,0],u);shot(42,1)}
@@ -611,14 +736,14 @@ if(T<32){ /* SCENE 1 */
  if(T>=139&&T<146)oj.aR=lerp(0,-1.45,sstep(139,140.5,T));
  else if(T>=146&&T<152){oj.aL=-.5+Math.sin(T*2)*.25;oj.aR=-.3}
  oj.hx=.05-.25*sstep(152,154,T);
- liS.forEach((s,i)=>{if(T>=139.2){const a=-.9+i*.257,x=ox-5*Math.cos(a),z=6+5*Math.sin(a);put(s,x,z,Math.atan2(ox-x,6-z));s.vis=true;s.hx=Math.sin(T*1.3+i)*.05}});
+ liS.forEach((s,i)=>{if(T>=139.2){const a=-.9+i*.257,x=ox-5*Math.cos(a),z=6+5*Math.sin(a);put(s,x,z,Math.atan2(ox-x,6-z));s.vis=true;s.hx=Math.sin(T*1.3+i)*.05;s.hy=Math.sin(T+i)*.08}});
  if(T<139){dp.set(oj.x+.5,oj.y+1.5,oj.z-6);dl.set(oj.x+.8,oj.y+1.3,oj.z);shot(50,1-Math.exp(-dt*2.5))}
  else if(T<146){dp.set(35,gt+1.5,3.4);dl.set(36.3,gt+1.3,6);shot(51,1)}
  else if(T<152){dp.set(38.2,gt+1.8,8.4);dl.set(30,gt+1.4,6);shot(52,1)}
  else{dp.set(35.9,gt+1.6,4.2);dl.set(35.9,gt+1.6+.1*sstep(152,158,T),6);shot(53,1)}
 }else if(T<166){ /* SCENE 6a: leaf */
  const Lx=-20,Lz=cz(-20)+4.5,Ly=gY(Lx,Lz)+1.3,u=E(clamp((T-158)/8));
- leafProp.visible=true;leafProp.position.set(Lx,Ly,Lz);leafProp.rotation.set(0,.6,0);leafProp.scale.setScalar(.5);
+ leafProp.visible=true;leafProp.position.set(Lx,Ly,Lz);leafProp.rotation.set(0,.6+Math.sin(T*.7)*.1,Math.sin(T*.9)*.08);leafProp.scale.setScalar(.5);
  if(T<165){const p=clamp((T-158)/7),dp2=Math.sin(Math.min(1,p*1.4)*Math.PI*.5)*.045*(1-sstep(.85,1,p));setDew(Lx,Ly,Lz+.02,Math.max(dp2,.001),dp2>.002)}
  lv(dp,[Lx,Ly+.1,Lz+.9],[Lx-10,Ly+13,Lz+20],u);lv(dl,[Lx,Ly,Lz],[Lx+6,3,Lz-18],u);shot(60,1);
 }else{ /* SCENE 6b: students */
@@ -636,7 +761,11 @@ if(T<32){ /* SCENE 1 */
  [[4,1.2,178],[3,2.4,178.5],[10,3.6,179],[6,4.8,180.5],[7,5.6,181]].forEach(([i,phi,t0],k)=>{const s=stS[i],[tx,tz]=ring(phi),[sx,sz]=sp0(i);
   if(k<3)joinCans[k].visible=T>=t0;
   if(T>=t0){const u=sstep(t0,t0+4.5,T);mv(s,lerp(sx,tx,u),lerp(sz,tz,u),1.6);
-   if(u>=1){s.ry=faceP(tx,tz);if(k<3){s.aR=-1.15;joinCans[k].rotation.x=-.35;act[2+k]=1}else{s.kneel=1;s.aR=-1;s.hx=.3}}}});
+   if(u>=1){
+     if(k<3){s.ry=faceP(tx,tz);s.aR=-1.15;joinCans[k].rotation.x=-.35;act[2+k]=1}
+     else if(i===6){s.kneel=1;s.aR=-1;s.hx=.3}
+     else{s.kneel=0;s.aR=-.6;s.hx=.15;s.hy=Math.sin(T*2)*.3}
+   }}});
  plant.scale.setScalar(1+.5*sstep(178,189,T));
  const g6=gY(28,8);
  if(T<172){dp.set(40.5-(T-166)*.2,g6+2,6.5);dl.set(26,g6+2,6);shot(61,1)}
@@ -647,10 +776,10 @@ if(T<32){ /* SCENE 1 */
 /* poses */
 pose(YJ,yj,T);pose(OJ,oj,T);pose(OFF,offS,T);
 listeners.forEach((P,i)=>pose(P,liS[i],T));students.forEach((P,i)=>pose(P,stS[i],T));
-/* rain — FIX #15: depth-aware opacity via fog uniforms */
+/* rain */
 const rr=mood.rain;rainL.visible=rr>.04;
 if(rainL.visible){rainL.material.opacity=.55*rr;for(let i=0;i<RN;i++){const x=cp.x+rs[i*3],y=cp.y-12+mod(rs[i*3+1]-T*26,30),z=cp.z+rs[i*3+2],o=i*6;rb[o]=x;rb[o+1]=y;rb[o+2]=z;rb[o+3]=x+.15;rb[o+4]=y-.9;rb[o+5]=z+.05}rg.attributes.position.needsUpdate=true}
-/* water drops — FIX #6: spout local +Z via quaternion */
+/* drops */
 srcs.forEach((sp,j)=>{if(act[j]){sp.getWorldPosition(_p);sp.getWorldQuaternion(_lq);_d.set(0,0,1).applyQuaternion(_lq)}for(let k=0;k<NPD;k++){const o=(j*NPD+k)*3;if(!act[j]){dpos[o+1]=-999;continue}const ph=(T*1.5+k/NPD)%1;dpos[o]=_p.x+_d.x*ph*.6;dpos[o+1]=_p.y+_d.y*ph*.6-ph*ph*1.2;dpos[o+2]=_p.z+_d.z*ph*.6}});
 dgeo.attributes.position.needsUpdate=true;
 /* sun + camera */
@@ -658,28 +787,33 @@ sun.target.position.set(cl.x,0,cl.z);sun.position.set(cl.x,0,cl.z).addScaledVect
 camCollide(dp,cl);
 camera.position.copy(cp);camera.lookAt(cl);
 /* overlays */
-let f=1-sstep(.4,4.5,T);for(const b of[32,62,132,158])f=Math.max(f,1-sstep(0,.45,Math.abs(T-b)));f=Math.max(f,sstep(188.4,189.6,T));
+let f=1-sstep(.4,4.5,T);for(const b of[32,62,132,158])f=Math.max(f,1-sstep(0,.45,Math.abs(T-b)));f=Math.max(f,sstep(196.4,197.6,T));
 $('#fade').style.opacity=f;
 const wp=clamp((T-93.8)/2);$('#wipe div').style.transform=`translateX(${lerp(120,-120,wp)}%) skewX(-14deg)`;$('#wipe svg').style.opacity=T>93.8&&T<95.8?Math.sin(PI*wp):0;
 const on=(id,c)=>$(id).classList.toggle('on',c);
-// FIX #20: stagger overlay cards + medal post-reveal hold
 on('#medal',T>=143&&T<146);on('#p1',T>=144.2&&T<156);on('#p2',T>=145.7&&T<156);on('#p3',T>=147.2&&T<156);
-$('#end').style.opacity=T>=189.4?1:0;
-on('#eleaf',T>=191&&T<197.6);on('#l1',T>=192.4&&T<197.6);on('#l2',T>=194&&T<197.6);on('#l3',T>=195.6&&T<197.6);on('#ask',T>=198&&T<200.8);on('#fin',T>=201);
+capEl.textContent='≈ 770 football fields';on('#cap',T>=114.5&&T<120);
+$('#end').style.opacity=T>=197.2?1:0;
+on('#eleaf',T>=198&&T<204.4);on('#l1',T>=199.2&&T<204.4);on('#l2',T>=200.4&&T<204.4);on('#l3',T>=201.6&&T<204.4);on('#ask',T>=203.6&&T<206.4);on('#fin',T>=206.6);on('#credit',T>=207.2);
+if(T>=203.6&&!bellFired&&AC&&soundOn){bellFired=true;bell()}
 /* subtitles + voice */
 while(cueI<CUES.length&&T>=CUES[cueI][0]){const c=CUES[cueI++];subEl.textContent=c[1];subEnd=T+c[1].split(' ').length/2.4+.7;say(c[1])}
 subEl.style.opacity=T<subEnd?1:0;subEl.classList.toggle('on',T<subEnd);
 }
 
-/* ================= control ================= */
-function resetState(){T=0;pathU=0;yjK=0;lastShot=-1;cueI=0;subEnd=0;lastStep=-1;lastBar=-1;sunLock=-1;
-for(const s of S){s.x=s.z=s.y=s.ry=s.dist=s.walk=0;s._px=undefined}
+/* control */
+function resetState(){T=0;pathU=0;yjK=0;lastShot=-1;cueI=0;subEnd=0;lastStep=-1;lastBar=-1;sunLock=-1;bellFired=false;lastChirp=-99;
+for(const s of S){s.x=s.z=s.y=s.ry=s.dist=s.walk=0}
 subEl.style.opacity=0;$('#end').style.opacity=0;document.querySelectorAll('#end>*').forEach(e=>e.classList.remove('on'));
+capEl.classList.remove('on');
 cp.set(0,420,260);cl.set(0,0,0)}
-function start(){started=true;stage.style.visibility='visible';
+function start(){started=true;
 try{const r=document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();r&&r.catch&&r.catch(()=>{});
 const o=screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape');o&&o.catch&&o.catch(()=>{})}catch(e){}
-layout();audioInit();if(AC&&AC.state==='suspended')AC.resume();
+layout();
+if(needPortrait()){return}
+stage.style.visibility='visible';
+audioInit();if(AC&&AC.state==='suspended')AC.resume();
 const m=$('#menu');m.style.opacity=0;setTimeout(()=>{if(started)m.style.display='none'},1000);
 $('#hud').classList.add('show');resetState();playing=true;last=performance.now()}
 function stop(){playing=false;started=false;window.speechSynthesis&&speechSynthesis.cancel();
