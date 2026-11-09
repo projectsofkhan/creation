@@ -26,7 +26,8 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
 #vign{background:radial-gradient(ellipse 62% 78% at 50% 48%,transparent 42%,rgba(0,0,0,.55) 100%);z-index:2}
 .bar{position:absolute;left:0;right:0;height:6.5%;background:#000;z-index:3}
 #fade{background:#000;opacity:1;z-index:8}
-#sub{position:absolute;left:8%;right:8%;bottom:9%;text-align:center;font-size:clamp(14px,2.5vw,30px);line-height:1.4;text-shadow:0 2px 10px #000,0 0 3px #000,0 0 2px #000;z-index:5;opacity:0;transition:opacity .5s}
+/* Subtitles made shorter / smaller */
+#sub{position:absolute;left:12%;right:12%;bottom:9%;text-align:center;font-size:clamp(11px,1.8vw,22px);line-height:1.4;text-shadow:0 2px 10px #000,0 0 3px #000,0 0 2px #000;z-index:5;opacity:0;transition:opacity .5s}
 #sub.on{background:linear-gradient(90deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.55) 12%,rgba(0,0,0,.55) 88%,rgba(0,0,0,0) 100%);padding:.35em 1.2em;border-radius:.4em}
 #tag{position:absolute;left:5%;bottom:10.5%;font-size:clamp(9px,1.3vw,15px);letter-spacing:.35em;opacity:0;transition:opacity 1s;z-index:5;text-shadow:0 1px 6px #000;display:none}
 #wipe{z-index:7;overflow:hidden}
@@ -44,15 +45,15 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
 #end{position:absolute;inset:0;background:#000;z-index:9;opacity:0;transition:opacity .8s;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
 #end>*{opacity:0;transition:opacity 1.8s;position:absolute}
 #end>.on{opacity:1}
-#eleaf{width:min(14vh,90px);top:26%}
+#eleaf{width:min(14vh,90px);top:22%}
 .line{font-size:clamp(20px,5vw,56px);letter-spacing:.3em;font-weight:400}
-#l1{top:38%}#l2{top:48%}#l3{top:58%}
-.ask{font-size:clamp(18px,4.2vw,46px);letter-spacing:.25em;color:#b9f2a6}
-.final{font-size:clamp(14px,2.6vw,30px);letter-spacing:.3em;line-height:2}
+#l1{top:36%}#l2{top:46%}#l3{top:56%}
+.ask{font-size:clamp(18px,4.2vw,46px);letter-spacing:.25em;color:#b9f2a6;top:66%}
+.final{font-size:clamp(14px,2.6vw,30px);letter-spacing:.3em;line-height:2;top:75%}
 .final b{font-weight:400;font-size:1.5em;letter-spacing:.2em}.final span{opacity:.7;font-size:.8em}
-#credit{position:absolute;left:0;right:0;bottom:9%;text-align:center;font-size:clamp(10px,1.6vw,18px);letter-spacing:.28em;line-height:2;color:#dfe9d0;z-index:10;opacity:0;transition:opacity 2s;pointer-events:none}
+#credit{position:absolute;left:0;right:0;top:90%;text-align:center;font-size:clamp(10px,1.4vw,16px);letter-spacing:.28em;line-height:1.8;color:#dfe9d0;z-index:10;opacity:0;transition:opacity 2s;pointer-events:none}
 #credit.on{opacity:1}
-#credit b{font-weight:400;font-size:1.35em;letter-spacing:.22em;color:#b9f2a6}
+#credit b{font-weight:400;font-size:1.3em;letter-spacing:.22em;color:#b9f2a6}
 #credit span{display:block;opacity:.7;font-size:.8em;letter-spacing:.2em;margin-top:6px}
 #cap{position:absolute;left:5%;right:5%;top:11%;text-align:center;font-size:clamp(11px,1.6vw,20px);letter-spacing:.2em;z-index:6;opacity:0;transition:opacity .8s;color:#e8f3d8;text-shadow:0 2px 8px #000;pointer-events:none}
 #cap.on{opacity:1}
@@ -89,7 +90,7 @@ html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:Geo
     <div class="line" id="l1">ONE MAN.</div><div class="line" id="l2">ONE MISSION.</div><div class="line" id="l3">ONE FOREST.</div>
     <div class="ask" id="ask">WHAT WILL YOU CHANGE?</div>
     <div class="final" id="fin">JADAV PAYENG<br><b>THE FOREST MAN OF INDIA</b><br><span>1963 – PRESENT</span></div>
-    <div id="credit"><b>ZEESHAN KHAN'S</b><span>HINDI ASSIGNMENT (ANNUAL)</span><span style="margin-top:14px;opacity:.55;font-size:.72em;letter-spacing:.25em">INSPIRED BY A REAL STORY</span></div>
+    <div id="credit"><b>ZEESHAN KHAN'S</b><span>HINDI ASSIGNMENT (ANNUAL)</span><span style="margin-top:8px;opacity:.55;font-size:.75em;letter-spacing:.25em">INSPIRED BY A REAL STORY</span></div>
   </div>
   <div id="hud"><button id="snd" title="Sound">🔊</button><button id="exit" title="Exit">✕</button></div>
 </div>
@@ -117,6 +118,7 @@ function groundY(x,z){const d=Math.hypot(x/260,z/90),m=1-sstep(.55,1,d),n=fbm(x*
 const C=h=>new THREE.Color(h);
 const white=new THREE.Color(1,1,1);
 const GYF={cache:new Map(),get(x,z){const k=(x|0)+','+(z|0);let v=this.cache.get(k);if(v===undefined){v=groundY(x,z);this.cache.set(k,v)}return v}};
+const gY=groundY;
 
 /* ================= renderer ================= */
 const renderer=new THREE.WebGLRenderer({canvas,antialias:!touch,powerPreference:'high-performance'});
@@ -133,7 +135,6 @@ function needPortrait(){return started&&touch&&innerHeight>innerWidth}
 function layout(){
   const W=innerWidth,H=innerHeight;
   $('#rot').classList.toggle('show',needPortrait());
-  // Always render landscape: on portrait phones we rotate the stage
   const portrait=H>W;
   const w=portrait?H:W,h=portrait?W:H;
   if(portrait&&touch){stage.style.width=w+'px';stage.style.height=h+'px';stage.style.transform=`translate(${W}px,0) rotate(90deg)`}
@@ -167,9 +168,7 @@ gl_FragColor=vec4(col,1.);
 }`});
 const sky=new THREE.Mesh(new THREE.SphereGeometry(1500,32,16),skyMat);sky.frustumCulled=false;sky.renderOrder=-10;scene.add(sky);
 
-/* ================= water =================
-   Rebuilt for visual stability: time-scaled flow (no jitter), stronger
-   riverlike palette, foam streaks near banks, no per-frame uniform jumps. */
+/* ================= water ================= */
 function makeWater(alpha,river){
   return new THREE.ShaderMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide,
   uniforms:{
@@ -188,10 +187,8 @@ float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h
 float fb(vec2 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*n(p);p*=2.03;a*=.5;}return s;}
 void main(){
   vec2 p=wp.xz;
-  // stable flow: single smooth drift, no jitter
   vec2 fp=p*vec2(1.,1.)+vec2(time*flow*.55,time*flow*.12);
   float n1=fb(fp*.35), n2=fb(fp*1.1+vec2(3.,7.));
-  // ripples via derivative of noise
   float e=.08;
   float dx=(fb(fp*.35+vec2(e,0.))-n1)/e;
   float dz=(fb(fp*.35+vec2(0.,e))-n1)/e;
@@ -200,16 +197,12 @@ void main(){
   vec3 V=normalize(cameraPosition-wp);
   float fr=pow(1.-max(dot(nrm,V),0.),3.);
   vec3 skyc=mix(hor,top,clamp(reflect(-V,nrm).y,0.,1.)*.8);
-  // river color: mix deep/shallow by slope
   float sl=clamp(.5+.5*n2,0.,1.);
   vec3 body=mix(deepCol,shallowCol,sl*.55+fr*.25);
   vec3 col=mix(body,skyc,clamp(.1+fr*.82,0.,1.));
-  // sun glints
   vec3 R=reflect(-sunDir,nrm);col+=sunCol*pow(max(dot(R,V),0.),180.)*2.4;
-  // foam streaks — visible near flow bands
   float foam=smoothstep(.72,.94,n2)*smoothstep(.1,.4,1.-fr);
   col=mix(col,vec3(.86,.94,.92),foam*.28);
-  // depth fog
   float dist=length(cameraPosition-wp);float f=1.-exp(-fogD*fogD*dist*dist);
   col=mix(col,fogCol,clamp(f,0.,1.));
   gl_FragColor=vec4(col,mix(.9,1.,fr)*alpha);
@@ -259,7 +252,7 @@ sun.shadow.mapSize.set(touch?1024:2048,touch?1024:2048);
 Object.assign(sun.shadow.camera,{left:-80,right:80,top:80,bottom:-80,near:1,far:600});
 sun.shadow.bias=-.0004;sun.shadow.normalBias=.3;scene.add(sun,sun.target);
 
-/* ================= moods (extended rain window) ================= */
+/* ================= moods ================= */
 const M=(t,el,az,si,sc,top,hor,fog,fd,hi,ex,cl,cc,rain)=>({t,el,az,si,sc:C(sc),top:C(top),hor:C(hor),fog:C(fog),fd,hi,ex,cl,cc:C(cc),rain});
 const MK=[
 M(0,60,215,3.4,0xfff0d2,0x3d84c8,0xf2dfb4,0xebdcb4,.0011,.8,1.05,.12,0xffffff,0),
@@ -309,14 +302,12 @@ const stalkGeo=new THREE.CylinderGeometry(.04,.06,1,5);stalkGeo.translate(0,.5,0
 const trunkMat=toon(0x6b4a30),stalkMat=toon(0x9bb83e);
 const palmLeafGeo=new THREE.PlaneGeometry(.3,1.6);palmLeafGeo.translate(0,.8,0);
 const fruitGeo=new THREE.SphereGeometry(.14,8,6);
-/* NEW bamboo leaf cluster geometry: 3 small blades fanned at top */
 const bamLeafGeo=(()=>{const sh=new THREE.Shape();sh.moveTo(0,0);sh.bezierCurveTo(.18,.05,.16,.6,0,.9);sh.bezierCurveTo(-.16,.6,-.18,.05,0,0);
   const g=new THREE.ShapeGeometry(sh,10);g.translate(0,.4,0);return g})();
 const bamLeafMat=toon(0x6ab02c,{side:THREE.DoubleSide,emissive:0x1a3a08,emissiveIntensity:.4});
 function inst(geo,mat,n,shadow=true){const m=new THREE.InstancedMesh(geo,mat,n);m.castShadow=shadow;m.receiveShadow=true;m.frustumCulled=false;m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);scene.add(m);return m}
 const TN=Math.floor(1300*Q),BN=Math.floor(800*Q),SN=Math.floor(1300*Q);
 const treeTrunk=inst(trunkGeo,trunkMat,TN),treeFolA=inst(foliageGeo,folMat,TN),treeFolB=inst(foliageGeo,folMat,TN);
-// bamboo: one clean stalk per instance + top leaves (replaces the 4-stem mess)
 const bamStalk=inst(new THREE.CylinderGeometry(.055,.075,1,6).translate(0,.5,0),toon(0x7fa82a),BN,false);
 const bamLeaf=inst(bamLeafGeo,bamLeafMat,BN*3,false);
 const shrubM=inst(foliageGeo,folMat,SN,false);
@@ -338,7 +329,6 @@ for(let i=0;i<TN;i++){
   trees.push(t);
   treeFolA.setColorAt(i,greens[i%5]);treeFolB.setColorAt(i,greens[(i+2)%5]);
 }
-// bamboo instances (single stalk + 3-leaf top)
 const heroes=[[1.65,0,0],[3.1,.6,.25],[2.3,-1.4,.4],[4.2,-.5,.55],[5.3,1.2,1.2],[6.6,-.9,5.45],[7.3,.4,6.45]];
 for(let i=0;i<BN;i++){let x,z,pa;const h=heroes[i];if(h){x=h[0];z=h[1];pa=h[2]}else{[x,z]=spot(.9);pa=.8+Math.hypot(x,z*1.6)*.045+rnd()*1.5}
   bambs.push({x,z,y:groundY(x,z),H:h?8.5:6+rnd()*4,pa,gd:3+rnd(),rot:rnd()*6.28,ph:rnd()*6.28,hf:.9+rnd()*.2});bamLeaf.setColorAt(i*3,lights[i%4]);bamLeaf.setColorAt(i*3+1,lights[(i+1)%4]);bamLeaf.setColorAt(i*3+2,lights[(i+2)%4])}
@@ -359,23 +349,19 @@ function updateVeg(age,T){
       dummy.position.set(0,-999,0);dummy.scale.setScalar(0);dummy.updateMatrix();
       treeFolA.setMatrixAt(i,dummy.matrix);treeFolB.setMatrixAt(i,dummy.matrix);
     }else{
-      // two-layer canopy with slight sway phase difference — livelier
       const swayA=Math.sin(T*1.15+t.ph)*.03*s, swayB=Math.sin(T*1.55+t.ph+1.2)*.045*s;
       dummy.position.set(t.x+sw*t.H*s+swayA*t.H*.1,t.y+t.H*s*.94,t.z+swayB*t.H*.06);dummy.rotation.set(swayA, t.rot, swayB);dummy.scale.set(t.R*S,t.R*S*.82,t.R*S);dummy.updateMatrix();treeFolA.setMatrixAt(i,dummy.matrix);
       dummy.position.set(t.x+Math.cos(t.rot)*t.R*S*.5,t.y+t.H*s*.76,t.z+Math.sin(t.rot)*t.R*S*.4);dummy.rotation.set(0,t.rot,0);dummy.scale.set(t.R*S*.72,t.R*S*.6,t.R*S*.72);dummy.updateMatrix();treeFolB.setMatrixAt(i,dummy.matrix)}
   }
-  // palms with swaying fronds
   palms.forEach((p,k)=>{const t=p.t,s=grow(age,t.pa,t.gd),S=Math.max(s,.0001),H=t.H*s;
     for(let j=0;j<8;j++){const a=j/8*Math.PI*2;const sway=Math.sin(T*1.3+j+t.ph)*.08*s;
       dummy.position.set(t.x+Math.cos(a)*.15,t.y+H*.9,t.z+Math.sin(a)*.15);dummy.rotation.set(-1.1+Math.sin(T*.8+j)*.06,a+sway,sstep(0,1,S)*(1.1-Math.abs(Math.cos(a))*.3));dummy.scale.set(.6+s*.4,1*s,1);dummy.updateMatrix();palmFoliage.setMatrixAt(p.idx,dummy.matrix)}}
   );
   fruits.forEach(fr=>{const t=fr.t,s=grow(age,t.pa,t.gd);if(s<.85){dummy.position.set(0,-999,0);dummy.scale.setScalar(0);dummy.updateMatrix();fruitDots.setMatrixAt(fr.idx,dummy.matrix);return}
     const a=(fr.off/3)*Math.PI*2+t.rot,R=t.R*s*.9;dummy.position.set(t.x+Math.cos(a)*R*.6,t.y+t.H*s*.85+Math.sin(a*2)*.3,t.z+Math.sin(a)*R*.6);dummy.scale.setScalar(.7);dummy.updateMatrix();fruitDots.setMatrixAt(fr.idx,dummy.matrix)});
-  // NEW BAMBOO: one clean stalk, three leaves at top, gentle sway
   for(let i=0;i<BN;i++){const b=bambs[i],s=grow(age,b.pa,b.gd),S=Math.max(s,.0001);
     const sway=Math.sin(T*1.35+b.ph)*.045*s;
     dummy.position.set(b.x,b.y-.05,b.z);dummy.rotation.set(sway*.6,b.rot,sway);dummy.scale.set(.9+.3*s,Math.max(.0001,b.H*b.hf*s),.9+.3*s);dummy.updateMatrix();bamStalk.setMatrixAt(i,dummy.matrix);
-    // three leaves fanned at the top, rotating gently
     for(let j=0;j<3;j++){const a=b.rot+j*2.09+Math.sin(T*.7+j)*.1;
       dummy.position.set(b.x+Math.cos(a)*.12,b.y+b.H*b.hf*s*.93,b.z+Math.sin(a)*.12);
       dummy.rotation.set(-.4+Math.sin(T*1.5+j)*.12,a+sway,Math.sin(T*1.2+j)*.1);
@@ -439,12 +425,10 @@ function pose(P,s,T){
   let rootY=Math.abs(Math.cos(ph))*.025*tw-.35*k-.66*sit;
   const lowestFoot=Math.min(yFootL,yFootR)-s.y;
   rootY+=Math.max(0,lowestFoot+footLift)*.6;
-  // breathing idle: subtle torso bob + head sway
   const idle=Math.sin(T*1.4+P.seed)*.008;
   P.root.position.y=rootY+idle;
   P.upper.rotation.x=k*.42+P.stoop+Math.sin(T*1.1+P.seed)*.008;
   P.upper.position.y=.78+Math.sin(T*1.8+P.seed)*.006;
-  // natural arm swing plus relaxed sway at rest
   const restSway=Math.sin(T*.9+P.seed)*.05*(1-tw);
   P.armL.rotation.x=(s.aL!==undefined?s.aL:-swA*.8)+restSway;
   P.armR.rotation.x=(s.aR!==undefined?s.aR:swA*.8)-restSway;
@@ -466,16 +450,16 @@ const clay=toon(0xa5502c);
 const pot=new THREE.Group();add2(new THREE.SphereGeometry(.13,12,10),clay,pot).scale.y=.9;add2(new THREE.CylinderGeometry(.05,.07,.08,10),clay,pot,0,.12,0);
 const sp=add2(new THREE.CylinderGeometry(.018,.03,.14,8),clay,pot,0,.04,.14);sp.rotation.x=Math.PI/2;
 const potSpout=new THREE.Object3D();potSpout.position.set(0,.05,.22);pot.add(potSpout);pot.position.set(0,-.6,.14);YJ.armL.add(pot);
-/* single-stalk sapling bundle to match new bamboo */
 const bundle=new THREE.Group();
 const bStalk=add2(new THREE.CylinderGeometry(.03,.04,.7,6),stalkMat,bundle,0,.35,0);
 for(let i=0;i<3;i++){const a=i*2.09;const lf=add2(bamLeafGeo,bamLeafMat,bundle,Math.cos(a)*.02,.68,Math.sin(a)*.02);lf.rotation.set(-.4,a,0);lf.scale.setScalar(.8)}
 bundle.position.set(0,-.55,.06);bundle.rotation.x=-.5;YJ.armR.add(bundle);
-/* single-stalk sapling for the first plant (heroes[0]) */
+
 const firstSapling=new THREE.Group();
 const fsStalk=add2(new THREE.CylinderGeometry(.035,.05,.85,6),stalkMat,firstSapling,0,.42,0);
 for(let i=0;i<3;i++){const a=i*2.09;const lf=add2(bamLeafGeo,bamLeafMat,firstSapling,Math.cos(a)*.03,.78,Math.sin(a)*.03);lf.rotation.set(-.4,a,0);lf.scale.setScalar(1.0)}
 firstSapling.position.set(1.65,gY(1.65,0),0);firstSapling.visible=false;scene.add(firstSapling);
+
 const canMat=toon(0x2f7a8c);
 function makeCan(){const g=new THREE.Group();add2(new THREE.CylinderGeometry(.12,.12,.2,12),canMat,g);const s=add2(new THREE.CylinderGeometry(.015,.02,.3,6),canMat,g,0,.05,.2);s.rotation.x=1.1;const t=add2(new THREE.TorusGeometry(.07,.01,6,10),canMat,g,0,.12,0);t.rotation.y=Math.PI/2;const sp=new THREE.Object3D();sp.position.set(0,.18,.34);sp.rotation.x=.9;g.add(sp);g.userData.spout=sp;return g}
 const heroCan=makeCan();heroCan.position.set(0,-.58,.14);students[5].armL.add(heroCan);
@@ -492,7 +476,6 @@ return g})();
 leafProp.visible=false;scene.add(leafProp);
 const dew=new THREE.Mesh(new THREE.SphereGeometry(1,14,10),new THREE.MeshStandardMaterial({color:0xcfefff,roughness:.05,transparent:true,opacity:.8}));dew.visible=false;scene.add(dew);
 function setDew(x,y,z,scl,vis){dew.visible=!!vis;if(vis){dew.scale.setScalar(scl);dew.position.set(x,y,z)}}
-const gY=groundY;
 
 /* set pieces */
 const snakes=new THREE.Group();const snakeMeshes=[];
@@ -537,11 +520,9 @@ const gait=(q,ph)=>q.legs.forEach((l,i)=>l.rotation.x=Math.sin(ph+(i%2?0:PI)+(i>
 const deer=[0,1,2,3].map(()=>makeQuad('d')),ele=[0,1,2].map(()=>makeQuad('e'));
 const calf=(()=>{const q=makeQuad('e');q.g.scale.setScalar(.5);return q})();
 ele.push(calf);
-/* birds: added body tilt, wing flap richer, gentle bob */
 const birds=[];for(let i=0;i<12;i++){const g=new THREE.Group(),m=toon(i%2?0xf3f3ee:0x3a3a3a),b=new THREE.Mesh(new THREE.SphereGeometry(.18,8,6),m);b.scale.set(.8,.7,1.5);g.add(b);const w=[-1,1].map(s=>{const p=new THREE.Group(),wm=new THREE.Mesh(new THREE.BoxGeometry(.5,.02,.22),m);wm.position.x=s*.25;p.add(wm);g.add(p);return p});g.visible=false;scene.add(g);birds.push({g,w})}
 const perchSeen=new Set();
 const perch=trees.filter((t,i)=>{if(t.pa+t.gd>9)return false;if(perchSeen.has(i))return false;perchSeen.add(i);return true}).slice(0,6);
-/* butterflies (V-wings) with vertical flutter */
 const bfl=[];for(let i=0;i<14;i++){const g=new THREE.Group(),m=new THREE.MeshBasicMaterial({color:[0xffb347,0xffe14d,0xffffff,0x7fc8ff][i%4],side:THREE.DoubleSide});const w=[-1,1].map(s=>{const p=new THREE.Group();const qL=new THREE.Mesh(new THREE.PlaneGeometry(.13,.16),m);qL.position.set(-.065,0,0);qL.rotation.x=-PI/2;const qR=new THREE.Mesh(new THREE.PlaneGeometry(.13,.16),m);qR.position.set(.065,0,0);qR.rotation.x=-PI/2;const fold=new THREE.Group();fold.add(qL,qR);fold.rotation.z=s*.35;p.add(fold);p.position.x=s*.11;p.rotation.x=-PI/2;g.add(p);return p});g.visible=false;scene.add(g);bfl.push({g,w})}
 
 /* rain + drops */
@@ -672,7 +653,6 @@ if(T<32){ /* SCENE 1 */
   if(T<46.05)put(yj,-10,0,PI/2);
   if(T<51.6)mv(yj,lerp(-10,.95,clamp((T-46)/5.6)),0,2.2);else if(T<58)mv(yj,.95,0,1);else{const u=sstep(58,62,T);mv(yj,lerp(.95,2,u),lerp(0,5.7,u),1.3)}
   const gb=gY(1.65,0);
-  /* FIRST PLANT: sapling appears at T 52.6 and grows to full by T 55.5 */
   if(T>=52.4&&T<62){firstSapling.visible=true;const sAge=(T-52.6)/2.9;const sg=sAge<=0?0.001:clamp(sAge);firstSapling.scale.setScalar(Math.max(.001,sg));firstSapling.rotation.y=Math.sin(T*.9)*.06}
   bundle.visible=T<52.4;
   yj.kneel=sstep(51.6,52.4,T)*(1-sstep(57.2,58,T));
