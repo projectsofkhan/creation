@@ -103,6 +103,9 @@ const keys={};
 const vel=new THREE.Vector3(); let onGround=true, bobT=0, stepAcc=0;
 let yaw=Math.PI, pitch=0;
 
+// -- MOVED LIGHT/MESH DECLARATIONS HERE TO PREVENT UNDEFINED ERRORS --
+let lampLight, fireLight, fireMesh;
+
 // ================= renderer / scene =================
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio,settings.qual==2?2:settings.qual==1?1.5:1));
@@ -229,19 +232,18 @@ const house=new THREE.Group();house.position.set(0,0,-20);scene.add(house);
  const vase=cyl(.2,.15,.5,M(0x5c7fa8),0,1.82,0,table);for(let i=0;i<5;i++){const f=new THREE.Mesh(new THREE.SphereGeometry(.12,6,4),M([0xffd34d,0xff7aa2,0xffffff][i%3]));f.position.set(Math.sin(i)*.2,2.25+Math.random()*.15,Math.cos(i)*.2);table.add(f);}
  // lamp
  const lamp=new THREE.Group();lamp.position.set(-6,.5,1);house.add(lamp);cyl(.15,.3,1.6,mats.darkWood,0,.8,0,lamp);const shade=cyl(.35,.6,.6,new THREE.MeshStandardMaterial({color:0xf5e0b0,emissive:0xffb050,emissiveIntensity:1}),0,1.8,0,lamp);
- lampLight.position.set(-6,2.6,-19);shade.userData.act='lamp';lamp.children[0].userData.act='lamp';
+ lampLight=new THREE.PointLight(0xffb060,0,14,1.6);scene.add(lampLight);lampLight.position.set(-6,2.6,-19);
+ shade.userData.act='lamp';lamp.children[0].userData.act='lamp';
  // fireplace
  const fp=new THREE.Group();fp.position.set(6,.5,-6.3);house.add(fp);box(3.4,3,1,mats.stone,0,1.5,0,fp);box(2,1.5,.5,M(0x1a1410),0,.8,.3,fp);
- fireMesh=new THREE.Mesh(new THREE.ConeGeometry(.5,1,8),new THREE.MeshBasicMaterial({color:0xffa030}));fireMesh.position.set(0,.8,.4);fp.add(fireMesh);fireLight.position.set(6,1.8,-25.5);
+ fireMesh=new THREE.Mesh(new THREE.ConeGeometry(.5,1,8),new THREE.MeshBasicMaterial({color:0xffa030}));fireMesh.position.set(0,.8,.4);fp.add(fireMesh);
+ fireLight=new THREE.PointLight(0xff7a20,2,10,1.5);scene.add(fireLight);fireLight.position.set(6,1.8,-25.5);
  // bookshelf
  const bs=new THREE.Group();bs.position.set(-1,.5,-6.5);house.add(bs);box(3,4,.6,mats.darkWood,0,2,0,bs);for(let r=0;r<4;r++)for(let i=0;i<9;i++)box(.25,.7+Math.random()*.2,.4,M(new THREE.Color().setHSL(Math.random(),.45,.35)),-1.2+i*.3,.5+r*.95,.1,bs,false);
  // rug
  const rug=new THREE.Mesh(new THREE.CircleGeometry(2.4,24).rotateX(-Math.PI/2),M(0xa04a3a));rug.position.set(1,.52,2);house.add(rug);
  addCol(0,-27,18,.6);addCol(-9,-20,.6,14);addCol(9,-20,.6,14);addCol(-5.25,-13,7.5,.6);addCol(5.25,-13,7.5,.6);addCol(-6,-24.5,3,4.5);addCol(2,-20,3,2);addCol(6,-26.3,3.4,1);}
-var lampLight=new THREE.PointLight(0xffb060,0,14,1.6);scene.add(lampLight);lampLight.position.set(-6,2.6,-19);
-var fireLight=new THREE.PointLight(0xff7a20,2,10,1.5);scene.add(fireLight);fireLight.position.set(6,1.8,-25.5);
-var fireMesh;
-// (note: var hoisting is intentional above, assigned before render loop starts)
+
 let lampOn=false;
 
 // --- Seed shed with jars
@@ -565,6 +567,7 @@ function isNight(){return S.time<.23||S.time>.8;}
 const skyDay=new THREE.Color(0x5ea6e0),skyNight=new THREE.Color(0x0a1230),skyDusk=new THREE.Color(0xe08a5a),botDay=new THREE.Color(0xdcecf2),botNight=new THREE.Color(0x1a2240),botDusk=new THREE.Color(0xf5c08a),rainSky=new THREE.Color(0x7a8890);
 const tmpC=new THREE.Color(),tmpC2=new THREE.Color();
 function updateSky(dt){
+ if(!started) return; // <--- ADDED THIS CHECK
  const ang=(S.time-.25)*Math.PI*2;const sy=Math.sin(ang),sx=Math.cos(ang);
  const sd=new THREE.Vector3(sx,sy,-.35).normalize();const px=camera.position.x,pz=camera.position.z;
  sun.position.set(px+sd.x*120,sd.y*120,pz+sd.z*120);sun.target.position.set(px,0,pz);
@@ -581,7 +584,11 @@ function updateSky(dt){
  renderer.toneMappingExposure=lerp(.75,1.05,day);
  const nightK=1-day;for(const l of lanterns)l.material.emissiveIntensity=nightK*3;for(const l of lanternLights)l.intensity=nightK*6;
  house.traverse(o=>{if(o.userData.win)o.material.emissiveIntensity=(nightK*.8+(lampOn?.8:0));});
- lampLight.intensity=lampOn?8:0;fireMesh.scale.set(1+Math.sin(tGlobal*13)*.1,1+Math.sin(tGlobal*17)*.2,1);fireLight.intensity=3+Math.sin(tGlobal*11)*.8+Math.sin(tGlobal*23)*.4;
+ if (lampLight) lampLight.intensity=lampOn?8:0;
+ if (fireMesh && fireLight) {
+   fireMesh.scale.set(1+Math.sin(tGlobal*13)*.1,1+Math.sin(tGlobal*17)*.2,1);
+   fireLight.intensity=3+Math.sin(tGlobal*11)*.8+Math.sin(tGlobal*23)*.4;
+ }
  fireflies.material.opacity=clamp(nightK*1.4-.4,0,1)*(1-rainAmt);
 }
 let tGlobal=0,birdT=3,cricketT=1;
